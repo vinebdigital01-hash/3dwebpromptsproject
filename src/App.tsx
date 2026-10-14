@@ -32,6 +32,12 @@ export default function App() {
   });
 
   useEffect(() => {
+    // Prevent browser auto-scroll restoration on refresh so page always starts cleanly at the top
+    if ('scrollRestoration' in history) {
+      history.scrollRestoration = 'manual';
+    }
+    window.scrollTo(0, 0);
+
     initAntiScraperShield();
 
     const handleHashChange = () => {

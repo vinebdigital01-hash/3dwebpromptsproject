@@ -212,14 +212,15 @@ export const StudioTheater: React.FC<StudioTheaterProps> = ({ onUnlockClick }) =
     current.videoUrl.toLowerCase().endsWith('.png') ||
     current.videoUrl.toLowerCase().endsWith('.gif');
 
-  // Automatically scroll the horizontal dock to center the randomly selected release card
+  // Automatically scroll only the horizontal dock container to center the release card (never touching window scroll)
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (dockRef.current) {
-        const activeEl = dockRef.current.querySelector<HTMLElement>('[data-active="true"]');
-        if (activeEl) {
-          activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-        }
+      const dock = dockRef.current;
+      if (!dock) return;
+      const activeEl = dock.querySelector<HTMLElement>('[data-active="true"]');
+      if (activeEl) {
+        const targetLeft = activeEl.offsetLeft - dock.offsetWidth / 2 + activeEl.offsetWidth / 2;
+        dock.scrollTo({ left: Math.max(0, targetLeft), behavior: 'smooth' });
       }
     }, 150);
     return () => clearTimeout(timer);
