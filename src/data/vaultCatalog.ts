@@ -469,6 +469,20 @@ export const TESTIMONIALS = [
     revenue: '₹14,50,000 Billed in 45 Days',
     avatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=150&auto=format&fit=crop&q=80',
     quote: 'The lifetime VIP pass at ₹2,999 is unreal value. 500+ prompts with full commercial and reseller rights allowed our agency to deliver turnkey 3D portfolios to luxury brands across Mumbai, Dubai, and Singapore.'
+  },
+  {
+    name: 'Farhan Siddiqui',
+    role: 'Co-Founder, Nexus Interactive (Dubai)',
+    revenue: '$34,000 Invoiced in Q1',
+    avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&auto=format&fit=crop&q=80',
+    quote: 'Deploying the Surgical Cardiology and Spatial CAD blueprints from the 500+ vault allowed us to pitch enterprise health-tech clients with working WebGL demos in under 24 hours. The closing rate skyrocketed.'
+  },
+  {
+    name: 'Liam Chen',
+    role: 'Design Engineer, Studio Kinetix (Singapore)',
+    revenue: '$19,200 Monthly Retainer',
+    avatar: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&auto=format&fit=crop&q=80',
+    quote: 'Having prompt syntax tailored for Claude 3.7 Sonnet saves us 40 hours per client build. Shading, physics, and canvas resizing are handled without tedious trial-and-error.'
   }
 ];
 

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Play, Pause, Lock, ArrowRight } from 'lucide-react';
+import { Play, Pause, Lock, ArrowRight, Shuffle, Sparkles } from 'lucide-react';
 import { sound } from '../lib/audioEngine';
 
 interface StudioTheaterProps {
@@ -194,19 +194,36 @@ export const RELEASES: FeatureRelease[] = [
 ];
 
 export const StudioTheater: React.FC<StudioTheaterProps> = ({ onUnlockClick }) => {
-  const [activeIdx, setActiveIdx] = useState<number>(0);
+  // Randomly select any reel on initial load instead of always showing 01 Apple Watch
+  const [activeIdx, setActiveIdx] = useState<number>(() => {
+    return Math.floor(Math.random() * RELEASES.length);
+  });
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
   const [isMuted, setIsMuted] = useState<boolean>(true);
   const [progress, setProgress] = useState<number>(0);
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
+  const dockRef = useRef<HTMLDivElement>(null);
 
   const current = RELEASES[activeIdx];
   const isImageMedia =
     current.videoUrl.toLowerCase().endsWith('.webp') ||
     current.videoUrl.toLowerCase().endsWith('.png') ||
     current.videoUrl.toLowerCase().endsWith('.gif');
+
+  // Automatically scroll the horizontal dock to center the randomly selected release card
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (dockRef.current) {
+        const activeEl = dockRef.current.querySelector<HTMLElement>('[data-active="true"]');
+        if (activeEl) {
+          activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+      }
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [activeIdx]);
 
   // Auto-play when user arrives at video, auto-pause when user scrolls away
   useEffect(() => {
@@ -249,6 +266,19 @@ export const StudioTheater: React.FC<StudioTheaterProps> = ({ onUnlockClick }) =
         playPromise.catch(() => {});
       }
     }
+  };
+
+  const handleRandomSelect = () => {
+    sound.playSweep();
+    setActiveIdx((prev) => {
+      let next = Math.floor(Math.random() * RELEASES.length);
+      if (next === prev && RELEASES.length > 1) {
+        next = (prev + 1) % RELEASES.length;
+      }
+      return next;
+    });
+    setIsPlaying(true);
+    setProgress(0);
   };
 
   const togglePlay = () => {
@@ -318,18 +348,34 @@ export const StudioTheater: React.FC<StudioTheaterProps> = ({ onUnlockClick }) =
           </p>
         </motion.div>
 
+        {/* Release Dock Header with Random Shuffle Trigger */}
+        <div className="flex items-center justify-between gap-3 mb-2 px-1">
+          <span className="text-[11px] sm:text-xs font-mono text-white/50 tracking-wider">
+            FEATURED CLIENT DELIVERABLES ({RELEASES.length})
+          </span>
+          <button
+            onClick={handleRandomSelect}
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white border border-blue-500/40 text-[11px] font-mono transition-all active:scale-95 shadow-sm"
+            title="Randomize and play a surprise 3D client reel"
+          >
+            <Shuffle className="w-3.5 h-3.5 text-blue-400" />
+            <span>Shuffle Random Reel</span>
+          </button>
+        </div>
+
         {/* Responsive Horizontal Release Dock (Touch-scrollable on mobile/tab) */}
         <div className="relative mb-6 sm:mb-8">
           {/* Subtle lateral gradient fades */}
           <div className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-[#050508] to-transparent z-10 sm:hidden" />
           <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-[#050508] to-transparent z-10 sm:hidden" />
 
-          <div className="flex items-center gap-2.5 overflow-x-auto pb-3 px-1 scrollbar-none snap-x touch-pan-x -mx-2 sm:mx-0">
+          <div ref={dockRef} className="flex items-center gap-2.5 overflow-x-auto pb-3 px-1 scrollbar-none snap-x touch-pan-x -mx-2 sm:mx-0">
             {RELEASES.map((item, idx) => {
               const isActive = activeIdx === idx;
               return (
                 <button
                   key={item.id}
+                  data-active={isActive ? 'true' : 'false'}
                   onClick={() => handleSelect(idx)}
                   onMouseEnter={() => sound.playHover()}
                   className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl text-left transition-all duration-300 relative border shrink-0 min-w-[140px] sm:min-w-[190px] snap-start ${
@@ -386,11 +432,12 @@ export const StudioTheater: React.FC<StudioTheaterProps> = ({ onUnlockClick }) =
                 key={current.videoUrl}
                 src={current.videoUrl}
                 poster={current.poster}
-                loop
+                autoPlay
                 muted={isMuted}
                 playsInline
                 preload="metadata"
                 onTimeUpdate={handleTimeUpdate}
+                onEnded={handleRandomSelect}
                 className="w-full h-full object-contain sm:object-cover bg-black"
               />
             )}
@@ -405,8 +452,21 @@ export const StudioTheater: React.FC<StudioTheaterProps> = ({ onUnlockClick }) =
                 <span className="text-blue-300 hidden sm:inline">{current.category}</span>
               </div>
 
-              {/* Action buttons (Mute, Fullscreen, Quality) */}
+              {/* Action buttons (Mute, Shuffle, Fullscreen, Quality) */}
               <div className="flex items-center gap-2 pointer-events-auto">
+                {/* Shuffle Button in Player */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRandomSelect();
+                  }}
+                  className="p-1.5 sm:p-2 rounded-full bg-black/75 hover:bg-blue-600 backdrop-blur-md text-white/80 hover:text-white border border-white/15 transition-all text-xs flex items-center gap-1 font-mono"
+                  title="Play Another Random Reel"
+                >
+                  <Shuffle className="w-3 h-3 text-blue-400" />
+                  <span className="hidden sm:inline text-[10px]">SHUFFLE</span>
+                </button>
+
                 {!isImageMedia && (
                   <button
                     onClick={toggleMute}

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Play, Pause, Maximize2, Copy, Check, ArrowUpRight, Sparkles, X, Volume2, VolumeX, ShieldCheck } from 'lucide-react';
@@ -299,15 +299,30 @@ interface ClientTransformationsProps {
   onUnlockClick: () => void;
 }
 
+// Fisher-Yates array shuffle to randomize client transformation deliverables across sessions
+function shuffleArray<T>(array: readonly T[]): T[] {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 export const ClientTransformations: React.FC<ClientTransformationsProps> = ({ onUnlockClick }) => {
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>('All');
   const [activeModalItem, setActiveModalItem] = useState<TransformationItem | null>(null);
   const [copyLeadItem, setCopyLeadItem] = useState<TransformationItem | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const filteredItems = activeCategory === 'All'
-    ? TRANSFORMATIONS
-    : TRANSFORMATIONS.filter(item => item.category === activeCategory);
+  // Pull content from shuffled array preventing the same deliverable from always appearing first
+  const shuffledTransformations = useMemo(() => shuffleArray(TRANSFORMATIONS), []);
+
+  const filteredItems = useMemo(() => {
+    return activeCategory === 'All'
+      ? shuffledTransformations
+      : shuffledTransformations.filter(item => item.category === activeCategory);
+  }, [activeCategory, shuffledTransformations]);
 
   const handleCopyPrompt = (item: TransformationItem) => {
     sound.playClick();
@@ -322,7 +337,7 @@ export const ClientTransformations: React.FC<ClientTransformationsProps> = ({ on
           <div>
             <div className="flex items-center gap-2 text-xs font-mono text-blue-400 uppercase tracking-widest mb-3">
               <span className="w-2 h-2 rounded-full bg-blue-500" />
-              <span>Real-World Proof of Work · {TRANSFORMATIONS.length} Client Case Studies</span>
+              <span>Real-World Proof of Work · {shuffledTransformations.length} Client Case Studies</span>
             </div>
             <h2 className="text-3xl sm:text-5xl font-bold tracking-tight text-white mb-4">
               Client Transformations. <span className="accent-text-gradient font-display italic font-normal">Command $15k–$55k</span> Per Build.
@@ -349,7 +364,7 @@ export const ClientTransformations: React.FC<ClientTransformationsProps> = ({ on
         {/* Category Filter Bar (Functional interactive buttons per frontend design) */}
         <div className="flex flex-wrap items-center gap-2 mb-10 pb-2">
           {(['All', 'Enterprise AI & SaaS', 'Spatial CAD & Hardware', 'Global FinTech & Quant', 'Avant-Garde Studio'] as CategoryFilter[]).map((cat) => {
-            const count = cat === 'All' ? TRANSFORMATIONS.length : TRANSFORMATIONS.filter(t => t.category === cat).length;
+            const count = cat === 'All' ? shuffledTransformations.length : shuffledTransformations.filter(t => t.category === cat).length;
             const isActive = activeCategory === cat;
 
             return (

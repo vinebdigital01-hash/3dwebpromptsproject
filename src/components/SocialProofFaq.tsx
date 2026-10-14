@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { ShieldCheck, ChevronDown, MessageSquare, ArrowRight, Award } from 'lucide-react';
 import { TESTIMONIALS, FAQS } from '../data/vaultCatalog';
@@ -8,8 +8,20 @@ interface SocialProofFaqProps {
   onUnlockClick: () => void;
 }
 
+// Fisher-Yates array shuffle to randomize items across sessions
+function shuffleArray<T>(array: readonly T[]): T[] {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 export const SocialProofFaq: React.FC<SocialProofFaqProps> = ({ onUnlockClick }) => {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  // Pull testimonials from shuffled array so the first card is always randomized
+  const shuffledTestimonials = useMemo(() => shuffleArray(TESTIMONIALS), []);
 
   const toggleFaq = (idx: number) => {
     sound.playClick();
@@ -65,9 +77,9 @@ export const SocialProofFaq: React.FC<SocialProofFaqProps> = ({ onUnlockClick })
           </p>
         </motion.div>
 
-        {/* Testimonials Grid (6 cards) with staggered whileInView */}
+        {/* Testimonials Grid (shuffled) with staggered whileInView */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-24">
-          {TESTIMONIALS.map((t, idx) => (
+          {shuffledTestimonials.map((t, idx) => (
             <motion.div
               key={idx}
               initial={{ opacity: 0, y: 35 }}

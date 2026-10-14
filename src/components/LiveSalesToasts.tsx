@@ -44,7 +44,8 @@ export const LiveSalesToasts: React.FC = () => {
   const [isPastHero, setIsPastHero] = useState<boolean>(false);
   const [isDismissed, setIsDismissed] = useState<boolean>(false);
 
-  const notificationIndexRef = useRef<number>(0);
+  // Start from a random customer so it never always shows the same first name
+  const notificationIndexRef = useRef<number>(Math.floor(Math.random() * INDIAN_PAKISTANI_FEED.length));
   const shownCountInBatchRef = useRef<number>(0);
   const batchTargetRef = useRef<number>(3); // Shows 3 or 4 notifications then spins loader
 
