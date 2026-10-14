@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Play, Pause, Lock, ArrowRight } from 'lucide-react';
 import { sound } from '../lib/audioEngine';
@@ -200,12 +200,42 @@ export const StudioTheater: React.FC<StudioTheaterProps> = ({ onUnlockClick }) =
   const [progress, setProgress] = useState<number>(0);
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
 
   const current = RELEASES[activeIdx];
   const isImageMedia =
     current.videoUrl.toLowerCase().endsWith('.webp') ||
     current.videoUrl.toLowerCase().endsWith('.png') ||
     current.videoUrl.toLowerCase().endsWith('.gif');
+
+  // Auto-play when user arrives at video, auto-pause when user scrolls away
+  useEffect(() => {
+    const target = sectionRef.current;
+    if (!target) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        const video = videoRef.current;
+        if (!video || isImageMedia) return;
+
+        if (entry.isIntersecting) {
+          const playPromise = video.play();
+          if (playPromise !== undefined) {
+            playPromise
+              .then(() => setIsPlaying(true))
+              .catch(() => {});
+          }
+        } else {
+          video.pause();
+          setIsPlaying(false);
+        }
+      },
+      { threshold: 0.25 }
+    );
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [activeIdx, isImageMedia]);
 
   const handleSelect = (idx: number) => {
     sound.playClick();
@@ -263,7 +293,7 @@ export const StudioTheater: React.FC<StudioTheaterProps> = ({ onUnlockClick }) =
   };
 
   return (
-    <section className="relative py-16 sm:py-24 md:py-28 bg-[#040407] border-t border-white/10 select-none overflow-hidden will-change-transform transform-gpu">
+    <section ref={sectionRef} className="relative py-16 sm:py-24 md:py-28 bg-[#040407] border-t border-white/10 select-none overflow-hidden will-change-transform transform-gpu">
       <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-16 relative z-10">
         {/* Editorial Eyebrow & Title */}
         <motion.div
@@ -356,10 +386,10 @@ export const StudioTheater: React.FC<StudioTheaterProps> = ({ onUnlockClick }) =
                 key={current.videoUrl}
                 src={current.videoUrl}
                 poster={current.poster}
-                autoPlay
                 loop
                 muted={isMuted}
                 playsInline
+                preload="metadata"
                 onTimeUpdate={handleTimeUpdate}
                 className="w-full h-full object-contain sm:object-cover bg-black"
               />

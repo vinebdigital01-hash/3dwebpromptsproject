@@ -143,7 +143,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSelectTier }) 
   };
 
   return (
-    <section id="pricing" className="relative py-24 sm:py-32 px-4 sm:px-8 lg:px-12 bg-[#050508] border-t border-white/5 will-change-transform transform-gpu">
+    <section id="pricing" className="relative py-24 sm:py-32 px-4 sm:px-8 lg:px-12 bg-[#050508] border-t border-white/5">
       <div className="max-w-7xl mx-auto relative z-10">
         {/* Flash Urgency Banner */}
         <motion.div

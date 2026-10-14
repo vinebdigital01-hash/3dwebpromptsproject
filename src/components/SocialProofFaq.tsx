@@ -17,7 +17,7 @@ export const SocialProofFaq: React.FC<SocialProofFaqProps> = ({ onUnlockClick })
   };
 
   return (
-    <section id="testimonials" className="relative py-24 sm:py-32 px-6 sm:px-10 lg:px-16 bg-[#050508] border-t border-white/5 will-change-transform transform-gpu">
+    <section id="testimonials" className="relative py-24 sm:py-32 px-6 sm:px-10 lg:px-16 bg-[#050508] border-t border-white/5">
       {/* Mesh Glow */}
       <div className="absolute top-1/4 left-1/4 w-[600px] h-[500px] bg-white/[0.02] rounded-full blur-[180px] pointer-events-none" />
 

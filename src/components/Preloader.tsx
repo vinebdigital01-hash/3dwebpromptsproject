@@ -12,15 +12,25 @@ export const Preloader: React.FC<PreloaderProps> = ({ onComplete }) => {
   const [isFading, setIsFading] = useState<boolean>(false);
 
   useEffect(() => {
+    // If coming from Meta Ads or previously visited in this session, bypass preloader for instant 0ms load
+    const isAdTraffic = window.location.search.includes('utm_') || window.location.search.includes('fbclid');
+    const hasVisited = sessionStorage.getItem('apex_visited');
+
+    if (isAdTraffic || hasVisited) {
+      onComplete();
+      return;
+    }
+
+    sessionStorage.setItem('apex_visited', 'true');
+
     const startTime = performance.now();
-    const duration = 2400; // ms
+    const duration = 450; // Ultra-snappy 450ms boot sequence
 
     let animId: number;
 
     const tick = (now: number) => {
       const elapsed = now - startTime;
       const progress = Math.min(elapsed / duration, 1);
-      // Easing out cubic
       const eased = 1 - Math.pow(1 - progress, 3);
       const current = Math.floor(eased * 100);
 
@@ -30,12 +40,10 @@ export const Preloader: React.FC<PreloaderProps> = ({ onComplete }) => {
         animId = requestAnimationFrame(tick);
       } else {
         setCount(100);
+        setIsFading(true);
         setTimeout(() => {
-          setIsFading(true);
-          setTimeout(() => {
-            onComplete();
-          }, 450);
-        }, 300);
+          onComplete();
+        }, 150);
       }
     };
 

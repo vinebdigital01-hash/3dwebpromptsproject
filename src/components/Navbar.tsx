@@ -171,7 +171,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onUnlockClick, onLeadMagnetClick
               }}
               className="hidden md:inline-flex px-3 py-1.5 rounded-full text-xs font-mono text-blue-300 hover:text-white bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 transition-all"
             >
-              Free Prompt (.PDF)
+              Free 30+ Prompts (.PDF)
             </button>
 
             {/* Unlock Access CTA (Bright Royal Blue & Indigo Button) */}
@@ -183,8 +183,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onUnlockClick, onLeadMagnetClick
               onMouseEnter={() => sound.playHover()}
               className="group relative inline-flex items-center gap-1 px-3 sm:px-5 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 transition-all active:scale-95 shadow-sm overflow-hidden"
             >
-              <span className="hidden sm:inline">Unlock Access</span>
-              <span className="sm:hidden font-bold">Unlock</span>
+              <span className="hidden sm:inline">Unlock Access @ ₹49</span>
+              <span className="sm:hidden font-bold">Unlock @ ₹49</span>
               <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
             </button>
 
@@ -248,7 +248,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onUnlockClick, onLeadMagnetClick
                 }}
                 className="w-full py-3 rounded-full text-xs font-mono text-white/70 border border-white/20"
               >
-                Get Free Sample Prompt (.PDF)
+                Get Free 30+ Prompts (.PDF)
               </button>
             </div>
           </div>

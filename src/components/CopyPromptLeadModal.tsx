@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Copy, User, Mail, Phone, Briefcase, GraduationCap, Building2, Check, ArrowRight, AlertCircle, Sparkles } from 'lucide-react';
 import { sound } from '../lib/audioEngine';
 
@@ -26,8 +27,34 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCopiedSuccess, setIsCopiedSuccess] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Lock body scroll and handle Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        sound.playClick();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
+  if (!isOpen || !mounted) return null;
 
   const validatePhone = (p: string) => {
     // Digits, spaces, dashes, parentheses, plus sign allowed; must have at least 7 digits
@@ -106,13 +133,19 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
     }, 700);
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-xl animate-role-fade-in select-none overflow-y-auto">
-      {/* Click outside backdrop */}
-      <div className="fixed inset-0" onClick={onClose} />
+  const modalContent = (
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 sm:p-6 select-none">
+      {/* Click outside backdrop with lightweight blur */}
+      <div
+        className="fixed inset-0 bg-black/85 backdrop-blur-sm transition-opacity"
+        onClick={() => {
+          sound.playClick();
+          onClose();
+        }}
+      />
 
       {/* Modal Dialog Plate */}
-      <div className="relative w-full max-w-lg glass-panel rounded-3xl bg-[#090914] border border-white/20 p-6 sm:p-8 text-white z-10 shadow-2xl shadow-black my-8 max-h-[92vh] overflow-y-auto">
+      <div className="relative w-full max-w-lg rounded-3xl bg-[#090914] border border-white/20 p-6 sm:p-8 text-white z-10 shadow-2xl shadow-black max-h-[92vh] overflow-y-auto">
         {/* Close Button */}
         <button
           onClick={() => {
@@ -310,4 +343,6 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 };

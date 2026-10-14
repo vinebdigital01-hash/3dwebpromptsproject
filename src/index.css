@@ -137,6 +137,25 @@
     cursor: none !important;
   }
 
+  /* Restore standard native system cursor for payment checkout & modals */
+  html.custom-cursor-enabled [data-standard-cursor],
+  html.custom-cursor-enabled [data-standard-cursor] *,
+  html.custom-cursor-enabled [role="dialog"],
+  html.custom-cursor-enabled [role="dialog"] * {
+    cursor: auto !important;
+  }
+
+  html.custom-cursor-enabled [data-standard-cursor] button,
+  html.custom-cursor-enabled [data-standard-cursor] a,
+  html.custom-cursor-enabled [data-standard-cursor] [role="button"],
+  html.custom-cursor-enabled [data-standard-cursor] .cursor-pointer,
+  html.custom-cursor-enabled [role="dialog"] button,
+  html.custom-cursor-enabled [role="dialog"] a,
+  html.custom-cursor-enabled [role="dialog"] [role="button"],
+  html.custom-cursor-enabled [role="dialog"] .cursor-pointer {
+    cursor: pointer !important;
+  }
+
   html.custom-cursor-enabled input,
   html.custom-cursor-enabled textarea,
   html.custom-cursor-enabled [contenteditable="true"] {
@@ -148,44 +167,36 @@
 .magnetic-cursor-ring {
   width: 32px;
   height: 32px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  backdrop-filter: blur(1px);
-  -webkit-backdrop-filter: blur(1px);
-  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-              height 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-              background-color 0.25s ease,
-              border-color 0.25s ease,
-              box-shadow 0.25s ease;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              height 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.2s ease,
+              border-color 0.2s ease,
+              box-shadow 0.2s ease;
 }
 
 .magnetic-cursor-ring[data-cursor-type="interactive"] {
-  width: 50px;
-  height: 50px;
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(255, 255, 255, 0.38);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.4);
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
 }
 
 .magnetic-cursor-ring[data-cursor-type="video"] {
-  width: 68px;
-  height: 68px;
-  background: rgba(8, 8, 14, 0.82);
-  border-color: rgba(255, 255, 255, 0.32);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65), 0 0 1px rgba(255, 255, 255, 0.35);
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
 }
 
 .magnetic-cursor-ring[data-cursor-type="drag"] {
-  width: 60px;
-  height: 60px;
-  background: rgba(8, 8, 14, 0.82);
-  border-color: rgba(255, 255, 255, 0.3);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  width: 58px;
+  height: 58px;
+  background: rgba(8, 8, 14, 0.94);
+  border-color: rgba(255, 255, 255, 0.35);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
 }
 

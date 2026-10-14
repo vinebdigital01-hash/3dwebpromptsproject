@@ -29,7 +29,6 @@ const ROLES = [
 export const Hero: React.FC<HeroProps> = ({ onUnlockClick, onTerminalClick }) => {
   const [roleIndex, setRoleIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const revealDivRef = useRef<HTMLDivElement>(null);
   const gridPatternRef = useRef<SVGGElement>(null);
 
@@ -189,43 +188,53 @@ export const Hero: React.FC<HeroProps> = ({ onUnlockClick, onTerminalClick }) =>
     return () => ctx.revert();
   }, []);
 
-  // Spotlight mask and grid parallax loop
+  // Spotlight mask and grid parallax loop (Hardware-accelerated CSS mask, zero canvas, zero base64)
   useEffect(() => {
     const container = containerRef.current;
-    const canvas = canvasRef.current;
     const revealDiv = revealDivRef.current;
-    if (!container || !canvas || !revealDiv) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!container || !revealDiv) return;
 
     let animId: number;
+    let isVisible = true;
+    let lastRenderX = -9999;
+    let lastRenderY = -9999;
 
-    const resize = () => {
-      canvas.width = revealDiv.clientWidth || container.clientWidth;
-      canvas.height = revealDiv.clientHeight || container.clientHeight;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        isVisible = entry.isIntersecting;
+      },
+      { threshold: 0.05 }
+    );
+    observer.observe(container);
+
+    let cachedRect: DOMRect = revealDiv.getBoundingClientRect();
+    const updateRect = () => {
+      if (revealDiv) cachedRect = revealDiv.getBoundingClientRect();
     };
-    resize();
-    window.addEventListener('resize', resize);
+    window.addEventListener('resize', updateRect, { passive: true });
 
     const onMouseMove = (e: MouseEvent) => {
-      const rect = revealDiv.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      const x = e.clientX - cachedRect.left;
+      const y = e.clientY - cachedRect.top;
       mousePos.current.targetX = x;
       mousePos.current.targetY = y;
 
-      const normX = x / rect.width - 0.5;
-      const normY = y / rect.height - 0.5;
+      const normX = x / (cachedRect.width || 1) - 0.5;
+      const normY = y / (cachedRect.height || 1) - 0.5;
       mousePos.current.gridTargetX = normX * 18;
       mousePos.current.gridTargetY = normY * 18;
     };
 
-    container.addEventListener('mousemove', onMouseMove);
+    container.addEventListener('mousemove', onMouseMove, { passive: true });
 
     const loop = () => {
-      mousePos.current.currentX += (mousePos.current.targetX - mousePos.current.currentX) * 0.1;
-      mousePos.current.currentY += (mousePos.current.targetY - mousePos.current.currentY) * 0.1;
+      if (!isVisible) {
+        animId = requestAnimationFrame(loop);
+        return;
+      }
+
+      mousePos.current.currentX += (mousePos.current.targetX - mousePos.current.currentX) * 0.12;
+      mousePos.current.currentY += (mousePos.current.targetY - mousePos.current.currentY) * 0.12;
 
       mousePos.current.gridX += (mousePos.current.gridTargetX - mousePos.current.gridX) * 0.06;
       mousePos.current.gridY += (mousePos.current.gridTargetY - mousePos.current.gridY) * 0.06;
@@ -233,49 +242,21 @@ export const Hero: React.FC<HeroProps> = ({ onUnlockClick, onTerminalClick }) =>
       if (gridPatternRef.current) {
         gridPatternRef.current.setAttribute(
           'transform',
-          `translate(${mousePos.current.gridX}, ${mousePos.current.gridY})`
+          `translate(${mousePos.current.gridX.toFixed(1)}, ${mousePos.current.gridY.toFixed(1)})`
         );
       }
 
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // Only update mask if cursor coordinates moved by > 0.5px
+      const curX = mousePos.current.currentX;
+      const curY = mousePos.current.currentY;
+      if (Math.abs(curX - lastRenderX) > 0.5 || Math.abs(curY - lastRenderY) > 0.5) {
+        lastRenderX = curX;
+        lastRenderY = curY;
 
-      if (mousePos.current.currentX > -100 && mousePos.current.currentY > -100) {
-        const radius = 260;
-        const grad = ctx.createRadialGradient(
-          mousePos.current.currentX,
-          mousePos.current.currentY,
-          0,
-          mousePos.current.currentX,
-          mousePos.current.currentY,
-          radius
-        );
-
-        grad.addColorStop(0, 'rgba(0, 0, 0, 1)');
-        grad.addColorStop(0.4, 'rgba(0, 0, 0, 1)');
-        grad.addColorStop(0.6, 'rgba(0, 0, 0, 0.75)');
-        grad.addColorStop(0.75, 'rgba(0, 0, 0, 0.4)');
-        grad.addColorStop(0.88, 'rgba(0, 0, 0, 0.12)');
-        grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-
-        ctx.fillStyle = grad;
-        ctx.beginPath();
-        ctx.arc(
-          mousePos.current.currentX,
-          mousePos.current.currentY,
-          radius,
-          0,
-          Math.PI * 2
-        );
-        ctx.fill();
-
-        try {
-          const maskUrl = canvas.toDataURL('image/png');
-          revealDiv.style.maskImage = `url(${maskUrl})`;
-          revealDiv.style.webkitMaskImage = `url(${maskUrl})`;
-          revealDiv.style.maskSize = '100% 100%';
-          revealDiv.style.webkitMaskSize = '100% 100%';
-        } catch {
-          // ignore
+        if (curX > -100 && curY > -100) {
+          const mask = `radial-gradient(circle 260px at ${curX.toFixed(1)}px ${curY.toFixed(1)}px, black 35%, rgba(0, 0, 0, 0.5) 60%, transparent 100%)`;
+          revealDiv.style.maskImage = mask;
+          revealDiv.style.webkitMaskImage = mask;
         }
       }
 
@@ -286,7 +267,8 @@ export const Hero: React.FC<HeroProps> = ({ onUnlockClick, onTerminalClick }) =>
 
     return () => {
       cancelAnimationFrame(animId);
-      window.removeEventListener('resize', resize);
+      observer.disconnect();
+      window.removeEventListener('resize', updateRect);
       container.removeEventListener('mousemove', onMouseMove);
     };
   }, []);
@@ -336,8 +318,6 @@ export const Hero: React.FC<HeroProps> = ({ onUnlockClick, onTerminalClick }) =>
         <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/80 to-black/30 z-20 pointer-events-none" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#050508] via-transparent to-black/60 z-20 pointer-events-none" />
 
-        {/* Hidden Canvas for Mask Generation */}
-        <canvas ref={canvasRef} className="hidden" />
 
         {/* Layer 3: Cursor Spotlight Reveal Layer (z-30) */}
         <div

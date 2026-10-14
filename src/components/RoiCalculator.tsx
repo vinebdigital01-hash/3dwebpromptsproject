@@ -19,7 +19,7 @@ export const RoiCalculator: React.FC<RoiCalculatorProps> = ({ onUnlockClick }) =
   const roiMultiplier = Math.round((profitDelta / lifetimeCost));
 
   return (
-    <section id="calculator" className="relative py-20 sm:py-28 md:py-32 px-4 sm:px-8 lg:px-16 bg-[#050508] border-t border-white/5 will-change-transform transform-gpu">
+    <section id="calculator" className="relative py-20 sm:py-28 md:py-32 px-4 sm:px-8 lg:px-16 bg-[#050508] border-t border-white/5">
       {/* Background glow */}
       <div className="absolute top-1/2 left-1/3 -translate-x-1/2 -translate-y-1/2 w-[320px] sm:w-[600px] h-[300px] sm:h-[500px] bg-blue-500/[0.03] rounded-full blur-[140px] pointer-events-none" />
 

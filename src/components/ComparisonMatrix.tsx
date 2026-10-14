@@ -50,7 +50,7 @@ export const ComparisonMatrix: React.FC = () => {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-60px' }}
       transition={{ duration: 0.75, ease: [0.16, 1, 0.3, 1] }}
-      className="relative py-20 sm:py-28 md:py-32 px-4 sm:px-8 lg:px-16 bg-[#050508] border-t border-white/5 will-change-transform transform-gpu"
+      className="relative py-20 sm:py-28 md:py-32 px-4 sm:px-8 lg:px-16 bg-[#050508] border-t border-white/5"
     >
       <div className="max-w-6xl mx-auto relative z-10">
         {/* Header */}

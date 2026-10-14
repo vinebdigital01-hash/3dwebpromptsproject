@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Lock, Terminal, Layers, Cpu, ArrowRight, Copy } from 'lucide-react';
 import { VaultItem } from '../data/vaultCatalog';
 import { sound } from '../lib/audioEngine';
@@ -12,8 +13,35 @@ interface PromptModalProps {
 
 export const PromptModal: React.FC<PromptModalProps> = ({ item, onClose, onUnlockClick }) => {
   const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  if (!item) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Lock body scroll and handle Escape key
+  useEffect(() => {
+    if (!item) return;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        sound.playClick();
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [item, onClose]);
+
+  if (!item || !mounted) return null;
 
   const handleUnlock = () => {
     sound.playSweep();
@@ -21,15 +49,18 @@ export const PromptModal: React.FC<PromptModalProps> = ({ item, onClose, onUnloc
     onUnlockClick();
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-2xl animate-role-fade-in overflow-y-auto select-none">
-      {/* Click outside backdrop */}
-      <div className="fixed inset-0" onClick={onClose} />
+  const modalContent = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 select-none">
+      {/* Click outside backdrop with lightweight, hardware-accelerated blur */}
+      <div
+        className="fixed inset-0 bg-black/85 backdrop-blur-sm transition-opacity"
+        onClick={onClose}
+      />
 
-      {/* Modal Plate */}
-      <div className="relative w-full max-w-4xl glass-panel rounded-3xl bg-[#090914] border border-white/15 p-6 sm:p-8 text-white z-10 shadow-2xl shadow-black my-8 max-h-[90vh] flex flex-col justify-between overflow-hidden">
+      {/* Modal Plate - Centered, performant GPU transform */}
+      <div className="relative w-full max-w-4xl rounded-3xl bg-[#090914] border border-white/15 p-6 sm:p-8 text-white z-10 shadow-2xl shadow-black max-h-[90vh] flex flex-col justify-between overflow-hidden">
         {/* Top Header */}
-        <div className="flex items-start justify-between gap-4 pb-6 border-b border-white/10">
+        <div className="flex items-start justify-between gap-4 pb-6 border-b border-white/10 shrink-0">
           <div>
             <div className="flex flex-wrap items-center gap-2 mb-2">
               <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-blue-500/15 text-blue-300 border border-blue-500/30">
@@ -55,13 +86,14 @@ export const PromptModal: React.FC<PromptModalProps> = ({ item, onClose, onUnloc
               sound.playClick();
               onClose();
             }}
-            className="p-2 rounded-full bg-white/5 hover:bg-white/15 text-white/70 hover:text-white transition-colors"
+            className="p-2 rounded-full bg-white/5 hover:bg-white/15 text-white/70 hover:text-white transition-colors shrink-0"
+            aria-label="Close modal"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Content Body */}
+        {/* Content Body with smooth scrolling */}
         <div className="py-6 space-y-6 overflow-y-auto pr-2">
           {/* Key Deliverables & Features */}
           <div>
@@ -71,7 +103,10 @@ export const PromptModal: React.FC<PromptModalProps> = ({ item, onClose, onUnloc
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {item.keyFeatures.map((feat, i) => (
-                <div key={i} className="flex items-start gap-2.5 text-xs text-white/80 bg-white/[0.02] p-3 rounded-xl border border-white/5 font-sans">
+                <div
+                  key={i}
+                  className="flex items-start gap-2.5 text-xs text-white/80 bg-white/[0.02] p-3 rounded-xl border border-white/5 font-sans"
+                >
                   <span className="text-blue-400 font-mono">0{i + 1}.</span>
                   <span>{feat}</span>
                 </div>
@@ -86,7 +121,10 @@ export const PromptModal: React.FC<PromptModalProps> = ({ item, onClose, onUnloc
               <span>Calibrated For:</span>
             </span>
             {item.testedModels.map((m) => (
-              <span key={m} className="px-2.5 py-1 rounded-md bg-white/5 border border-white/10 font-mono text-white/90">
+              <span
+                key={m}
+                className="px-2.5 py-1 rounded-md bg-white/5 border border-white/10 font-mono text-white/90"
+              >
                 {m}
               </span>
             ))}
@@ -145,7 +183,7 @@ export const PromptModal: React.FC<PromptModalProps> = ({ item, onClose, onUnloc
         </div>
 
         {/* Bottom Actions */}
-        <div className="pt-6 border-t border-white/10 flex flex-wrap items-center justify-between gap-4">
+        <div className="pt-6 border-t border-white/10 flex flex-wrap items-center justify-between gap-4 shrink-0">
           <div className="text-xs text-white/40 font-mono">
             Included in 1-Day Sprint (₹49), 1-Mo (₹299), 6-Mo (₹699) & Lifetime VIP (₹2,999)
           </div>
@@ -185,4 +223,6 @@ export const PromptModal: React.FC<PromptModalProps> = ({ item, onClose, onUnloc
       />
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 };

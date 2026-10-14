@@ -61,6 +61,11 @@ export const CustomMagneticCursor: React.FC = () => {
       }
     };
 
+    let lastInteractiveEl: HTMLElement | null = null;
+    let cachedCenterX = 0;
+    let cachedCenterY = 0;
+    let cachedIsCompact = false;
+
     const handleMouseMove = (e: MouseEvent) => {
       const { clientX, clientY } = e;
       state.mouseX = clientX;
@@ -70,6 +75,14 @@ export const CustomMagneticCursor: React.FC = () => {
       const target = e.target as HTMLElement | null;
       if (!target) return;
 
+      // 0. Inside payment modal or standard cursor container: hide custom cursor so native cursor works!
+      const isStandardCursorArea = target.closest('[data-standard-cursor], [role="dialog"], .standard-cursor');
+      if (isStandardCursorArea) {
+        state.targetOpacity = 0;
+        lastInteractiveEl = null;
+        return;
+      }
+
       // 1. Text input / textarea: native caret takes precedence
       const isInput = target.closest('input, textarea, [contenteditable="true"]');
       if (isInput) {
@@ -77,18 +90,20 @@ export const CustomMagneticCursor: React.FC = () => {
         state.targetY = clientY;
         state.targetScale = 0.2;
         updateCursorType('text');
+        lastInteractiveEl = null;
         return;
       }
 
-      // 2. Video container or explicit video preview trigger
+      // 2. Video container: clean, non-intrusive interactive cursor
       const videoContainer = target.closest(
         'video, [data-cursor="play"], [data-cursor="video"], .video-container, [data-theater-stage]'
       );
       if (videoContainer) {
         state.targetX = clientX;
         state.targetY = clientY;
-        state.targetScale = 1.6;
-        updateCursorType('video', 'PLAY');
+        state.targetScale = 1.35;
+        updateCursorType('interactive');
+        lastInteractiveEl = null;
         return;
       }
 
@@ -99,6 +114,7 @@ export const CustomMagneticCursor: React.FC = () => {
         state.targetY = clientY;
         state.targetScale = 1.45;
         updateCursorType('drag', 'DRAG');
+        lastInteractiveEl = null;
         return;
       }
 
@@ -108,16 +124,19 @@ export const CustomMagneticCursor: React.FC = () => {
       ) as HTMLElement | null;
 
       if (interactiveEl) {
-        const rect = interactiveEl.getBoundingClientRect();
-        // Magnetic attraction: gently gravitate ring towards element center if within comfortable reach
-        const isCompact = rect.width < 340 && rect.height < 140;
+        // Cache rect so getBoundingClientRect is NOT called on every single mousemove pixel
+        if (interactiveEl !== lastInteractiveEl) {
+          lastInteractiveEl = interactiveEl;
+          const rect = interactiveEl.getBoundingClientRect();
+          cachedIsCompact = rect.width < 340 && rect.height < 140;
+          cachedCenterX = rect.left + rect.width / 2;
+          cachedCenterY = rect.top + rect.height / 2;
+        }
 
-        if (isCompact) {
-          const centerX = rect.left + rect.width / 2;
-          const centerY = rect.top + rect.height / 2;
-          const pullStrength = 0.38; // 38% magnetic pull towards center
-          state.targetX = clientX + (centerX - clientX) * pullStrength;
-          state.targetY = clientY + (centerY - clientY) * pullStrength;
+        if (cachedIsCompact) {
+          const pullStrength = 0.32;
+          state.targetX = clientX + (cachedCenterX - clientX) * pullStrength;
+          state.targetY = clientY + (cachedCenterY - clientY) * pullStrength;
         } else {
           state.targetX = clientX;
           state.targetY = clientY;
@@ -127,6 +146,8 @@ export const CustomMagneticCursor: React.FC = () => {
         updateCursorType('interactive');
         return;
       }
+
+      lastInteractiveEl = null;
 
       // 5. Default state
       state.targetX = clientX;

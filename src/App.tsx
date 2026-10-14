@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Preloader } from './components/Preloader';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
@@ -18,6 +18,8 @@ import { SocialProofFaq } from './components/SocialProofFaq';
 import { Footer } from './components/Footer';
 import { CustomMagneticCursor } from './components/CustomMagneticCursor';
 import { AgencyMarquee } from './components/AgencyMarquee';
+import { initAntiScraperShield } from './lib/security';
+import { AdminConsole } from './components/AdminConsole';
 
 export default function App() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -25,6 +27,37 @@ export default function App() {
   const [isLeadMagnetOpen, setIsLeadMagnetOpen] = useState<boolean>(false);
   const [selectedTier, setSelectedTier] = useState<PricingTier | null>(TIERS[3]); // Default to Lifetime VIP (₹2,999)
   const [currentCurrency, setCurrentCurrency] = useState<Currency>('INR');
+  const [isAdminMode, setIsAdminMode] = useState<boolean>(() => {
+    return window.location.hash === '#admin' || window.location.pathname === '/admin';
+  });
+
+  useEffect(() => {
+    initAntiScraperShield();
+
+    const handleHashChange = () => {
+      setIsAdminMode(window.location.hash === '#admin' || window.location.pathname === '/admin');
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // Automatic popup in 12 seconds (10-15s window) if user is just browsing and has no active intent to checkout yet
+  useEffect(() => {
+    if (isCheckoutOpen || isAdminMode) return;
+
+    // Check if visitor has already seen or closed the automatic lead magnet in this session
+    const alreadyTriggered = sessionStorage.getItem('vineb_lead_magnet_auto_shown');
+    if (alreadyTriggered) return;
+
+    const timer = setTimeout(() => {
+      if (!isCheckoutOpen && !isAdminMode) {
+        setIsLeadMagnetOpen(true);
+        sessionStorage.setItem('vineb_lead_magnet_auto_shown', 'true');
+      }
+    }, 12000); // 12 seconds (within 10-15s range)
+
+    return () => clearTimeout(timer);
+  }, [isCheckoutOpen, isAdminMode]);
 
   const handleOpenCheckout = (tier?: PricingTier, currency?: Currency) => {
     if (tier) setSelectedTier(tier);
@@ -49,6 +82,17 @@ export default function App() {
       handleScrollToPricing();
     }
   };
+
+  if (isAdminMode) {
+    return (
+      <AdminConsole
+        onBackToSite={() => {
+          window.location.hash = '';
+          setIsAdminMode(false);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#050508] text-[#f4f4f7] selection:bg-blue-600/40 selection:text-white overflow-x-hidden">
@@ -103,7 +147,7 @@ export default function App() {
       <SocialProofFaq onUnlockClick={handleScrollToPricing} />
 
       {/* 10. Cinematic Obsidian Footer */}
-      <Footer />
+      <Footer onAdminClick={() => { window.location.hash = '#admin'; setIsAdminMode(true); }} />
 
       {/* Sticky Bottom Urgency Funnel Bar */}
       <StickyFunnelBar onUnlockClick={handleScrollToPricing} />
@@ -115,6 +159,7 @@ export default function App() {
       <LeadMagnetModal
         isOpen={isLeadMagnetOpen}
         onClose={() => setIsLeadMagnetOpen(false)}
+        onSuccessRedirect={handleScrollToPricing}
       />
 
       {/* 1-Click Order Bump Checkout Modal ($37 Bump + Instant Fulfillment) */}

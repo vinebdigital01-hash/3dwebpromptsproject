@@ -58,7 +58,7 @@ export const VaultEditorialLedger: React.FC<VaultEditorialLedgerProps> = ({ onUn
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-60px' }}
       transition={{ duration: 0.75, ease: [0.16, 1, 0.3, 1] }}
-      className="relative py-24 sm:py-32 px-6 sm:px-10 lg:px-16 bg-[#050508] border-t border-white/5 select-none will-change-transform transform-gpu"
+      className="relative py-24 sm:py-32 px-6 sm:px-10 lg:px-16 bg-[#050508] border-t border-white/5 select-none"
     >
       <div className="max-w-7xl mx-auto relative z-10">
         {/* Section Header */}

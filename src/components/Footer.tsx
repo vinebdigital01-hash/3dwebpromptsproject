@@ -1,9 +1,13 @@
 import React from 'react';
 import { sound } from '../lib/audioEngine';
 
-export const Footer: React.FC = () => {
+interface FooterProps {
+  onAdminClick?: () => void;
+}
+
+export const Footer: React.FC<FooterProps> = ({ onAdminClick }) => {
   return (
-    <footer className="relative bg-[#030305] border-t border-white/10 pt-16 pb-32 sm:pb-28 px-6 sm:px-10 lg:px-16 text-white/50 text-xs will-change-transform transform-gpu">
+    <footer className="relative bg-[#030305] border-t border-white/10 pt-16 pb-32 sm:pb-28 px-6 sm:px-10 lg:px-16 text-white/50 text-xs">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8 pb-12 border-b border-white/5">
         {/* Brand */}
         <div className="flex flex-col items-center md:items-start gap-2 text-center md:text-left">
@@ -54,12 +58,22 @@ export const Footer: React.FC = () => {
             FAQ
           </a>
           <a
-            href="mailto:vinebdigital01@gmail.com"
+            href="mailto:support@vinebdigital.store"
             onClick={() => sound.playClick()}
             className="hover:text-white transition-colors"
           >
             Contact
           </a>
+          <button
+            onClick={() => {
+              sound.playClick();
+              if (onAdminClick) onAdminClick();
+              else window.location.hash = '#admin';
+            }}
+            className="hover:text-blue-400 font-mono text-[11px] transition-colors text-white/35 flex items-center gap-1"
+          >
+            <span>🔒 Admin Console</span>
+          </button>
         </div>
       </div>
 
