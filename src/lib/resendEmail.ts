@@ -5,6 +5,7 @@
 
 import { LeadOrder } from './leadTracker';
 import { getAdminSettings } from './adminSettings';
+import { generateEmailVideoBlockHtml, ShowcaseMode } from './vaultEmailShowcase';
 
 export interface EmailDispatchResult {
   success: boolean;
@@ -107,11 +108,12 @@ export async function sendEmailViaResend(options: {
 /**
  * Generate Branded Approval HTML Email
  */
-export function buildApprovalEmailHtml(order: LeadOrder): string {
+export function buildApprovalEmailHtml(order: LeadOrder, videoShowcaseMode: ShowcaseMode = 'random'): string {
   const portalUrl = typeof window !== 'undefined'
     ? `${window.location.origin}/#portal`
     : 'https://vinebdigital.store/#portal';
   const loginUrl = `${portalUrl}?orderId=${encodeURIComponent(order.id)}`;
+  const videoBlockHtml = generateEmailVideoBlockHtml(videoShowcaseMode);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -196,6 +198,13 @@ export function buildApprovalEmailHtml(order: LeadOrder): string {
               <div style="font-size: 11px; color: #6b7280; margin-top: 10px; font-family: monospace;">
                 One-click instant login (No password required)
               </div>
+            </td>
+          </tr>
+
+          <!-- Real Project Prompt Video Showcase -->
+          <tr>
+            <td style="padding: 0 32px 16px 32px;">
+              ${videoBlockHtml}
             </td>
           </tr>
 

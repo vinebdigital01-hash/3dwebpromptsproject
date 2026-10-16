@@ -52,12 +52,14 @@ award-grade 60 FPS WebGL scenes in minutes.
 
 
 ------------------------------------------------------------------------
-VIDEO WALKTHROUGH (40 SECONDS)
+FEATURED PROMPT SHOWCASE // BESTSELLER (8.9K COPIES)
 ------------------------------------------------------------------------
-Watch how to deploy your first Three.js shader into production:
+Prompt Title    : Luxury Watchmaker 3D One-Shot (Rolex/Audemars style)
+Client Value    : $18,000 Deliverable Caliber
+WebGL Quality   : 60 FPS Interactive Shader with Subsurface Gold Kinematics
 
--> Watch Walkthrough:
-https://vinebdigital.store/watch/v02-portal-walkthrough
+-> Watch 60 FPS Video Result:
+https://images.refero.design/styles/refero.design/video/a3ee62c8-c674-48a3-84a9-e8269eefd621.mp4
 
 
 ------------------------------------------------------------------------
