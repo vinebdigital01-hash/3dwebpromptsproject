@@ -383,6 +383,22 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
         tierName: 'Free 30+ Prompts PDF Magnet',
         amountINR: 0,
       });
+
+      const memberSession: LeadOrder = {
+        id: `USR-${email.trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, '').slice(0, 8)}`,
+        orderNumber: `MEM-${Date.now().toString().slice(-4)}`,
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        phone: cleanPhone,
+        tierId: 'member',
+        tierName: 'Free Trial Member (1 Sample Quota)',
+        amountINR: 0,
+        status: 'approved',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        approvedAt: new Date().toISOString(),
+      };
+      sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(memberSession));
     } catch {
       // Storage error ignored
     }
@@ -458,9 +474,25 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
               </div>
             </div>
 
-            <p className="text-xs text-zinc-400 mb-5 leading-relaxed">
+            <p className="text-xs text-zinc-400 mb-4 leading-relaxed">
               Your starter repository <code className="text-zinc-200 font-mono text-[11px] bg-white/5 px-1.5 py-0.5 rounded border border-white/10">30_Production_3D_WebGL_Prompts_VineB.pdf</code> has initiated direct download. A backup delivery is archived for <strong className="text-zinc-200">{email}</strong> and WhatsApp <strong className="text-zinc-200">+91 {phone}</strong>.
             </p>
+
+            {/* Free Member Portal Direct Launch */}
+            <div className="mb-4">
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playSuccess();
+                  handleClose();
+                  window.location.hash = '#portal';
+                }}
+                className="w-full py-3 px-4 rounded-xl text-xs font-mono font-bold uppercase tracking-wider text-black bg-emerald-400 hover:bg-emerald-300 active:scale-[0.99] transition-all shadow-[0_4px_20px_rgba(52,211,153,0.35)] flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4 text-black" />
+                <span>Open Free Member Portal & Copy Prompt Now →</span>
+              </button>
+            </div>
 
             {/* Special Upgrade Offer Box */}
             <div className="p-4 sm:p-5 rounded-xl bg-gradient-to-b from-blue-950/20 to-black/40 border border-blue-500/25 mb-5">

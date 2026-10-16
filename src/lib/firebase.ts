@@ -426,3 +426,75 @@ export function getFirebaseErrorMessage(error: any): string {
       return error.message || 'Authentication failed. Please try again.';
   }
 }
+
+/**
+ * Save / Update a prompt in Cloud Database 'vault_prompts' collection
+ */
+export async function savePromptToFirestore(prompt: any): Promise<void> {
+  if (typeof window === 'undefined' || !prompt || !prompt.id) return;
+  try {
+    const cleanData = sanitizeForFirestore({
+      ...prompt,
+      updatedAt: new Date().toISOString(),
+    });
+    const promptRef = doc(db, 'vault_prompts', prompt.id);
+    await setDoc(promptRef, cleanData, { merge: true });
+  } catch (err) {
+    console.debug('Cloud savePrompt notice:', err);
+  }
+}
+
+/**
+ * Delete a prompt from Cloud Database
+ */
+export async function deletePromptFromFirestore(promptId: string): Promise<void> {
+  if (typeof window === 'undefined' || !promptId) return;
+  try {
+    await deleteDoc(doc(db, 'vault_prompts', promptId));
+  } catch (err) {
+    console.debug('Cloud deletePrompt notice:', err);
+  }
+}
+
+/**
+ * Fetch all custom/modified prompts from Cloud Database
+ */
+export async function fetchPromptsFromFirestore(): Promise<any[]> {
+  try {
+    const snap = await getDocs(collection(db, 'vault_prompts'));
+    const list: any[] = [];
+    snap.forEach((d) => {
+      const data = d.data();
+      if (data && data.id) list.push(data);
+    });
+    return list;
+  } catch (err) {
+    console.debug('Cloud fetchPrompts notice:', err);
+    return [];
+  }
+}
+
+/**
+ * Subscribe to Cloud Database changes for prompts
+ */
+export function subscribeToFirestorePrompts(callback: (prompts: any[]) => void): () => void {
+  try {
+    const unsub = onSnapshot(
+      collection(db, 'vault_prompts'),
+      (snapshot) => {
+        const list: any[] = [];
+        snapshot.forEach((d) => {
+          const data = d.data();
+          if (data && data.id) list.push(data);
+        });
+        callback(list);
+      },
+      (err) => console.debug('Cloud prompts snapshot notice:', err)
+    );
+    return unsub;
+  } catch (err) {
+    console.debug('Failed to subscribe to cloud prompts:', err);
+    return () => {};
+  }
+}
+

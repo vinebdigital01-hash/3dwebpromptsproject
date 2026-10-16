@@ -207,6 +207,7 @@ Implement specular border highlights that reflect pointer coordinates, multi-tie
   },
   {
     id: 'fintech-liquidity-pool',
+    allowFreeTrialCopy: true,
     title: 'Institutional FinTech 3D Liquidity Order Book',
     subtitle: 'Real-Time WebGL Depth Mountain & High-Frequency Volume Mesh',
     category: 'FinTech',
@@ -414,6 +415,7 @@ Implement specular border highlights that reflect pointer coordinates, multi-tie
   },
   {
     id: 'liquid-viscosity-shader',
+    allowFreeTrialCopy: true,
     title: 'High-Viscosity Procedural Liquid & Mercury Shader',
     subtitle: 'Real-Time Surface Tension & Chromatic Sheen Physics',
     category: 'Advanced 3D',
