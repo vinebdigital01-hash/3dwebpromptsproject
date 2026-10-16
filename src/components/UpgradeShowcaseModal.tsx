@@ -240,7 +240,7 @@ export const UpgradeShowcaseModal: React.FC<UpgradeShowcaseModalProps> = ({
         </div>
 
         {/* 2. SCROLLABLE BODY CONTENT */}
-        <div className="flex-1 overflow-y-auto px-5 sm:px-7 py-4 sm:py-5 space-y-5 scrollbar-thin">
+        <div className="flex-1 overflow-y-auto px-5 sm:px-7 py-3.5 sm:py-4 space-y-4 no-scrollbar">
           
           {/* Subtitle Directive */}
           <div className="text-xs text-zinc-300 leading-relaxed">
@@ -351,56 +351,44 @@ export const UpgradeShowcaseModal: React.FC<UpgradeShowcaseModalProps> = ({
             })}
           </div>
 
-          {/* 4. INTERACTIVE FEATURE DRAWER (CLEAN TABS) */}
-          <div className="p-4 rounded-2xl bg-[#06060a] border border-white/[0.06]">
-            <div className="flex items-center justify-between text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-2.5">
-              <span>EXPLORE WHAT IS UNLOCKED IN HIGHER TIERS:</span>
-            </div>
-
-            {/* Feature Pills */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none mb-3">
-              {PERK_TABS.map((tab) => {
-                const isActive = activePerkTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => {
-                      sound.playClick();
-                      setActivePerkTab(tab.id);
-                    }}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-mono transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                      isActive
-                        ? 'bg-white/10 text-white border border-white/20 font-bold'
-                        : 'bg-white/[0.02] text-zinc-500 hover:text-zinc-300 border border-transparent'
-                    }`}
-                  >
-                    {tab.icon}
-                    <span>{tab.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Active Feature Detail Card */}
-            <div className="p-3 rounded-xl bg-black/60 border border-white/[0.04] text-xs">
-              <div className="font-bold text-white text-xs flex items-center gap-2">
-                <span>{currentPerk.headline}</span>
+          {/* 4. COMPACT PERK PREVIEW BAR */}
+          <div className="p-3 rounded-xl bg-[#06060a] border border-white/[0.06]">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono mb-2">
+              <span className="text-zinc-500 uppercase tracking-wider">HIGHER TIER ASSETS UNLOCKED:</span>
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                {PERK_TABS.map((tab) => {
+                  const isActive = activePerkTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => {
+                        sound.playClick();
+                        setActivePerkTab(tab.id);
+                      }}
+                      className={`px-2.5 py-1 rounded-md text-[10px] font-mono transition-all flex items-center gap-1 cursor-pointer ${
+                        isActive
+                          ? 'bg-white/10 text-white border border-white/20 font-bold'
+                          : 'text-zinc-500 hover:text-zinc-300'
+                      }`}
+                    >
+                      {tab.icon}
+                      <span>{tab.label}</span>
+                    </button>
+                  );
+                })}
               </div>
-              <p className="text-zinc-400 text-[11px] mt-1 leading-relaxed">
+            </div>
+
+            <div className="text-[11px] text-zinc-400 leading-snug flex items-center justify-between gap-3">
+              <span>
+                <strong className="text-white font-sans">{currentPerk.headline}:</strong>{' '}
                 {currentPerk.details}
-              </p>
-
+              </span>
               {currentPerk.codePreview && (
-                <div className="mt-2 p-2 rounded bg-white/[0.03] border border-white/[0.06] font-mono text-[10px] text-amber-300 flex items-center justify-between">
-                  <code>{currentPerk.codePreview}</code>
-                  <span className="text-[9px] text-zinc-500 font-sans">Terminal Scaffolding</span>
-                </div>
+                <span className="text-[9px] font-mono text-amber-300/80 bg-white/[0.03] px-2 py-0.5 rounded border border-white/[0.06] shrink-0 hidden md:inline-block">
+                  {currentPerk.codePreview}
+                </span>
               )}
-
-              <div className="mt-2 text-[10px] text-emerald-400 font-mono flex items-center gap-1.5">
-                <Check className="w-3 h-3 shrink-0" />
-                <span>{currentPerk.bullet}</span>
-              </div>
             </div>
           </div>
 
