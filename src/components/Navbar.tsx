@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Volume2, VolumeX, Menu, X, ArrowUpRight, User, LogIn } from 'lucide-react';
+import { Volume2, VolumeX, Menu, X, ArrowUpRight } from 'lucide-react';
 import { sound } from '../lib/audioEngine';
 
 interface NavbarProps {
@@ -174,20 +174,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onUnlockClick, onLeadMagnetClick
               Free 30+ Prompts (.PDF)
             </button>
 
-            {/* Member Login Access Link */}
-            <a
-              href="#portal"
-              onClick={(e) => {
-                e.preventDefault();
-                sound.playClick();
-                window.location.hash = '#portal';
-              }}
-              className="inline-flex px-2.5 sm:px-3.5 py-1.5 rounded-full text-xs font-mono text-zinc-200 hover:text-white bg-white/[0.08] hover:bg-white/[0.15] border border-white/15 transition-all items-center gap-1.5 shadow-sm active:scale-95"
-              title="Member & Customer Login"
-            >
-              <User className="w-3.5 h-3.5 text-blue-400" />
-              <span className="font-semibold">Login</span>
-            </a>
 
             {/* Unlock Access CTA (Bright Royal Blue & Indigo Button) */}
             <button
@@ -255,17 +241,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onUnlockClick, onLeadMagnetClick
                 className="w-full py-3.5 rounded-full text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 transition-all shadow-lg active:scale-95"
               >
                 Unlock The Vault — From ₹49
-              </button>
-              <button
-                onClick={() => {
-                  setIsMobileMenuOpen(false);
-                  sound.playClick();
-                  window.location.hash = '#portal';
-                }}
-                className="w-full py-3.5 rounded-full text-xs font-mono text-white border border-blue-500/40 bg-blue-600/20 hover:bg-blue-600/30 flex items-center justify-center gap-2 font-semibold shadow-sm"
-              >
-                <User className="w-4 h-4 text-blue-400" />
-                <span>Customer &amp; Member Login</span>
               </button>
               <button
                 onClick={() => {
