@@ -92,6 +92,7 @@ import {
 import {
   getAllVaultPrompts,
   addVaultPrompt,
+  updateVaultPrompt,
   deleteVaultPrompt,
   resetToDefaultPrompts,
 } from '../lib/promptCatalogStore';
@@ -166,6 +167,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
   const [newClientValue, setNewClientValue] = useState('$25,000 Client SOW');
   const [newVideoUrl, setNewVideoUrl] = useState('');
   const [newSyntax, setNewSyntax] = useState('');
+  const [newAllowFreeTrialCopy, setNewAllowFreeTrialCopy] = useState(false);
 
   // Settings State (Persistent via adminSettings)
   const [settings, setSettings] = useState<AdminSettings>(() => getAdminSettings());
@@ -520,6 +522,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
       videoUrl: newVideoUrl.trim() || 'https://images.refero.design/styles/refero.design/video/a3ee62c8-c674-48a3-84a9-e8269eefd621.mp4',
       poster: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=1400&auto=format&fit=crop&q=80',
       fpsBadge: '60 FPS WEBGL',
+      allowFreeTrialCopy: newAllowFreeTrialCopy,
       promptArchitecture: newSyntax.trim(),
     };
 
@@ -529,7 +532,15 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
     setNewTitle('');
     setNewSubtitle('');
     setNewSyntax('');
+    setNewAllowFreeTrialCopy(false);
     showToast(`New Prompt Blueprint "${newPromptItem.title}" Added to Vault & Live for Clients!`);
+  };
+
+  const handleToggleFreeTrialCopy = (id: string, currentValue: boolean) => {
+    sound.playClick();
+    const updated = updateVaultPrompt(id, { allowFreeTrialCopy: !currentValue });
+    setPromptsList(updated);
+    showToast(!currentValue ? '✨ Enabled free trial copy sample for this prompt!' : '🔒 Prompt locked to Paid Vault only.');
   };
 
   const handleDeletePrompt = (id: string, title: string) => {
@@ -2030,6 +2041,26 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                   />
                 </div>
 
+                <div className="pt-1">
+                  <label className="flex items-center gap-2.5 cursor-pointer p-3 rounded-xl bg-black/30 border border-white/10 hover:border-emerald-500/40 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={newAllowFreeTrialCopy}
+                      onChange={(e) => setNewAllowFreeTrialCopy(e.target.checked)}
+                      className="w-4 h-4 rounded border-white/20 bg-black/60 text-emerald-500 focus:ring-0 cursor-pointer"
+                    />
+                    <div>
+                      <span className="text-xs font-mono font-bold text-white flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Allow Free Trial Users to copy this prompt as their 1 lifetime sample</span>
+                      </span>
+                      <p className="text-[10px] text-white/50 mt-0.5">
+                        Free users can only copy at most 1 free sample prompt total. If unchecked, this prompt is strictly locked behind a paid pass.
+                      </p>
+                    </div>
+                  </label>
+                </div>
+
                 <div className="flex items-center justify-end gap-3 pt-2">
                   <button
                     type="button"
@@ -2052,10 +2083,10 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
             <div className="divide-y divide-white/10 rounded-2xl bg-[#090914] border border-white/10">
               {promptsList.map((item, idx) => (
                 <div key={item.id} className="p-4 sm:p-5 flex items-center justify-between gap-4">
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs font-mono text-white/30">{String(idx + 1).padStart(2, '0')}</span>
-                      <h4 className="text-sm font-bold text-white">{item.title}</h4>
+                      <h4 className="text-sm font-bold text-white truncate max-w-sm">{item.title}</h4>
                       {item.id.startsWith('custom-prompt') && (
                         <span className="text-[9px] font-mono font-semibold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
                           CMS CUSTOM
@@ -2064,15 +2095,48 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                       <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/60">
                         {item.category}
                       </span>
+                      {item.allowFreeTrialCopy ? (
+                        <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                          <Sparkles className="w-2.5 h-2.5" />
+                          FREE SAMPLE ACTIVE
+                        </span>
+                      ) : (
+                        <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-white/5 text-zinc-400 border border-white/10">
+                          PAID ONLY
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs text-white/50 mt-1 line-clamp-1">{item.subtitle}</p>
                   </div>
 
                   <div className="flex items-center gap-3 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleFreeTrialCopy(item.id, !!item.allowFreeTrialCopy)}
+                      className={`px-3 py-1.5 rounded-lg text-[10px] font-mono font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
+                        item.allowFreeTrialCopy
+                          ? 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40'
+                          : 'bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white border border-white/10'
+                      }`}
+                      title={item.allowFreeTrialCopy ? 'Click to make Paid Vault Only' : 'Click to enable as a Free Sample for free users'}
+                    >
+                      {item.allowFreeTrialCopy ? (
+                        <>
+                          <Check className="w-3 h-3 text-emerald-400" />
+                          <span>Free Sample Active</span>
+                        </>
+                      ) : (
+                        <>
+                          <Lock className="w-3 h-3 text-zinc-400" />
+                          <span>Make Free Sample</span>
+                        </>
+                      )}
+                    </button>
+
                     <span className="text-xs font-mono font-bold text-amber-400">{item.clientValue}</span>
                     <button
                       onClick={() => handleDeletePrompt(item.id, item.title)}
-                      className="p-1.5 rounded-lg hover:bg-red-500/20 text-white/40 hover:text-red-400 transition-colors"
+                      className="p-1.5 rounded-lg hover:bg-red-500/20 text-white/40 hover:text-red-400 transition-colors cursor-pointer"
                       title="Delete prompt"
                     >
                       <Trash2 className="w-4 h-4" />

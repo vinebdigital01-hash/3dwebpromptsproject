@@ -56,6 +56,8 @@ import {
   getDailyCopyUsage,
   incrementDailyCopyUsage,
   getExpiryDetails,
+  getFreeTrialCopyUsage,
+  incrementFreeTrialCopyUsage,
 } from '../lib/leadTracker';
 import { VaultItem } from '../data/vaultCatalog';
 import { getAllVaultPrompts } from '../lib/promptCatalogStore';
@@ -98,14 +100,13 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
         const memberSession: LeadOrder = {
           id: `USR-${cachedEmail.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8)}`,
           orderNumber: `MEM-${Date.now().toString().slice(-4)}`,
-          name: cachedName || 'Enclave Member',
+          name: cachedName || 'Free Trial Member',
           email: cachedEmail,
           phone: cachedPhone || '',
           tierId: 'member',
-          tierName: 'Enclave Member (1 Copy/Day)',
+          tierName: 'Free Trial Member (1 Sample Quota)',
           amountINR: 0,
           status: 'approved',
-          licenseKey: `LIC-MBR-${Date.now().toString().slice(-6)}`,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           approvedAt: new Date().toISOString(),
@@ -186,8 +187,20 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
   const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
   const [isLicenseOpen, setIsLicenseOpen] = useState(false);
 
-  // Daily Usage State
+  // Daily Usage State (Paid Members)
   const [dailyUsage, setDailyUsage] = useState<number>(0);
+
+  // Free Trial Lifetime Copy Usage State (Free Users: Max 1 Lifetime - Never Resets)
+  const [freeTrialUsage, setFreeTrialUsage] = useState<number>(0);
+
+  // Strict Paid Member Check: Must have amountINR > 0, approved status, and authentic commercial licenseKey
+  const isPaidMember = Boolean(
+    activeOrder &&
+    (activeOrder.amountINR || 0) > 0 &&
+    activeOrder.status === 'approved' &&
+    activeOrder.licenseKey &&
+    !activeOrder.licenseKey.startsWith('LIC-MBR')
+  );
 
   // Real-time ticking timer for countdown
   const [, setClockTick] = useState(0);
@@ -200,10 +213,15 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
   }, []);
 
   useEffect(() => {
-    if (activeOrder?.licenseKey) {
-      setDailyUsage(getDailyCopyUsage(activeOrder.licenseKey));
+    if (activeOrder) {
+      if (isPaidMember && activeOrder.licenseKey) {
+        setDailyUsage(getDailyCopyUsage(activeOrder.licenseKey));
+      } else {
+        const userIdentifier = activeOrder.email || activeOrder.phone || activeOrder.id || 'free_guest';
+        setFreeTrialUsage(getFreeTrialCopyUsage(userIdentifier));
+      }
     }
-  }, [activeOrder]);
+  }, [activeOrder, isPaidMember]);
 
   // Deep-link URL listener for instant order authentication & prompt spotlight
   useEffect(() => {
@@ -290,25 +308,24 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
           sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(existing));
           setDailyUsage(getDailyCopyUsage(existing.licenseKey || ''));
         } else {
-          // Provision authenticated Member session
+          // Provision authenticated Free Member session (NO license or invoice for free accounts)
           const memberOrder: LeadOrder = {
             id: `USR-${user.uid.slice(0, 8)}`,
             orderNumber: `MEM-${user.uid.slice(0, 6).toUpperCase()}`,
-            name: user.displayName || user.email?.split('@')[0] || 'Enclave Member',
+            name: user.displayName || user.email?.split('@')[0] || 'Free Trial Member',
             email: user.email || '',
             phone: user.phoneNumber || '',
             tierId: 'member',
-            tierName: 'Enclave Member (1 Copy/Day)',
+            tierName: 'Free Trial Member (1 Sample Quota)',
             amountINR: 0,
             status: 'approved',
-            licenseKey: `LIC-MBR-${user.uid.slice(0, 8).toUpperCase()}`,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             approvedAt: new Date().toISOString(),
           };
           setActiveOrder(memberOrder);
           sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(memberOrder));
-          setDailyUsage(getDailyCopyUsage(memberOrder.licenseKey || ''));
+          setFreeTrialUsage(getFreeTrialCopyUsage(memberOrder.email));
         }
       }
     });
@@ -332,21 +349,20 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
         const memberOrder: LeadOrder = {
           id: `USR-${user.uid.slice(0, 8)}`,
           orderNumber: `MEM-${user.uid.slice(0, 6).toUpperCase()}`,
-          name: user.displayName || user.email?.split('@')[0] || 'Enclave Member',
+          name: user.displayName || user.email?.split('@')[0] || 'Free Trial Member',
           email: user.email || '',
           phone: user.phoneNumber || '',
           tierId: 'member',
-          tierName: 'Enclave Member (1 Copy/Day)',
+          tierName: 'Free Trial Member (1 Sample Quota)',
           amountINR: 0,
           status: 'approved',
-          licenseKey: `LIC-MBR-${user.uid.slice(0, 8).toUpperCase()}`,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           approvedAt: new Date().toISOString(),
         };
         setActiveOrder(memberOrder);
         sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(memberOrder));
-        setDailyUsage(getDailyCopyUsage(memberOrder.licenseKey || ''));
+        setFreeTrialUsage(getFreeTrialCopyUsage(memberOrder.email));
         sound.playSuccess();
         showToast(`Authenticated via Google // ${user.displayName || user.email}`);
       }
@@ -375,21 +391,20 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
         const memberOrder: LeadOrder = {
           id: `USR-${user.uid.slice(0, 8)}`,
           orderNumber: `MEM-${user.uid.slice(0, 6).toUpperCase()}`,
-          name: user.displayName || user.email?.split('@')[0] || 'Enclave Member',
+          name: user.displayName || user.email?.split('@')[0] || 'Free Trial Member',
           email: user.email || '',
           phone: user.phoneNumber || '',
           tierId: 'member',
-          tierName: 'Enclave Member (1 Copy/Day)',
+          tierName: 'Free Trial Member (1 Sample Quota)',
           amountINR: 0,
           status: 'approved',
-          licenseKey: `LIC-MBR-${user.uid.slice(0, 8).toUpperCase()}`,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           approvedAt: new Date().toISOString(),
         };
         setActiveOrder(memberOrder);
         sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(memberOrder));
-        setDailyUsage(getDailyCopyUsage(memberOrder.licenseKey || ''));
+        setFreeTrialUsage(getFreeTrialCopyUsage(memberOrder.email));
         sound.playSuccess();
         showToast(`Authenticated via GitHub // ${user.displayName || user.email}`);
       }
@@ -440,21 +455,20 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
         const memberOrder: LeadOrder = {
           id: `USR-${user.uid.slice(0, 8)}`,
           orderNumber: `MEM-${user.uid.slice(0, 6).toUpperCase()}`,
-          name: user.displayName || authDisplayName || user.email?.split('@')[0] || 'Enclave Member',
+          name: user.displayName || authDisplayName || user.email?.split('@')[0] || 'Free Trial Member',
           email: user.email || '',
           phone: user.phoneNumber || '',
           tierId: 'member',
-          tierName: 'Enclave Member (1 Copy/Day)',
+          tierName: 'Free Trial Member (1 Sample Quota)',
           amountINR: 0,
           status: 'approved',
-          licenseKey: `LIC-MBR-${user.uid.slice(0, 8).toUpperCase()}`,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           approvedAt: new Date().toISOString(),
         };
         setActiveOrder(memberOrder);
         sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(memberOrder));
-        setDailyUsage(getDailyCopyUsage(memberOrder.licenseKey || ''));
+        setFreeTrialUsage(getFreeTrialCopyUsage(memberOrder.email));
         sound.playSuccess();
         showToast(`Signed In as ${user.displayName || user.email}`);
       }
@@ -561,6 +575,38 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
   const handleCopyPrompt = (prompt: VaultItem) => {
     if (!activeOrder) return;
 
+    // 🔒 FREE TRIAL USERS (Strict 1 Lifetime Free Sample Quota - NO LIMIT RESET!)
+    if (!isPaidMember) {
+      if (!prompt.allowFreeTrialCopy) {
+        sound.playClick();
+        setUpgradeTriggerReason('quota_exceeded');
+        setIsUpgradeShowcaseOpen(true);
+        showToast('🔒 Paid Vault Only: Upgrade starting at ₹49 to unlock this prompt.');
+        return;
+      }
+
+      const userIdentifier = activeOrder.email || activeOrder.phone || activeOrder.id || 'free_guest';
+      const usage = getFreeTrialCopyUsage(userIdentifier);
+      if (usage >= 1) {
+        sound.playClick();
+        setUpgradeTriggerReason('quota_exceeded');
+        setIsUpgradeShowcaseOpen(true);
+        showToast('⚠️ Free Trial Limit Reached: 1/1 sample used. Upgrade to unlock 500+ prompts!');
+        return;
+      }
+
+      sound.playSuccess();
+      navigator.clipboard.writeText(prompt.promptArchitecture);
+      setCopiedId(prompt.id);
+      setTimeout(() => setCopiedId(null), 2500);
+
+      incrementFreeTrialCopyUsage(userIdentifier);
+      setFreeTrialUsage(1);
+      showToast('✨ Free Sample Copied (1/1 Lifetime Quota Used)! Upgrade anytime for 500+ prompts.');
+      return;
+    }
+
+    // 🌟 PAID MEMBERS (Daily Limit per Tier)
     const maxCopies = getMaxDailyCopies(activeOrder.tierId);
     if (maxCopies !== -1 && dailyUsage >= maxCopies) {
       sound.playClick();
@@ -1033,10 +1079,14 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                   )}
                 </div>
                 <div className="text-[10px] font-mono text-zinc-500 flex items-center gap-2">
-                  <span>{activeOrder.licenseKey || 'LIC-ENCLAVE-MBR'}</span>
+                  {isPaidMember ? (
+                    <span className="text-amber-300 font-bold">{activeOrder.licenseKey}</span>
+                  ) : (
+                    <span className="text-zinc-500 italic">No License Issued (Free Account)</span>
+                  )}
                   <span>·</span>
-                  <span className={activeOrder.tierId === 'member' ? 'text-blue-400' : 'text-emerald-400'}>
-                    {activeOrder.tierId === 'member' ? 'Free Preview Access' : 'Verified Commercial Licensee'}
+                  <span className={!isPaidMember ? 'text-blue-400' : 'text-emerald-400'}>
+                    {!isPaidMember ? 'Free Trial (1 Lifetime Sample)' : 'Verified Commercial Licensee'}
                   </span>
                 </div>
               </div>
@@ -1045,7 +1095,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
 
           {/* Right Action Matrix */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {activeOrder.tierId === 'member' && (
+            {!isPaidMember && (
               <>
                 <button
                   onClick={() => {
@@ -1075,7 +1125,13 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
             <button
               onClick={() => {
                 sound.playClick();
-                setIsInvoiceOpen(true);
+                if (isPaidMember) {
+                  setIsInvoiceOpen(true);
+                } else {
+                  showToast('Official Invoices are generated exclusively for paid passholders (₹49+).');
+                  setUpgradeTriggerReason('manual');
+                  setIsUpgradeShowcaseOpen(true);
+                }
               }}
               className="px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white text-[11px] font-mono uppercase tracking-wider flex items-center gap-1.5 border border-white/[0.08] transition-colors cursor-pointer"
             >
@@ -1086,7 +1142,13 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
             <button
               onClick={() => {
                 sound.playClick();
-                setIsLicenseOpen(true);
+                if (isPaidMember) {
+                  setIsLicenseOpen(true);
+                } else {
+                  showToast('Commercial Licenses are issued exclusively for paid passholders (₹49+).');
+                  setUpgradeTriggerReason('manual');
+                  setIsUpgradeShowcaseOpen(true);
+                }
               }}
               className="px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white text-[11px] font-mono uppercase tracking-wider flex items-center gap-1.5 border border-white/[0.08] transition-colors cursor-pointer"
             >
@@ -1121,8 +1183,8 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
 
             <div className="flex items-center gap-1.5">
               <span className="text-zinc-500">VALIDITY:</span>
-              <span className={expiry.isExpired ? 'text-red-400' : 'text-amber-300'}>
-                {expiry.humanText}
+              <span className={!isPaidMember ? 'text-blue-400 font-semibold' : expiry.isExpired ? 'text-red-400' : 'text-amber-300 font-semibold'}>
+                {!isPaidMember ? 'FREE TRIAL ACCESS' : expiry.humanText}
               </span>
             </div>
           </div>
@@ -1130,17 +1192,25 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 text-zinc-300">
               <span className="text-zinc-500">SYNTAX QUOTA:</span>
-              <span className="font-bold text-white tracking-wide">
-                {remainingCopies === 'Unlimited' ? 'UNRESTRICTED' : `${remainingCopies} REMAINING`}
-              </span>
-              {maxDaily !== -1 && (
-                <span className="text-zinc-500 text-[10px]">
-                  ({dailyUsage}/{maxDaily} copies used today)
+              {!isPaidMember ? (
+                <span className={`font-bold tracking-wide ${freeTrialUsage >= 1 ? 'text-red-400' : 'text-emerald-400'}`}>
+                  {freeTrialUsage >= 1 ? '0 REMAINING (1/1 LIFETIME USED)' : '1 FREE SAMPLE REMAINING'}
                 </span>
+              ) : (
+                <>
+                  <span className="font-bold text-white tracking-wide">
+                    {remainingCopies === 'Unlimited' ? 'UNRESTRICTED' : `${remainingCopies} REMAINING`}
+                  </span>
+                  {maxDaily !== -1 && (
+                    <span className="text-zinc-500 text-[10px]">
+                      ({dailyUsage}/{maxDaily} copies used today)
+                    </span>
+                  )}
+                </>
               )}
             </div>
 
-            {activeOrder.tierId !== 'lifetime' && onUpgradeClick && (
+            {(!isPaidMember || activeOrder.tierId !== 'lifetime') && (
               <button
                 onClick={() => {
                   sound.playClick();
@@ -1149,7 +1219,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                 }}
                 className="text-[10px] uppercase font-bold text-amber-400 hover:text-amber-300 border-b border-amber-400/40 cursor-pointer"
               >
-                Upgrade to Lifetime VIP
+                {!isPaidMember ? 'Upgrade to Unlock All 500+ (₹49)' : 'Upgrade to Lifetime VIP'}
               </button>
             )}
           </div>
@@ -1373,6 +1443,12 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                       className={`flex-1 py-3 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 active:scale-[0.98] ${
                         copiedId === spotlightPrompt.id
                           ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20'
+                          : !isPaidMember && !spotlightPrompt.allowFreeTrialCopy
+                          ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black shadow-lg shadow-amber-500/20'
+                          : !isPaidMember && spotlightPrompt.allowFreeTrialCopy && freeTrialUsage >= 1
+                          ? 'bg-amber-500 hover:bg-amber-400 text-black shadow-lg shadow-amber-500/20'
+                          : !isPaidMember && spotlightPrompt.allowFreeTrialCopy
+                          ? 'bg-emerald-500 hover:bg-emerald-400 text-black shadow-lg shadow-emerald-500/20'
                           : 'bg-white hover:bg-zinc-200 text-black shadow-lg shadow-white/10'
                       }`}
                     >
@@ -1380,6 +1456,21 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                         <>
                           <Check className="w-3.5 h-3.5" />
                           <span>Copied to Clipboard</span>
+                        </>
+                      ) : !isPaidMember && !spotlightPrompt.allowFreeTrialCopy ? (
+                        <>
+                          <Lock className="w-3.5 h-3.5" />
+                          <span>Unlock with Pass (₹49)</span>
+                        </>
+                      ) : !isPaidMember && spotlightPrompt.allowFreeTrialCopy && freeTrialUsage >= 1 ? (
+                        <>
+                          <Lock className="w-3.5 h-3.5" />
+                          <span>Trial Quota Used · Upgrade (₹49)</span>
+                        </>
+                      ) : !isPaidMember && spotlightPrompt.allowFreeTrialCopy ? (
+                        <>
+                          <Sparkles className="w-3.5 h-3.5" />
+                          <span>Copy Free Sample (1 Available)</span>
                         </>
                       ) : (
                         <>
@@ -1529,9 +1620,24 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                           <span className="px-2 py-0.5 rounded bg-black/70 text-zinc-300 border border-white/10 backdrop-blur-md">
                             0{idx + 1} // {item.category}
                           </span>
-                          <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 backdrop-blur-md font-bold">
-                            {item.clientValue}
-                          </span>
+                          
+                          <div className="flex items-center gap-1.5">
+                            {!isPaidMember && item.allowFreeTrialCopy && (
+                              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 backdrop-blur-md font-bold flex items-center gap-1">
+                                <Sparkles className="w-2.5 h-2.5" />
+                                FREE SAMPLE
+                              </span>
+                            )}
+                            {!isPaidMember && !item.allowFreeTrialCopy && (
+                              <span className="px-2 py-0.5 rounded-full bg-black/80 text-amber-300 border border-amber-500/30 backdrop-blur-md font-semibold flex items-center gap-1">
+                                <Lock className="w-2.5 h-2.5 text-amber-400" />
+                                PAID ONLY
+                              </span>
+                            )}
+                            <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 backdrop-blur-md font-bold">
+                              {item.clientValue}
+                            </span>
+                          </div>
                         </div>
 
                         {/* Bottom Tag */}
@@ -1578,10 +1684,24 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                             className={`px-3 py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider transition-all active:scale-[0.98] ${
                               isCopied
                                 ? 'bg-emerald-500 text-black'
+                                : !isPaidMember && !item.allowFreeTrialCopy
+                                ? 'bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-black border border-amber-500/30'
+                                : !isPaidMember && item.allowFreeTrialCopy && freeTrialUsage >= 1
+                                ? 'bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-black border border-amber-500/30'
+                                : !isPaidMember && item.allowFreeTrialCopy
+                                ? 'bg-emerald-500 hover:bg-emerald-400 text-black shadow-md shadow-emerald-500/20'
                                 : 'bg-white/[0.08] hover:bg-white text-zinc-200 hover:text-black border border-white/[0.1]'
                             }`}
                           >
-                            {isCopied ? 'Copied' : 'Copy Syntax'}
+                            {isCopied
+                              ? 'Copied'
+                              : !isPaidMember && !item.allowFreeTrialCopy
+                              ? '🔒 Unlock ₹49'
+                              : !isPaidMember && item.allowFreeTrialCopy && freeTrialUsage >= 1
+                              ? '🔒 Upgrade'
+                              : !isPaidMember && item.allowFreeTrialCopy
+                              ? '✨ Copy Free'
+                              : 'Copy Syntax'}
                           </button>
                         </div>
                       </div>
@@ -1630,9 +1750,27 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                               e.stopPropagation();
                               handleCopyPrompt(item);
                             }}
-                            className="px-2.5 py-1 rounded bg-white/[0.06] hover:bg-white text-zinc-200 hover:text-black text-[10px] uppercase font-bold transition-all"
+                            className={`px-2.5 py-1 rounded text-[10px] uppercase font-bold transition-all ${
+                              copiedId === item.id
+                                ? 'bg-emerald-500 text-black'
+                                : !isPaidMember && !item.allowFreeTrialCopy
+                                ? 'bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-black border border-amber-500/30'
+                                : !isPaidMember && item.allowFreeTrialCopy && freeTrialUsage >= 1
+                                ? 'bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-black border border-amber-500/30'
+                                : !isPaidMember && item.allowFreeTrialCopy
+                                ? 'bg-emerald-500 text-black hover:bg-emerald-400'
+                                : 'bg-white/[0.06] hover:bg-white text-zinc-200 hover:text-black'
+                            }`}
                           >
-                            {copiedId === item.id ? 'Copied' : 'Copy'}
+                            {copiedId === item.id
+                              ? 'Copied'
+                              : !isPaidMember && !item.allowFreeTrialCopy
+                              ? '🔒 Unlock'
+                              : !isPaidMember && item.allowFreeTrialCopy && freeTrialUsage >= 1
+                              ? '🔒 Upgrade'
+                              : !isPaidMember && item.allowFreeTrialCopy
+                              ? '✨ Free Sample'
+                              : 'Copy'}
                           </button>
                         </td>
                       </tr>
@@ -1844,57 +1982,86 @@ Rules:
               </p>
             </div>
 
-            {/* Commercial Invoice */}
-            <div className="p-6 rounded-xl bg-[#09090e] border border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-1">
-                  OFFICIAL COMMERCIAL INVOICE
+            {!isPaidMember ? (
+              <div className="p-8 sm:p-10 rounded-2xl bg-[#09090e] border border-amber-500/30 text-center space-y-4 shadow-2xl">
+                <div className="w-14 h-14 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 mx-auto">
+                  <Lock className="w-7 h-7" />
                 </div>
-                <h3 className="text-base font-mono font-bold text-white">
-                  {activeOrder.invoiceNumber || 'INV-2026-8941'}
-                </h3>
-                <p className="text-xs text-zinc-400 mt-1">
-                  Billed to {activeOrder.name} · {activeOrder.tierName} (₹{activeOrder.amountINR})
-                </p>
-              </div>
-
-              <button
-                onClick={() => {
-                  sound.playClick();
-                  setIsInvoiceOpen(true);
-                }}
-                className="px-4 py-2.5 rounded-lg bg-white/[0.06] hover:bg-white text-zinc-200 hover:text-black text-xs font-mono font-bold uppercase transition-colors flex items-center gap-1.5 shrink-0 border border-white/[0.08]"
-              >
-                <FileText className="w-3.5 h-3.5" />
-                <span>View & Print Official Invoice</span>
-              </button>
-            </div>
-
-            {/* Commercial License */}
-            <div className="p-6 rounded-xl bg-[#09090e] border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <div className="text-[10px] font-mono text-amber-400/80 uppercase tracking-widest mb-1">
-                  CERTIFICATE OF COMMERCIAL LICENSE
+                <div>
+                  <h3 className="text-base font-bold text-white">Commercial Documents Locked (Paid Members Only)</h3>
+                  <p className="text-xs text-zinc-400 max-w-md mx-auto mt-2 leading-relaxed">
+                    Official MSME-registered tax invoices (UDYAM-UP-29-0208780) and Commercial Deployment License Certificates are issued exclusively to verified paid passholders (₹49+). Free accounts do not generate legal commercial licenses or invoices.
+                  </p>
                 </div>
-                <h3 className="text-base font-mono font-bold text-white">
-                  {activeOrder.licenseKey || 'N/A'}
-                </h3>
-                <p className="text-xs text-zinc-400 mt-1">
-                  Issued to {activeOrder.name} · {expiry.humanText}
-                </p>
+                <div className="pt-2">
+                  <button
+                    onClick={() => {
+                      sound.playClick();
+                      setUpgradeTriggerReason('manual');
+                      setIsUpgradeShowcaseOpen(true);
+                    }}
+                    className="px-5 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-mono font-bold uppercase transition-all shadow-lg shadow-amber-500/20 cursor-pointer inline-flex items-center gap-2"
+                  >
+                    <Sparkles className="w-4 h-4 text-black" />
+                    <span>Upgrade to Paid Pass (₹49)</span>
+                  </button>
+                </div>
               </div>
+            ) : (
+              <>
+                {/* Commercial Invoice */}
+                <div className="p-6 rounded-xl bg-[#09090e] border border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-1">
+                      OFFICIAL COMMERCIAL INVOICE
+                    </div>
+                    <h3 className="text-base font-mono font-bold text-white">
+                      {activeOrder.invoiceNumber || 'INV-2026-PENDING'}
+                    </h3>
+                    <p className="text-xs text-zinc-400 mt-1">
+                      Billed to {activeOrder.name} · {activeOrder.tierName} (₹{activeOrder.amountINR})
+                    </p>
+                  </div>
 
-              <button
-                onClick={() => {
-                  sound.playClick();
-                  setIsLicenseOpen(true);
-                }}
-                className="px-4 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-xs font-mono font-bold uppercase transition-colors flex items-center gap-1.5 shrink-0"
-              >
-                <Award className="w-3.5 h-3.5" />
-                <span>View Certificate</span>
-              </button>
-            </div>
+                  <button
+                    onClick={() => {
+                      sound.playClick();
+                      setIsInvoiceOpen(true);
+                    }}
+                    className="px-4 py-2.5 rounded-lg bg-white/[0.06] hover:bg-white text-zinc-200 hover:text-black text-xs font-mono font-bold uppercase transition-colors flex items-center gap-1.5 shrink-0 border border-white/[0.08]"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    <span>View & Print Official Invoice</span>
+                  </button>
+                </div>
+
+                {/* Commercial License */}
+                <div className="p-6 rounded-xl bg-[#09090e] border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="text-[10px] font-mono text-amber-400/80 uppercase tracking-widest mb-1">
+                      CERTIFICATE OF COMMERCIAL LICENSE
+                    </div>
+                    <h3 className="text-base font-mono font-bold text-white">
+                      {activeOrder.licenseKey || 'N/A'}
+                    </h3>
+                    <p className="text-xs text-zinc-400 mt-1">
+                      Issued to {activeOrder.name} · {expiry.humanText}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      sound.playClick();
+                      setIsLicenseOpen(true);
+                    }}
+                    className="px-4 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-xs font-mono font-bold uppercase transition-colors flex items-center gap-1.5 shrink-0"
+                  >
+                    <Award className="w-3.5 h-3.5" />
+                    <span>View Certificate</span>
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
 
@@ -2011,9 +2178,62 @@ Rules:
                   </div>
 
                   {/* Preformatted Code Box */}
-                  <div className="p-4 rounded-xl bg-black/80 border border-white/[0.08] font-mono text-xs text-blue-200/90 whitespace-pre-wrap leading-relaxed max-h-80 overflow-y-auto select-text scrollbar-thin">
-                    {inspectingPrompt.promptArchitecture}
-                  </div>
+                  {!isPaidMember && !inspectingPrompt.allowFreeTrialCopy ? (
+                    <div className="relative rounded-xl border border-amber-500/30 overflow-hidden">
+                      <div className="p-4 bg-black/80 font-mono text-xs text-blue-200/40 whitespace-pre-wrap leading-relaxed max-h-72 overflow-hidden select-none filter blur-[3px]">
+                        {inspectingPrompt.promptArchitecture.slice(0, 500)}
+                        {'\n\n// [PROTECTED ARCHITECTURE - PAID VAULT ONLY]\n// Upgrade to ₹49 Sprint Pass to view and copy complete Three.js architecture.'}
+                      </div>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/85 backdrop-blur-sm p-6 text-center">
+                        <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-2">
+                          <Lock className="w-5 h-5" />
+                        </div>
+                        <h4 className="text-sm font-bold text-white mb-1">Paid Vault Architecture</h4>
+                        <p className="text-xs text-zinc-400 max-w-sm mb-4 leading-relaxed">
+                          This prompt is reserved for paid passholders. Unlock full architecture syntax + commercial deployment rights starting at ₹49.
+                        </p>
+                        <button
+                          onClick={() => {
+                            setInspectingPrompt(null);
+                            setUpgradeTriggerReason('quota_exceeded');
+                            setIsUpgradeShowcaseOpen(true);
+                          }}
+                          className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-mono font-bold uppercase transition-all shadow-lg shadow-amber-500/20 cursor-pointer"
+                        >
+                          Unlock with Pass (₹49)
+                        </button>
+                      </div>
+                    </div>
+                  ) : !isPaidMember && inspectingPrompt.allowFreeTrialCopy && freeTrialUsage >= 1 ? (
+                    <div className="relative rounded-xl border border-amber-500/30 overflow-hidden">
+                      <div className="p-4 bg-black/80 font-mono text-xs text-blue-200/40 whitespace-pre-wrap leading-relaxed max-h-72 overflow-hidden select-none filter blur-[3px]">
+                        {inspectingPrompt.promptArchitecture.slice(0, 500)}
+                      </div>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/85 backdrop-blur-sm p-6 text-center">
+                        <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-2">
+                          <Lock className="w-5 h-5" />
+                        </div>
+                        <h4 className="text-sm font-bold text-white mb-1">Free Trial Limit Reached (1/1 Used)</h4>
+                        <p className="text-xs text-zinc-400 max-w-sm mb-4 leading-relaxed">
+                          You have used your 1 free sample prompt copy. Upgrade starting at ₹49 for unlimited daily access to all 500+ prompts.
+                        </p>
+                        <button
+                          onClick={() => {
+                            setInspectingPrompt(null);
+                            setUpgradeTriggerReason('quota_exceeded');
+                            setIsUpgradeShowcaseOpen(true);
+                          }}
+                          className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-mono font-bold uppercase transition-all shadow-lg shadow-amber-500/20 cursor-pointer"
+                        >
+                          Upgrade to Copy (₹49)
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-4 rounded-xl bg-black/80 border border-white/[0.08] font-mono text-xs text-blue-200/90 whitespace-pre-wrap leading-relaxed max-h-80 overflow-y-auto select-text scrollbar-thin">
+                      {inspectingPrompt.promptArchitecture}
+                    </div>
+                  )}
 
                   <p className="text-[10px] font-mono text-zinc-500 mt-3">
                     Copy and execute in Claude 3.7 Sonnet or Cursor Agent for full production React + Three.js components.
@@ -2034,10 +2254,24 @@ Rules:
                     className={`px-5 py-2.5 rounded-lg text-xs font-mono font-bold uppercase tracking-wider transition-all active:scale-[0.98] ${
                       copiedId === inspectingPrompt.id
                         ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20'
+                        : !isPaidMember && !inspectingPrompt.allowFreeTrialCopy
+                        ? 'bg-amber-500 hover:bg-amber-400 text-black'
+                        : !isPaidMember && inspectingPrompt.allowFreeTrialCopy && freeTrialUsage >= 1
+                        ? 'bg-amber-500 hover:bg-amber-400 text-black'
+                        : !isPaidMember && inspectingPrompt.allowFreeTrialCopy
+                        ? 'bg-emerald-500 text-black'
                         : 'bg-white hover:bg-zinc-200 text-black shadow-lg shadow-white/10'
                     }`}
                   >
-                    {copiedId === inspectingPrompt.id ? 'Copied' : 'Copy Full Architecture'}
+                    {copiedId === inspectingPrompt.id
+                      ? 'Copied'
+                      : !isPaidMember && !inspectingPrompt.allowFreeTrialCopy
+                      ? 'Unlock with Pass (₹49)'
+                      : !isPaidMember && inspectingPrompt.allowFreeTrialCopy && freeTrialUsage >= 1
+                      ? 'Upgrade to Copy (₹49)'
+                      : !isPaidMember && inspectingPrompt.allowFreeTrialCopy
+                      ? 'Copy Free Sample'
+                      : 'Copy Full Architecture'}
                   </button>
                 </div>
               </div>

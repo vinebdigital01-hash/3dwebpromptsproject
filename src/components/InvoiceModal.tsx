@@ -14,8 +14,34 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, isOpen, onClo
 
   if (!isOpen || !order) return null;
 
-  const invoiceNo = order.invoiceNumber || (order.orderNumber ? `INV-2026-${order.orderNumber.replace(/\D/g, '').slice(-4)}` : 'INV-2026-PENDING');
-  const licenseKey = order.licenseKey || 'PENDING-APPROVAL';
+  // Strict: Invoices are generated exclusively for paid orders
+  if ((order.amountINR || 0) <= 0) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-role-fade-in">
+        <div className="relative w-full max-w-md bg-[#09090e] border border-white/10 rounded-2xl p-6 text-white text-center shadow-2xl">
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 p-2 text-zinc-400 hover:text-white"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          <div className="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center mx-auto mb-4 text-amber-400">
+            <Building2 className="w-6 h-6" />
+          </div>
+          <h3 className="text-base font-bold text-white mb-2">No Invoice for Free Accounts</h3>
+          <p className="text-xs text-zinc-400 leading-relaxed mb-5">
+            Official MSME tax invoices (UDYAM-UP-29-0208780) are generated exclusively upon reconciliation of paid orders. Free trial accounts do not incur any charges.
+          </p>
+          <button
+            onClick={onClose}
+            className="w-full py-2.5 rounded-xl bg-white hover:bg-zinc-200 text-black text-xs font-mono font-bold uppercase cursor-pointer"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Format exact date & time
   const formatDateTime = (dateStr?: string) => {

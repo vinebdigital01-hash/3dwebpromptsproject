@@ -15,11 +15,13 @@ export interface VaultItem {
   videoUrl: string;
   poster: string;
   fpsBadge: string;
+  allowFreeTrialCopy?: boolean;
 }
 
 export const VAULT_CATALOG: VaultItem[] = [
   {
     id: 'hazmat-cyber',
+    allowFreeTrialCopy: true,
     title: 'Hazmat Cybersecurity Master 3D Prompt',
     subtitle: 'Reactive WebGL Shield & Threat Grid Architecture',
     category: 'Cyber & Agency',

@@ -461,8 +461,9 @@ export function approveOrder(orderId: string): LeadOrder | null {
   const target = orders[index];
   const approvedAt = new Date().toISOString();
   const expiresAt = calculateTierExpiry(target.tierId, new Date());
-  const invoiceNumber = target.invoiceNumber || generateInvoiceNumber();
-  const licenseKey = target.licenseKey || generateLicenseKey(target.tierId);
+  const isPaid = (target.amountINR || 0) > 0;
+  const invoiceNumber = isPaid ? (target.invoiceNumber || generateInvoiceNumber()) : undefined;
+  const licenseKey = isPaid ? (target.licenseKey || generateLicenseKey(target.tierId)) : undefined;
 
   const updated: LeadOrder = {
     ...target,
@@ -549,7 +550,7 @@ export function getMaxDailyCopies(tierId: string): number {
 }
 
 /**
- * Get daily usage for a user today
+ * Get daily usage for a paid user with an active license today
  */
 export function getDailyCopyUsage(licenseKey: string): number {
   if (typeof window === 'undefined' || !licenseKey) return 0;
@@ -560,7 +561,7 @@ export function getDailyCopyUsage(licenseKey: string): number {
 }
 
 /**
- * Increment daily usage
+ * Increment daily usage for paid license
  */
 export function incrementDailyCopyUsage(licenseKey: string): number {
   if (typeof window === 'undefined' || !licenseKey) return 1;
@@ -569,6 +570,34 @@ export function incrementDailyCopyUsage(licenseKey: string): number {
   const current = getDailyCopyUsage(licenseKey);
   const next = current + 1;
   localStorage.setItem(key, String(next));
+  return next;
+}
+
+/**
+ * 🔒 Free Trial Lifetime Copy Tracking (Strict 1-Time Lifetime Limit - NO RESET!)
+ * Free users get exactly 1 prompt copy in their lifetime. Next copy tells them to upgrade!
+ */
+export function getFreeTrialCopyUsage(userIdentifier: string): number {
+  if (typeof window === 'undefined' || !userIdentifier) return 0;
+  const cleanId = userIdentifier.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+  const userKey = `apex3d_lifetime_free_copy_${cleanId}`;
+  const deviceKey = 'apex3d_lifetime_free_copy_device';
+  const userVal = localStorage.getItem(userKey);
+  const devVal = localStorage.getItem(deviceKey);
+  const uCount = userVal ? parseInt(userVal, 10) || 0 : 0;
+  const dCount = devVal ? parseInt(devVal, 10) || 0 : 0;
+  return Math.max(uCount, dCount);
+}
+
+export function incrementFreeTrialCopyUsage(userIdentifier: string): number {
+  if (typeof window === 'undefined' || !userIdentifier) return 1;
+  const cleanId = userIdentifier.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+  const userKey = `apex3d_lifetime_free_copy_${cleanId}`;
+  const deviceKey = 'apex3d_lifetime_free_copy_device';
+  const current = getFreeTrialCopyUsage(userIdentifier);
+  const next = current + 1;
+  localStorage.setItem(userKey, String(next));
+  localStorage.setItem(deviceKey, String(next));
   return next;
 }
 

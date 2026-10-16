@@ -12,7 +12,36 @@ interface LicenseModalProps {
 export const LicenseModal: React.FC<LicenseModalProps> = ({ order, isOpen, onClose }) => {
   if (!isOpen || !order) return null;
 
-  const licenseKey = order.licenseKey || 'PENDING-APPROVAL';
+  // Strict: Licenses are issued exclusively for paid passholders
+  if ((order.amountINR || 0) <= 0 || !order.licenseKey) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-role-fade-in">
+        <div className="relative w-full max-w-md bg-[#09090e] border border-amber-500/30 rounded-2xl p-6 text-white text-center shadow-2xl">
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 p-2 text-zinc-400 hover:text-white"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          <div className="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center mx-auto mb-4 text-amber-400">
+            <Award className="w-6 h-6" />
+          </div>
+          <h3 className="text-base font-bold text-white mb-2">No Commercial License for Free Accounts</h3>
+          <p className="text-xs text-zinc-400 leading-relaxed mb-5">
+            Commercial Deployment License Certificates granting worldwide client delivery rights are issued exclusively to verified paid passholders (₹49+).
+          </p>
+          <button
+            onClick={onClose}
+            className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-mono font-bold uppercase cursor-pointer"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const licenseKey = order.licenseKey;
   const issueDate = order.approvedAt
     ? new Date(order.approvedAt).toLocaleDateString('en-IN', {
         day: '2-digit',
