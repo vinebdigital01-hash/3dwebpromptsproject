@@ -703,7 +703,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                 <span>IDENTITY VALIDATION</span>
                 <span className="flex items-center gap-1 text-emerald-400">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  FIREBASE AUTH
+                  SECURE IDENTITY
                 </span>
               </div>
               <h1 className="text-xl font-bold tracking-tight text-white">
@@ -946,7 +946,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono">Reset Password</h3>
-                  <p className="text-[11px] text-zinc-400 font-mono">Receive recovery instructions via Firebase Auth</p>
+                  <p className="text-[11px] text-zinc-400 font-mono">Receive secure password reset instructions via email</p>
                 </div>
               </div>
 

@@ -1822,12 +1822,12 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                             ? 'bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-500/30'
                             : 'bg-white/5 hover:bg-white/10 text-white border border-white/10'
                         }`}
-                        title={lead.lastFollowupAt ? `Last dispatched on ${new Date(lead.lastFollowupAt).toLocaleString()}` : 'Dispatch recovery email via Resend'}
+                        title={lead.lastFollowupAt ? `Last dispatched on ${new Date(lead.lastFollowupAt).toLocaleString()}` : 'Dispatch recovery email'}
                       >
                         {sendingLeadEmailId === lead.id ? (
                           <>
                             <Loader2 className="w-3 h-3 animate-spin text-blue-400" />
-                            <span>Sending via Resend...</span>
+                            <span>Sending Email...</span>
                           </>
                         ) : lead.lastFollowupAt ? (
                           <>
@@ -2744,7 +2744,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <h3 className="text-xs font-mono uppercase tracking-wider text-blue-400 font-bold flex items-center gap-2">
                   <MailCheck className="w-4 h-4" />
-                  <span>04. Automated Transactional Emails (Resend API)</span>
+                  <span>04. Automated Transactional Emails (Mail Engine API)</span>
                 </h3>
 
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 flex items-center gap-1">
@@ -2753,12 +2753,12 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
               </div>
 
               <p className="text-xs text-white/60">
-                Whenever you click "Approve" on a pending order, Resend automatically delivers the branded access email with their License Key, Portal Login link, and Invoice to the customer.
+                Whenever you click "Approve" on a pending order, the system automatically delivers the branded access email with their License Key, Portal Login link, and Invoice to the customer.
               </p>
 
               <div className="space-y-3">
                 <div>
-                  <label className="block text-xs font-semibold text-white/70 mb-1">Resend API Key</label>
+                  <label className="block text-xs font-semibold text-white/70 mb-1">Mail Engine API Key</label>
                   <input
                     type="password"
                     value={resendApiKey}
@@ -2778,7 +2778,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                     className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-xs font-mono text-white placeholder-white/20 focus:outline-none focus:border-blue-500"
                   />
                   <span className="text-[10px] text-white/40 mt-1 block">
-                    Recommended: <code className="text-blue-300">Vine B Digital // 3D Vault &lt;vault@vinebdigital.store&gt;</code>. (Note: Ensure DNS records are added in Resend dashboard for vinebdigital.store).
+                    Recommended: <code className="text-blue-300">Vine B Digital // 3D Vault &lt;vault@vinebdigital.store&gt;</code>. (Note: Ensure domain DNS records are verified for vinebdigital.store).
                   </span>
                 </div>
 

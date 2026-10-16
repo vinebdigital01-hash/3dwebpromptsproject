@@ -320,7 +320,7 @@ export const BroadcastCenter: React.FC<BroadcastCenterProps> = ({ adminEmail, sh
               Email Broadcast to All Subscribers
             </h2>
             <p className="text-sm text-zinc-300 max-w-2xl leading-relaxed">
-              Design high-converting broadcast emails with complete freedom: embed videos, images, custom HTML, dynamic tags, and deliver via Resend with guaranteed inbox deliverability.
+              Design high-converting broadcast emails with complete freedom: embed videos, images, custom HTML, dynamic tags, and deliver with guaranteed inbox deliverability.
             </p>
           </div>
 
@@ -1018,7 +1018,7 @@ export const BroadcastCenter: React.FC<BroadcastCenterProps> = ({ adminEmail, sh
             <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
               <span>
-                Emails will be sent in throttled batches via Resend to ensure 100% deliverability.
+                Emails will be sent in throttled batches to ensure 100% verified deliverability.
               </span>
             </div>
 
@@ -1052,7 +1052,7 @@ export const BroadcastCenter: React.FC<BroadcastCenterProps> = ({ adminEmail, sh
             <div className="space-y-1">
               <h3 className="text-lg font-bold text-white">Transmitting Live Broadcast</h3>
               <p className="text-xs text-zinc-400 font-mono">
-                Delivering via Resend API &bull; Rate-Limited Throttling Active
+                Delivering via High-Speed Pipeline &bull; Rate-Limited Throttling Active
               </p>
             </div>
 
