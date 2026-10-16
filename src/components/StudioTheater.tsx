@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Play, Pause, Lock, ArrowRight, Shuffle, Sparkles } from 'lucide-react';
 import { sound } from '../lib/audioEngine';
+import { isMediaImage } from '../lib/mediaUtils';
 
 interface StudioTheaterProps {
   onUnlockClick: () => void;
@@ -207,10 +208,7 @@ export const StudioTheater: React.FC<StudioTheaterProps> = ({ onUnlockClick }) =
   const dockRef = useRef<HTMLDivElement>(null);
 
   const current = RELEASES[activeIdx];
-  const isImageMedia =
-    current.videoUrl.toLowerCase().endsWith('.webp') ||
-    current.videoUrl.toLowerCase().endsWith('.png') ||
-    current.videoUrl.toLowerCase().endsWith('.gif');
+  const isImageMedia = isMediaImage(current.videoUrl);
 
   // Automatically scroll only the horizontal dock container to center the release card (never touching window scroll)
   useEffect(() => {

@@ -61,6 +61,7 @@ import {
 } from '../lib/leadTracker';
 import { VaultItem } from '../data/vaultCatalog';
 import { getAllVaultPrompts, initPromptsCloudSync } from '../lib/promptCatalogStore';
+import { isMediaImage } from '../lib/mediaUtils';
 import { sound } from '../lib/audioEngine';
 import { verifyAndBindLicenseAccess } from '../lib/deviceSecurity';
 import { getEmailValidationError, isDisposableEmail } from '../lib/security';
@@ -1391,26 +1392,41 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                     </div>
 
                     <div className="relative aspect-video w-full rounded-xl overflow-hidden border border-white/[0.1] shadow-2xl bg-black group">
-                      <video
-                        ref={spotlightVideoRef}
-                        src={spotlightPrompt.videoUrl}
-                        poster={spotlightPrompt.poster}
-                        autoPlay
-                        loop
-                        muted
-                        playsInline
-                        className="w-full h-full object-cover"
-                      />
+                      {isMediaImage(spotlightPrompt.videoUrl) ? (
+                        <img
+                          src={spotlightPrompt.videoUrl}
+                          alt={spotlightPrompt.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <video
+                          ref={spotlightVideoRef}
+                          src={spotlightPrompt.videoUrl}
+                          poster={spotlightPrompt.poster}
+                          autoPlay
+                          loop
+                          muted
+                          playsInline
+                          className="w-full h-full object-cover"
+                        />
+                      )}
 
-                      {/* Video Player Floating Overlay */}
+                      {/* Video / Animated Media Floating Overlay */}
                       <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between z-10">
-                        <button
-                          onClick={toggleSpotlightPlay}
-                          className="px-3 py-1.5 rounded-lg bg-black/75 hover:bg-black text-white text-[11px] font-mono border border-white/20 backdrop-blur-md transition-all flex items-center gap-1.5"
-                        >
-                          {isSpotlightPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
-                          <span>{isSpotlightPlaying ? 'Pause Canvas' : 'Play Canvas'}</span>
-                        </button>
+                        {!isMediaImage(spotlightPrompt.videoUrl) ? (
+                          <button
+                            onClick={toggleSpotlightPlay}
+                            className="px-3 py-1.5 rounded-lg bg-black/75 hover:bg-black text-white text-[11px] font-mono border border-white/20 backdrop-blur-md transition-all flex items-center gap-1.5"
+                          >
+                            {isSpotlightPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+                            <span>{isSpotlightPlaying ? 'Pause Canvas' : 'Play Canvas'}</span>
+                          </button>
+                        ) : (
+                          <span className="px-3 py-1.5 rounded-lg bg-black/75 text-emerald-400 text-[10px] font-mono border border-emerald-500/30 backdrop-blur-md flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            <span>ANIMATED WEBP // ACTIVE</span>
+                          </span>
+                        )}
 
                         <button
                           onClick={() => {
@@ -1745,15 +1761,24 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                     >
                       {/* Top Media Frame */}
                       <div className="relative aspect-video w-full bg-black/60 overflow-hidden">
-                        <video
-                          src={item.videoUrl}
-                          poster={item.poster}
-                          autoPlay
-                          loop
-                          muted
-                          playsInline
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
-                        />
+                        {isMediaImage(item.videoUrl) ? (
+                          <img
+                            src={item.videoUrl}
+                            alt={item.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <video
+                            src={item.videoUrl}
+                            poster={item.poster}
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+                          />
+                        )}
                         <div className="absolute inset-0 bg-gradient-to-t from-[#09090e] via-transparent to-black/60 pointer-events-none" />
 
                         {/* Top Badges */}
@@ -2243,19 +2268,27 @@ Rules:
               <div className="p-6 flex flex-col justify-between bg-black/60">
                 <div>
                   <div className="relative aspect-video w-full rounded-xl overflow-hidden border border-white/[0.08] shadow-2xl bg-black">
-                    <video
-                      src={inspectingPrompt.videoUrl}
-                      poster={inspectingPrompt.poster}
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      controls
-                      className="w-full h-full object-cover"
-                    />
+                    {isMediaImage(inspectingPrompt.videoUrl) ? (
+                      <img
+                        src={inspectingPrompt.videoUrl}
+                        alt={inspectingPrompt.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <video
+                        src={inspectingPrompt.videoUrl}
+                        poster={inspectingPrompt.poster}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        controls
+                        className="w-full h-full object-cover"
+                      />
+                    )}
 
                     <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded bg-black/75 text-emerald-400 font-mono text-[10px] border border-emerald-500/30 backdrop-blur-md">
-                      {inspectingPrompt.fpsBadge || '60 FPS WEBGL'}
+                      {inspectingPrompt.fpsBadge || (isMediaImage(inspectingPrompt.videoUrl) ? 'ANIMATED WEBP' : '60 FPS WEBGL')}
                     </div>
                   </div>
 

@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Play, Pause, Maximize2, Copy, Check, ArrowUpRight, Sparkles, X, Volume2, VolumeX, ShieldCheck } from 'lucide-react';
 import { sound } from '../lib/audioEngine';
 import { CopyPromptLeadModal } from './CopyPromptLeadModal';
+import { isMediaImage } from '../lib/mediaUtils';
 
 export interface TransformationItem {
   id: string;
@@ -459,7 +460,7 @@ const TransformationCard: React.FC<TransformationCardProps> = ({
   const [progress, setProgress] = useState<number>(0);
   const [isHovered, setIsHovered] = useState<boolean>(false);
 
-  const isImageMedia = item.videoUrl.toLowerCase().endsWith('.webp') || item.videoUrl.toLowerCase().endsWith('.png') || item.videoUrl.toLowerCase().endsWith('.gif');
+  const isImageMedia = isMediaImage(item.videoUrl);
 
   // Border accents according to user requirements: subtle, premium thick borders, non-neon
   const borderClass = item.accentColor === 'gold'
@@ -797,7 +798,7 @@ const TransformationModal: React.FC<TransformationModalProps> = ({
         <div className="overflow-y-auto w-full">
           {/* High-Res Video / Animated Showcase Area */}
           <div className="relative aspect-video w-full bg-black shrink-0 max-h-[46vh]">
-            {item.videoUrl.toLowerCase().endsWith('.webp') ? (
+            {isMediaImage(item.videoUrl) ? (
               <img
                 src={item.videoUrl}
                 alt={item.headline}
@@ -815,7 +816,7 @@ const TransformationModal: React.FC<TransformationModalProps> = ({
             )}
 
             {/* Sound Toggle (only for video formats) */}
-            {!item.videoUrl.toLowerCase().endsWith('.webp') && (
+            {!isMediaImage(item.videoUrl) && (
               <button
                 onClick={() => setIsModalMuted(!isModalMuted)}
                 className="absolute bottom-3 left-3 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-black/80 backdrop-blur-md text-zinc-300 text-[11px] font-mono border border-white/10 hover:border-white/20 transition-all"

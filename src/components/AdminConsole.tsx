@@ -118,6 +118,7 @@ import { VaultItem } from '../data/vaultCatalog';
 import { InvoiceModal } from './InvoiceModal';
 import { LicenseModal } from './LicenseModal';
 import { BroadcastCenter } from './BroadcastCenter';
+import { isMediaImage } from '../lib/mediaUtils';
 
 interface AdminConsoleProps {
   onBackToSite: () => void;
@@ -2495,14 +2496,53 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-white/70 mb-1">Video / WebP Showcase URL</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-semibold text-white/70">Video / WebP Showcase URL</label>
+                      {newVideoUrl.trim() && (
+                        <span className={`text-[10px] font-mono px-2 py-0.2 rounded font-bold ${
+                          isMediaImage(newVideoUrl)
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                            : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                        }`}>
+                          {isMediaImage(newVideoUrl) ? '✨ Detected: Animated WebP / GIF' : '🎬 Detected: MP4/WebM Video'}
+                        </span>
+                      )}
+                    </div>
                     <input
                       type="url"
                       value={newVideoUrl}
                       onChange={(e) => setNewVideoUrl(e.target.value)}
-                      placeholder="https://.../video.mp4"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-xs text-white placeholder-white/30 focus:outline-none focus:border-blue-500"
+                      placeholder="e.g. https://image.mux.com/.../animated.webp or .mp4"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-xs text-white placeholder-white/30 focus:outline-none focus:border-blue-500 font-mono"
                     />
+
+                    {/* Live Media Preview Box */}
+                    {newVideoUrl.trim() && (
+                      <div className="mt-2 p-2.5 rounded-xl bg-black/70 border border-white/15">
+                        <div className="text-[10px] font-mono text-zinc-400 mb-1.5 flex items-center justify-between">
+                          <span>LIVE SHOWCASE PREVIEW:</span>
+                          <span className="text-zinc-500">Auto-detected &amp; rendered</span>
+                        </div>
+                        <div className="relative aspect-video w-full rounded-lg overflow-hidden bg-black border border-white/10 max-h-40 flex items-center justify-center">
+                          {isMediaImage(newVideoUrl) ? (
+                            <img
+                              src={newVideoUrl}
+                              alt="Live showcase preview"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <video
+                              src={newVideoUrl}
+                              autoPlay
+                              loop
+                              muted
+                              playsInline
+                              className="w-full h-full object-cover"
+                            />
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -2573,10 +2613,36 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
             <div className="divide-y divide-white/10 rounded-2xl bg-[#090914] border border-white/10">
               {promptsList.map((item, idx) => (
                 <div key={item.id} className="p-4 sm:p-5 flex items-center justify-between gap-4">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-mono text-white/30">{String(idx + 1).padStart(2, '0')}</span>
-                      <h4 className="text-sm font-bold text-white truncate max-w-sm">{item.title}</h4>
+                  <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                    {/* Media Thumbnail */}
+                    <div className="w-16 h-12 rounded-lg bg-black/70 border border-white/10 overflow-hidden shrink-0 relative flex items-center justify-center">
+                      {isMediaImage(item.videoUrl) ? (
+                        <img
+                          src={item.videoUrl}
+                          alt={item.title}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <video
+                          src={item.videoUrl}
+                          poster={item.poster}
+                          autoPlay
+                          loop
+                          muted
+                          playsInline
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                      <span className="absolute bottom-0.5 right-0.5 text-[8px] font-mono px-1 py-0.2 rounded bg-black/80 text-zinc-300">
+                        {isMediaImage(item.videoUrl) ? 'WEBP' : 'MP4'}
+                      </span>
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-mono text-white/30">{String(idx + 1).padStart(2, '0')}</span>
+                        <h4 className="text-sm font-bold text-white truncate max-w-sm">{item.title}</h4>
                       {item.id.startsWith('custom-prompt') && (
                         <span className="text-[9px] font-mono font-semibold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
                           CMS CUSTOM
@@ -2598,6 +2664,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                     </div>
                     <p className="text-xs text-white/50 mt-1 line-clamp-1">{item.subtitle}</p>
                   </div>
+                </div>
 
                   <div className="flex items-center gap-3 shrink-0">
                     <button
@@ -3389,16 +3456,55 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-white/80 mb-1">
-                    Video / WebP Showcase URL
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-semibold text-white/80">
+                      Video / WebP Showcase URL
+                    </label>
+                    {editVideoUrl.trim() && (
+                      <span className={`text-[10px] font-mono px-2 py-0.2 rounded font-bold ${
+                        isMediaImage(editVideoUrl)
+                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                          : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                      }`}>
+                        {isMediaImage(editVideoUrl) ? '✨ Detected: Animated WebP / GIF' : '🎬 Detected: MP4/WebM Video'}
+                      </span>
+                    )}
+                  </div>
                   <input
                     type="text"
                     value={editVideoUrl}
                     onChange={(e) => setEditVideoUrl(e.target.value)}
-                    placeholder="https://.../video.mp4"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-black/60 border border-white/15 text-xs text-white placeholder-white/30 focus:outline-none focus:border-blue-400"
+                    placeholder="e.g. https://image.mux.com/.../animated.webp or .mp4"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-black/60 border border-white/15 text-xs text-white placeholder-white/30 focus:outline-none focus:border-blue-400 font-mono"
                   />
+
+                  {/* Live Media Preview Box */}
+                  {editVideoUrl.trim() && (
+                    <div className="mt-2 p-2.5 rounded-xl bg-black/70 border border-white/15">
+                      <div className="text-[10px] font-mono text-zinc-400 mb-1.5 flex items-center justify-between">
+                        <span>LIVE SHOWCASE PREVIEW:</span>
+                        <span className="text-zinc-500">Auto-detected &amp; rendered</span>
+                      </div>
+                      <div className="relative aspect-video w-full rounded-lg overflow-hidden bg-black border border-white/10 max-h-40 flex items-center justify-center">
+                        {isMediaImage(editVideoUrl) ? (
+                          <img
+                            src={editVideoUrl}
+                            alt="Live showcase preview"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <video
+                            src={editVideoUrl}
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

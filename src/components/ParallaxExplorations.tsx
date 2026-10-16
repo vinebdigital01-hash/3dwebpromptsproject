@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { Sparkles, ArrowUpRight, Zap, Award, Compass, Play } from 'lucide-react';
 import { sound } from '../lib/audioEngine';
+import { isMediaImage } from '../lib/mediaUtils';
 
 interface ParallaxExplorationsProps {
   onUnlockClick: () => void;
@@ -126,7 +127,7 @@ const ShowcaseCard: React.FC<{
   const [isPlaying, setIsPlaying] = React.useState(false);
   const cardRef = React.useRef<HTMLDivElement>(null);
   const videoRef = React.useRef<HTMLVideoElement>(null);
-  const isImage = item.videoUrl.toLowerCase().endsWith('.webp') || item.videoUrl.toLowerCase().endsWith('.png') || item.videoUrl.toLowerCase().endsWith('.gif');
+  const isImage = isMediaImage(item.videoUrl);
 
   // Auto-play when user scrolls to this video, auto-stop when scrolled away
   React.useEffect(() => {
