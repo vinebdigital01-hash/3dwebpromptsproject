@@ -369,21 +369,23 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     }
 
     sound.playSuccess();
+    const cleanEmail = email.trim().toLowerCase();
     const cleanPhone = phone.replace(/\D/g, '');
     try {
       localStorage.setItem('vineb_user_name', name.trim());
-      localStorage.setItem('vineb_user_email', email.trim().toLowerCase());
+      localStorage.setItem('vineb_user_email', cleanEmail);
       localStorage.setItem('vineb_user_phone', cleanPhone);
     } catch {
       // storage error ignored
     }
     handleGhostAutoSave();
 
+    const ghostOrderId = `GHOST-${cleanEmail.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10)}-${tier.id}`;
     const updated: LeadOrder = {
-      id: currentOrder?.id || `ORD-${Date.now().toString().slice(-6)}`,
+      id: currentOrder?.id || ghostOrderId,
       orderNumber: currentOrder?.orderNumber || generateOrderNumber(),
       name: sanitizeInput(name),
-      email: sanitizeInput(email).toLowerCase(),
+      email: cleanEmail,
       phone: cleanPhone,
       tierId: tier.id,
       tierName: tier.name,

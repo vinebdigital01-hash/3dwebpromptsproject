@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   ShieldCheck,
   CheckCircle2,
@@ -24,6 +24,7 @@ import {
   Send,
   AlertTriangle,
   ChevronLeft,
+  ChevronDown,
   Award,
   MessageSquare,
   Zap,
@@ -218,6 +219,20 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
   // Automated Resend Drip Follow-ups State
   const [isDripRunning, setIsDripRunning] = useState(false);
   const [dripResult, setDripResult] = useState<{ day1: number; day2: number; timestamp: string } | null>(null);
+
+  // Ghost Leads Grouping & Timeline State
+  const [ghostViewMode, setGhostViewMode] = useState<'grouped' | 'raw'>('grouped');
+  const [expandedGhostKeys, setExpandedGhostKeys] = useState<Set<string>>(new Set());
+
+  const toggleExpandGhost = (key: string) => {
+    sound.playClick();
+    setExpandedGhostKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   const loadData = () => {
     setOrders(getAllOrders());
@@ -719,6 +734,117 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
   const ghostLeads = orders.filter(
     (o) => o.status === 'unsubmitted_keystroke' || o.status === 'abandoned_at_qr'
   );
+
+  // Grouped Ghost Leads by Customer (Email / Phone) with Multiplier Counters (x2, x3, etc.)
+  const groupedGhostLeads = useMemo(() => {
+    interface GroupedLead {
+      key: string;
+      name: string;
+      email: string;
+      phone: string;
+      latestStatus: 'unsubmitted_keystroke' | 'abandoned_at_qr';
+      highestTierName: string;
+      highestAmountINR: number;
+      attemptCount: number;
+      latestCreatedAt: string;
+      latestUpdatedAt: string;
+      followupStage: number;
+      lastFollowupAt?: string;
+      attempts: LeadOrder[];
+      primaryLead: LeadOrder;
+    }
+
+    const map = new Map<string, GroupedLead>();
+
+    // Sort ghost leads by newest interaction first
+    const sorted = [...ghostLeads].sort(
+      (a, b) =>
+        new Date(b.updatedAt || b.createdAt || 0).getTime() -
+        new Date(a.updatedAt || a.createdAt || 0).getTime()
+    );
+
+    for (const lead of sorted) {
+      const cleanEmail = (lead.email || '').trim().toLowerCase();
+      const cleanPhone = (lead.phone || '').trim().replace(/\D/g, '');
+      const key = cleanEmail || (cleanPhone ? `phone_${cleanPhone}` : lead.id);
+
+      const existing = map.get(key);
+      if (!existing) {
+        map.set(key, {
+          key,
+          name:
+            lead.name &&
+            lead.name !== 'Visitor (Unsubmitted)' &&
+            lead.name !== 'Anonymous Visitor' &&
+            lead.name !== 'Visitor (Checkout)' &&
+            lead.name !== 'Visitor (Lead Magnet)'
+              ? lead.name
+              : lead.name || 'Anonymous Visitor',
+          email: lead.email || '',
+          phone: lead.phone || '',
+          latestStatus: lead.status as 'unsubmitted_keystroke' | 'abandoned_at_qr',
+          highestTierName: lead.tierName || 'Custom Plan',
+          highestAmountINR: lead.amountINR || 0,
+          attemptCount: 1,
+          latestCreatedAt: lead.createdAt || new Date().toISOString(),
+          latestUpdatedAt: lead.updatedAt || lead.createdAt || new Date().toISOString(),
+          followupStage: lead.followupStage || 0,
+          lastFollowupAt: lead.lastFollowupAt,
+          attempts: [lead],
+          primaryLead: lead,
+        });
+      } else {
+        existing.attemptCount += 1;
+        existing.attempts.push(lead);
+
+        // Keep real name over placeholder
+        if (
+          (!existing.name ||
+            existing.name === 'Visitor (Unsubmitted)' ||
+            existing.name === 'Anonymous Visitor' ||
+            existing.name === 'Visitor (Checkout)' ||
+            existing.name === 'Visitor (Lead Magnet)') &&
+          lead.name &&
+          lead.name !== 'Visitor (Unsubmitted)' &&
+          lead.name !== 'Anonymous Visitor' &&
+          lead.name !== 'Visitor (Checkout)' &&
+          lead.name !== 'Visitor (Lead Magnet)'
+        ) {
+          existing.name = lead.name;
+        }
+
+        // Keep phone if missing
+        if (!existing.phone && lead.phone) {
+          existing.phone = lead.phone;
+        }
+
+        // Higher intent stage takes priority
+        if (lead.status === 'abandoned_at_qr') {
+          existing.latestStatus = 'abandoned_at_qr';
+        }
+
+        // Highest plan value takes priority
+        if ((lead.amountINR || 0) > (existing.highestAmountINR || 0)) {
+          existing.highestAmountINR = lead.amountINR || 0;
+          existing.highestTierName = lead.tierName || existing.highestTierName;
+        }
+
+        // Followup stage
+        if ((lead.followupStage || 0) > (existing.followupStage || 0)) {
+          existing.followupStage = lead.followupStage || 0;
+          existing.lastFollowupAt = lead.lastFollowupAt || existing.lastFollowupAt;
+        }
+
+        // Primary lead selection for recovery actions
+        if (lead.status === 'abandoned_at_qr' && existing.primaryLead.status !== 'abandoned_at_qr') {
+          existing.primaryLead = lead;
+        }
+      }
+    }
+
+    return Array.from(map.values());
+  }, [ghostLeads]);
+
   const approvedOrders = orders.filter((o) => o.status === 'approved');
   const upgradeIntentOrders = orders.filter(
     (o) => (o.upgradeTelemetry?.viewsCount || 0) > 0 || (o.upgradeTelemetry?.clicksCount || 0) > 0
@@ -1089,11 +1215,16 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
               <span>GHOST & ABANDONED</span>
               <User className="w-4 h-4 text-purple-400" />
             </div>
-            <div className="text-2xl sm:text-3xl font-extrabold text-purple-300">
-              {ghostLeads.length}
+            <div className="text-2xl sm:text-3xl font-extrabold text-purple-300 flex items-baseline gap-2">
+              <span>{groupedGhostLeads.length}</span>
+              {ghostLeads.length > groupedGhostLeads.length && (
+                <span className="text-xs font-mono text-amber-300 font-bold">
+                  ({ghostLeads.length} events)
+                </span>
+              )}
             </div>
             <div className="text-[10px] text-purple-300/80 mt-1 font-mono">
-              High-intent leads to recover
+              Unique high-intent leads to recover
             </div>
           </div>
 
@@ -1155,7 +1286,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
             }`}
           >
             <User className="w-4 h-4" />
-            <span>Ghost & Abandoned Leads ({ghostLeads.length})</span>
+            <span>Ghost & Abandoned ({groupedGhostLeads.length})</span>
           </button>
 
           <button
@@ -1641,13 +1772,50 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
           <div>
             <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h2 className="text-base font-bold text-white">Ghost & Abandoned Leads (Meta Ads ROI)</h2>
+                <h2 className="text-base font-bold text-white flex items-center gap-2 flex-wrap">
+                  <span>Ghost & Abandoned Leads (Meta Ads ROI)</span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 font-bold">
+                    {groupedGhostLeads.length} Unique Leads · {ghostLeads.length} Total Events
+                  </span>
+                </h2>
                 <p className="text-xs text-white/50">
-                  Users who typed their details in Step 1 (or blurred the input) but didn't complete payment. Recover these high-intent leads!
+                  Users who typed their details in Step 1 or reached QR code. Repeat interactions by the same customer are unified with intent multipliers (x2, x3).
                 </p>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                {/* View Mode Switcher: Grouped vs Raw Stream */}
+                <div className="flex items-center p-1 rounded-xl bg-black/60 border border-white/10 text-xs font-mono">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sound.playClick();
+                      setGhostViewMode('grouped');
+                    }}
+                    className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                      ghostViewMode === 'grouped'
+                        ? 'bg-purple-600 text-white font-bold shadow-md shadow-purple-600/30'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    Grouped Users (x2, x3)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sound.playClick();
+                      setGhostViewMode('raw');
+                    }}
+                    className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                      ghostViewMode === 'raw'
+                        ? 'bg-white/15 text-white font-bold shadow'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    Raw Stream ({ghostLeads.length})
+                  </button>
+                </div>
+
                 <button
                   type="button"
                   onClick={async () => {
@@ -1668,20 +1836,31 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                     onClick={() => {
                       sound.playClick();
                       const csvContent =
-                        'data:text/csv;charset=utf-8,Name,Email,Phone,Plan,CapturedAt\n' +
-                        ghostLeads
-                          .map((l) => `"${l.name}","${l.email}","${l.phone}","${l.tierName}","${l.createdAt}"`)
-                          .join('\n');
+                        ghostViewMode === 'grouped'
+                          ? 'data:text/csv;charset=utf-8,Name,Email,Phone,Plan,HighestIntentStage,Attempts,LastSeen\n' +
+                            groupedGhostLeads
+                              .map(
+                                (g) =>
+                                  `"${g.name}","${g.email}","${g.phone}","${g.highestTierName}","${
+                                    g.latestStatus === 'abandoned_at_qr' ? 'Abandoned at QR' : 'Typed (Unsubmitted)'
+                                  }","${g.attemptCount}","${g.latestCreatedAt}"`
+                              )
+                              .join('\n')
+                          : 'data:text/csv;charset=utf-8,Name,Email,Phone,Plan,CapturedAt\n' +
+                            ghostLeads
+                              .map((l) => `"${l.name}","${l.email}","${l.phone}","${l.tierName}","${l.createdAt}"`)
+                              .join('\n');
+
                       const encodedUri = encodeURI(csvContent);
                       const link = document.createElement('a');
                       link.setAttribute('href', encodedUri);
-                      link.setAttribute('download', 'apex3d_ghost_leads.csv');
+                      link.setAttribute('download', ghostViewMode === 'grouped' ? 'apex3d_grouped_leads.csv' : 'apex3d_raw_ghost_leads.csv');
                       document.body.appendChild(link);
                       link.click();
                       document.body.removeChild(link);
                       showToast('📥 Ghost leads exported for Meta Custom Audience.');
                     }}
-                    className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold flex items-center gap-1.5"
+                    className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
                   >
                     <Download className="w-3.5 h-3.5" />
                     <span>Export to Meta CSV</span>
@@ -1791,24 +1970,221 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                   As soon as visitors enter their email or phone in the checkout modal, they will be tracked here.
                 </p>
               </div>
+            ) : ghostViewMode === 'grouped' ? (
+              /* ==============================================================
+                  MODE 1: GROUPED BY UNIQUE CUSTOMER (WITH x2, x3 BADGES)
+                 ============================================================== */
+              <div className="divide-y divide-white/5 rounded-2xl bg-[#090914] border border-white/10 overflow-hidden">
+                {groupedGhostLeads.map((group) => {
+                  const isExpanded = expandedGhostKeys.has(group.key);
+                  return (
+                    <div
+                      key={group.key}
+                      className="p-4 sm:p-5 flex flex-col justify-between gap-3 hover:bg-white/[0.02] transition-colors"
+                    >
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-bold text-white">
+                              {group.name || 'Anonymous Visitor'}
+                            </span>
+
+                            {/* 🔥 Multiplier Badge: x2, x3, etc. */}
+                            {group.attemptCount > 1 ? (
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500/25 to-orange-500/25 text-amber-300 border border-amber-500/40 font-extrabold flex items-center gap-1 shadow-sm shadow-amber-500/20">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                                <span>x{group.attemptCount} Attempts</span>
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700">
+                                x1 Attempt
+                              </span>
+                            )}
+
+                            {/* Highest Funnel Status */}
+                            <span
+                              className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
+                                group.latestStatus === 'abandoned_at_qr'
+                                  ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30 font-semibold'
+                                  : 'bg-zinc-800 text-zinc-300 border border-zinc-700'
+                              }`}
+                            >
+                              {group.latestStatus === 'abandoned_at_qr' ? 'Abandoned at QR' : 'Typed (Unsubmitted)'}
+                            </span>
+
+                            {/* Drip Status */}
+                            <span
+                              className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
+                                group.followupStage === 2
+                                  ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+                                  : group.followupStage === 1
+                                  ? 'bg-blue-500/10 text-blue-300 border-blue-500/30'
+                                  : 'bg-zinc-800 text-zinc-400 border-zinc-700'
+                              }`}
+                            >
+                              {group.followupStage === 2
+                                ? 'Drip: Day 2 Sent'
+                                : group.followupStage === 1
+                                ? 'Drip: Day 1 Sent'
+                                : 'Drip: Pending'}
+                            </span>
+
+                            <span className="text-xs font-bold text-blue-400 font-mono">
+                              {group.highestTierName} (₹{group.highestAmountINR})
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-3 text-xs text-white/60 mt-1 font-mono flex-wrap">
+                            <span>{group.email}</span>
+                            {group.phone && <span>· +91 {group.phone}</span>}
+                            <span>· {new Date(group.latestCreatedAt).toLocaleDateString()}</span>
+                            {group.attemptCount > 1 && (
+                              <span className="text-amber-400/90 font-medium">
+                                · High Intent: Re-engaged {group.attemptCount} times
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Expand/Collapse Timeline for multiple attempts */}
+                          {group.attemptCount > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => toggleExpandGhost(group.key)}
+                              className="mt-2 text-[11px] font-mono text-purple-400 hover:text-purple-300 flex items-center gap-1 cursor-pointer transition-colors"
+                            >
+                              <ChevronDown
+                                className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                                  isExpanded ? 'rotate-180' : ''
+                                }`}
+                              />
+                              <span>
+                                {isExpanded
+                                  ? 'Hide attempt history'
+                                  : `View all ${group.attemptCount} interaction touchpoints`}
+                              </span>
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Action buttons: single follow-up per user */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          {group.phone && (
+                            <a
+                              href={`https://wa.me/91${group.phone.replace(/\D/g, '')}?text=${encodeURIComponent(
+                                `Hey ${group.name || 'there'}! Saw you were checking out the ${group.highestTierName} on APEX3D Vault. Did you face any UPI issue? Here to help!`
+                              )}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium flex items-center gap-1 shadow-md shadow-emerald-600/20 active:scale-[0.98] transition-all cursor-pointer"
+                            >
+                              <span>WhatsApp Follow-up</span>
+                              <ArrowUpRight className="w-3 h-3" />
+                            </a>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => handleSendRecoveryEmail(group.primaryLead)}
+                            disabled={sendingLeadEmailId === group.primaryLead.id}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
+                              sendingLeadEmailId === group.primaryLead.id
+                                ? 'bg-blue-600/50 text-blue-200 cursor-wait border border-blue-500/30'
+                                : group.lastFollowupAt
+                                ? 'bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-500/30'
+                                : 'bg-white/5 hover:bg-white/10 text-white border border-white/10'
+                            }`}
+                            title={
+                              group.lastFollowupAt
+                                ? `Last dispatched on ${new Date(group.lastFollowupAt).toLocaleString()}`
+                                : 'Dispatch recovery email'
+                            }
+                          >
+                            {sendingLeadEmailId === group.primaryLead.id ? (
+                              <>
+                                <Loader2 className="w-3 h-3 animate-spin text-blue-400" />
+                                <span>Sending Email...</span>
+                              </>
+                            ) : group.lastFollowupAt ? (
+                              <>
+                                <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                                <span>Recovery Sent</span>
+                              </>
+                            ) : (
+                              <>
+                                <Send className="w-3 h-3 text-zinc-400" />
+                                <span>Send Recovery Email</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Expanded Attempt Timeline Accordion */}
+                      {isExpanded && (
+                        <div className="mt-2 p-3.5 rounded-xl bg-black/50 border border-white/[0.08] space-y-2 text-xs font-mono animate-role-fade-in">
+                          <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">
+                            Customer Journey & Attempt Log ({group.attempts.length} Touchpoints):
+                          </div>
+                          {group.attempts.map((att, attIdx) => (
+                            <div
+                              key={att.id || attIdx}
+                              className="flex items-center justify-between text-[11px] py-1 border-b border-white/5 last:border-0 flex-wrap gap-2"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="text-zinc-500">#{attIdx + 1}</span>
+                                <span
+                                  className={`px-1.5 py-0.2 rounded text-[10px] font-mono ${
+                                    att.status === 'abandoned_at_qr'
+                                      ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                                      : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
+                                  }`}
+                                >
+                                  {att.status === 'abandoned_at_qr' ? 'Abandoned at QR' : 'Typed (Unsubmitted)'}
+                                </span>
+                                <span className="text-white/80">{att.tierName}</span>
+                                <span className="text-blue-400 font-bold">₹{att.amountINR}</span>
+                              </div>
+                              <div className="text-zinc-500 text-[10px]">
+                                {new Date(att.updatedAt || att.createdAt || 0).toLocaleString()}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             ) : (
+              /* ==============================================================
+                  MODE 2: RAW EVENT STREAM (INDIVIDUAL ATTEMPTS)
+                 ============================================================== */
               <div className="divide-y divide-white/5 rounded-2xl bg-[#090914] border border-white/10 overflow-hidden">
                 {ghostLeads.map((lead) => (
-                  <div key={lead.id} className="p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-white/[0.02]">
+                  <div
+                    key={lead.id}
+                    className="p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-white/[0.02]"
+                  >
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-semibold text-white">{lead.name || 'Anonymous Visitor'}</span>
                         <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
                           {lead.status === 'unsubmitted_keystroke' ? 'Typed (Unsubmitted)' : 'Abandoned at QR'}
                         </span>
-                        <span className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
-                          lead.followupStage === 2
-                            ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+                        <span
+                          className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
+                            lead.followupStage === 2
+                              ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+                              : lead.followupStage === 1
+                              ? 'bg-blue-500/10 text-blue-300 border-blue-500/30'
+                              : 'bg-zinc-800 text-zinc-400 border-zinc-700'
+                          }`}
+                        >
+                          {lead.followupStage === 2
+                            ? 'Drip: Day 2 Sent'
                             : lead.followupStage === 1
-                            ? 'bg-blue-500/10 text-blue-300 border-blue-500/30'
-                            : 'bg-zinc-800 text-zinc-400 border-zinc-700'
-                        }`}>
-                          {lead.followupStage === 2 ? 'Drip: Day 2 Sent' : lead.followupStage === 1 ? 'Drip: Day 1 Sent' : 'Drip: Pending'}
+                            ? 'Drip: Day 1 Sent'
+                            : 'Drip: Pending'}
                         </span>
                         <span className="text-xs font-bold text-blue-400 font-mono">
                           {lead.tierName} (₹{lead.amountINR})
@@ -1848,7 +2224,11 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                             ? 'bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-500/30'
                             : 'bg-white/5 hover:bg-white/10 text-white border border-white/10'
                         }`}
-                        title={lead.lastFollowupAt ? `Last dispatched on ${new Date(lead.lastFollowupAt).toLocaleString()}` : 'Dispatch recovery email'}
+                        title={
+                          lead.lastFollowupAt
+                            ? `Last dispatched on ${new Date(lead.lastFollowupAt).toLocaleString()}`
+                            : 'Dispatch recovery email'
+                        }
                       >
                         {sendingLeadEmailId === lead.id ? (
                           <>
