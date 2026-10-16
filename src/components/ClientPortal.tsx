@@ -49,10 +49,11 @@ import { sound } from '../lib/audioEngine';
 import { InvoiceModal } from './InvoiceModal';
 import { LicenseModal } from './LicenseModal';
 import { UpgradeShowcaseModal } from './UpgradeShowcaseModal';
+import { TierId } from './PricingSection';
 
 interface ClientPortalProps {
   onBackToSite: () => void;
-  onUpgradeClick?: () => void;
+  onUpgradeClick?: (tierId?: TierId) => void;
 }
 
 type PortalTab = 'vault' | 'boilerplates' | 'license';
@@ -1462,10 +1463,10 @@ Rules:
         onClose={() => setIsUpgradeShowcaseOpen(false)}
         currentTierName={activeOrder.tierName}
         triggerReason={upgradeTriggerReason}
-        onUpgrade={() => {
+        onUpgrade={(tierId) => {
           setIsUpgradeShowcaseOpen(false);
           if (onUpgradeClick) {
-            onUpgradeClick();
+            onUpgradeClick(tierId);
           }
         }}
       />

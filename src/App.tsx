@@ -113,9 +113,12 @@ export default function App() {
             window.location.hash = '';
             setIsPortalMode(false);
           }}
-          onUpgradeClick={() => {
-            const lifetimeTier = TIERS.find((t) => t.id === 'lifetime') || TIERS[3];
-            setSelectedTier(lifetimeTier);
+          onUpgradeClick={(tierId) => {
+            const targetTier =
+              (tierId && TIERS.find((t) => t.id === tierId)) ||
+              TIERS.find((t) => t.id === 'lifetime') ||
+              TIERS[3];
+            setSelectedTier(targetTier);
             setIsCheckoutOpen(true);
           }}
         />
