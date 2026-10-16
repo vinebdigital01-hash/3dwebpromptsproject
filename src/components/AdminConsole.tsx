@@ -38,11 +38,13 @@ import {
   RotateCcw,
   Settings2,
   MailCheck,
+  Loader2,
 } from 'lucide-react';
 import {
   getAllOrders,
   approveOrder,
   rejectOrder,
+  saveOrder,
   LeadOrder,
   calculateTierExpiry,
   triggerDripFollowupHeartbeat,
@@ -75,6 +77,8 @@ import {
   sendOrderApprovalEmail,
   sendOrderRejectionEmail,
   sendTestEmail,
+  sendCartRecoveryEmail,
+  sendInstantLeadMagnetOrAbandonedEmail,
   EmailDispatchResult,
 } from '../lib/resendEmail';
 import { sound } from '../lib/audioEngine';
@@ -100,6 +104,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
   const [selectedLicenseOrder, setSelectedLicenseOrder] = useState<LeadOrder | null>(null);
   const [emailPreviewOrder, setEmailPreviewOrder] = useState<LeadOrder | null>(null);
   const [marketingHistory, setMarketingHistory] = useState<MarketingCampaign[]>([]);
+  const [sendingLeadEmailId, setSendingLeadEmailId] = useState<string | null>(null);
 
   // Prompt CMS State (Persistent via promptCatalogStore)
   const [promptsList, setPromptsList] = useState<VaultItem[]>(() => getAllVaultPrompts());
@@ -226,6 +231,44 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
       }
     }
     setRejectionModalOrder(null);
+  };
+
+  const handleSendRecoveryEmail = async (lead: LeadOrder) => {
+    if (!lead.email || !lead.email.includes('@')) {
+      showToast('This lead does not have a valid email address.');
+      return;
+    }
+    setSendingLeadEmailId(lead.id);
+    sound.playClick();
+    try {
+      const result = await sendCartRecoveryEmail({
+        name: lead.name,
+        email: lead.email,
+        phone: lead.phone,
+        tierName: lead.tierName,
+        amountINR: lead.amountINR,
+        orderNumber: lead.orderNumber,
+      });
+
+      if (result.success) {
+        sound.playSuccess();
+        const updatedLead: LeadOrder = {
+          ...lead,
+          followupStage: (lead.followupStage || 0) + 1,
+          lastFollowupAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        saveOrder(updatedLead);
+        loadData();
+        showToast(`⚡ Recovery email dispatched via Resend to ${lead.email}!`);
+      } else {
+        showToast(`Email Notice: ${result.message}`);
+      }
+    } catch (err: any) {
+      showToast(`Error sending email: ${err.message || 'Unknown error'}`);
+    } finally {
+      setSendingLeadEmailId(null);
+    }
   };
 
   const handleCopy = (text: string, id: string) => {
@@ -1165,13 +1208,36 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                         </a>
                       )}
 
-                      <a
-                        href={`mailto:${lead.email}?subject=Did something go wrong with your 3D Vault pass?&body=Hey ${lead.name}, noticed you checked out ${lead.tierName}. Did you face any UPI issue?`}
-                        className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white text-xs font-medium flex items-center gap-1 border border-white/10"
+                      <button
+                        type="button"
+                        onClick={() => handleSendRecoveryEmail(lead)}
+                        disabled={sendingLeadEmailId === lead.id}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
+                          sendingLeadEmailId === lead.id
+                            ? 'bg-blue-600/50 text-blue-200 cursor-wait border border-blue-500/30'
+                            : lead.lastFollowupAt
+                            ? 'bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-500/30'
+                            : 'bg-white/5 hover:bg-white/10 text-white border border-white/10'
+                        }`}
+                        title={lead.lastFollowupAt ? `Last dispatched on ${new Date(lead.lastFollowupAt).toLocaleString()}` : 'Dispatch recovery email via Resend'}
                       >
-                        <Send className="w-3 h-3" />
-                        <span>Send Recovery Email</span>
-                      </a>
+                        {sendingLeadEmailId === lead.id ? (
+                          <>
+                            <Loader2 className="w-3 h-3 animate-spin text-blue-400" />
+                            <span>Sending via Resend...</span>
+                          </>
+                        ) : lead.lastFollowupAt ? (
+                          <>
+                            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                            <span>Re-send Recovery Email</span>
+                          </>
+                        ) : (
+                          <>
+                            <Send className="w-3 h-3" />
+                            <span>Send Recovery Email</span>
+                          </>
+                        )}
+                      </button>
                     </div>
                   </div>
                 ))}

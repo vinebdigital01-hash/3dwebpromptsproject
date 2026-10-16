@@ -267,55 +267,58 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     };
   }, [isOpen, view]);
 
-  // Ghost lead auto-capture on blur
-  const handleGhostAutoSave = () => {
-    if (!tier || !email.trim()) return;
-    if (email.includes('@') && email.includes('.')) {
-      const cleanPhone = phone.trim() ? phone.replace(/\D/g, '') : '';
-      const leadName = name.trim() || 'Visitor (Checkout)';
-      const cleanEmail = email.trim().toLowerCase();
+  // Ghost lead auto-capture on keystroke or blur
+  const handleGhostAutoSave = (emailOverride?: string, nameOverride?: string, phoneOverride?: string) => {
+    if (!tier) return;
+    const rawEmail = (emailOverride !== undefined ? emailOverride : email).trim();
+    if (!rawEmail || !rawEmail.includes('@') || !rawEmail.includes('.')) return;
+    const rawPhone = phoneOverride !== undefined ? phoneOverride : phone;
+    const rawName = nameOverride !== undefined ? nameOverride : name;
 
-      const leadData = {
-        email: cleanEmail,
+    const cleanPhone = rawPhone.trim() ? rawPhone.replace(/\D/g, '') : '';
+    const leadName = rawName.trim() || 'Visitor (Checkout)';
+    const cleanEmail = rawEmail.toLowerCase();
+
+    const leadData = {
+      email: cleanEmail,
+      name: leadName,
+      phone: cleanPhone,
+      tierId: tier.id,
+      tierName: tier.name,
+      amountINR: tier.priceINR,
+    };
+
+    // 1. Save in Ghost / Abandoned Orders database
+    saveGhostKeystrokeLead(leadData);
+
+    // 2. Cache in localStorage & provision Client Portal member preview
+    try {
+      localStorage.setItem('vineb_user_name', leadName);
+      localStorage.setItem('vineb_user_email', cleanEmail);
+      if (cleanPhone) localStorage.setItem('vineb_user_phone', cleanPhone);
+
+      const memberSession: LeadOrder = {
+        id: `USR-${cleanEmail.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8)}`,
+        orderNumber: `MEM-${Date.now().toString().slice(-4)}`,
         name: leadName,
+        email: cleanEmail,
         phone: cleanPhone,
-        tierId: tier.id,
-        tierName: tier.name,
-        amountINR: tier.priceINR,
+        tierId: 'member',
+        tierName: 'Enclave Member (1 Copy/Day)',
+        amountINR: 0,
+        status: 'approved',
+        licenseKey: `LIC-MBR-${Date.now().toString().slice(-6)}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        approvedAt: new Date().toISOString(),
       };
-
-      // 1. Save in Ghost / Abandoned Orders database
-      saveGhostKeystrokeLead(leadData);
-
-      // 2. Cache in localStorage & provision Client Portal member preview
-      try {
-        localStorage.setItem('vineb_user_name', leadName);
-        localStorage.setItem('vineb_user_email', cleanEmail);
-        if (cleanPhone) localStorage.setItem('vineb_user_phone', cleanPhone);
-
-        const memberSession: LeadOrder = {
-          id: `USR-${cleanEmail.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8)}`,
-          orderNumber: `MEM-${Date.now().toString().slice(-4)}`,
-          name: leadName,
-          email: cleanEmail,
-          phone: cleanPhone,
-          tierId: 'member',
-          tierName: 'Enclave Member (1 Copy/Day)',
-          amountINR: 0,
-          status: 'approved',
-          licenseKey: `LIC-MBR-${Date.now().toString().slice(-6)}`,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          approvedAt: new Date().toISOString(),
-        };
-        sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(memberSession));
-      } catch {
-        // storage error ignored
-      }
-
-      // 3. Dispatch instant welcome/abandoned recovery email via Resend
-      sendInstantLeadMagnetOrAbandonedEmail(leadData).catch(() => {});
+      sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(memberSession));
+    } catch {
+      // storage error ignored
     }
+
+    // 3. Dispatch instant welcome/abandoned recovery email via Resend
+    sendInstantLeadMagnetOrAbandonedEmail(leadData).catch(() => {});
   };
 
   const handleSaveContact = (e: React.FormEvent) => {
@@ -687,8 +690,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       type="text"
                       required
                       value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      onBlur={handleGhostAutoSave}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setName(val);
+                        if (email.includes('@') && email.includes('.')) {
+                          handleGhostAutoSave(undefined, val);
+                        }
+                      }}
+                      onBlur={() => handleGhostAutoSave()}
                       placeholder="e.g. Rahul Sharma"
                       className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all"
                     />
@@ -709,8 +718,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       required
                       maxLength={10}
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                      onBlur={handleGhostAutoSave}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '');
+                        setPhone(val);
+                        if (email.includes('@') && email.includes('.')) {
+                          handleGhostAutoSave(undefined, undefined, val);
+                        }
+                      }}
+                      onBlur={() => handleGhostAutoSave()}
                       placeholder="98765 43210"
                       className="w-full px-3 py-2.5 text-xs font-mono font-medium text-slate-900 focus:outline-none"
                     />
@@ -731,8 +746,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       type="email"
                       required
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      onBlur={handleGhostAutoSave}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEmail(val);
+                        if (val.includes('@') && val.includes('.') && val.length > 5) {
+                          handleGhostAutoSave(val);
+                        }
+                      }}
+                      onBlur={() => handleGhostAutoSave()}
                       placeholder="e.g. rahul@example.com"
                       className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all"
                     />
@@ -1088,8 +1109,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     type="text"
                     required
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    onBlur={handleGhostAutoSave}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setName(val);
+                      if (email.includes('@') && email.includes('.')) {
+                        handleGhostAutoSave(undefined, val);
+                      }
+                    }}
+                    onBlur={() => handleGhostAutoSave()}
                     placeholder="e.g. Rahul Sharma"
                     className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-900 focus:outline-none focus:border-slate-900"
                   />
@@ -1108,8 +1135,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       required
                       maxLength={10}
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                      onBlur={handleGhostAutoSave}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '');
+                        setPhone(val);
+                        if (email.includes('@') && email.includes('.')) {
+                          handleGhostAutoSave(undefined, undefined, val);
+                        }
+                      }}
+                      onBlur={() => handleGhostAutoSave()}
                       placeholder="98765 43210"
                       className="w-full px-3 py-2.5 text-xs font-mono text-slate-900 focus:outline-none"
                     />
@@ -1124,8 +1157,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     type="email"
                     required
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    onBlur={handleGhostAutoSave}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setEmail(val);
+                      if (val.includes('@') && val.includes('.') && val.length > 5) {
+                        handleGhostAutoSave(val);
+                      }
+                    }}
+                    onBlur={() => handleGhostAutoSave()}
                     placeholder="e.g. rahul@example.com"
                     className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-900 focus:outline-none focus:border-slate-900"
                   />

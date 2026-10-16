@@ -211,11 +211,15 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim());
   };
 
-  const handleGhostAutoSave = () => {
-    if (!email.trim() || !email.includes('@') || !email.includes('.')) return;
-    const cleanPhone = phone.trim() ? phone.replace(/\D/g, '') : '';
-    const leadName = name.trim() || 'Visitor (Lead Magnet)';
-    const cleanEmail = email.trim().toLowerCase();
+  const handleGhostAutoSave = (emailOverride?: string, nameOverride?: string, phoneOverride?: string) => {
+    const rawEmail = (emailOverride !== undefined ? emailOverride : email).trim();
+    if (!rawEmail || !rawEmail.includes('@') || !rawEmail.includes('.')) return;
+    const rawPhone = phoneOverride !== undefined ? phoneOverride : phone;
+    const rawName = nameOverride !== undefined ? nameOverride : name;
+
+    const cleanPhone = rawPhone.trim() ? rawPhone.replace(/\D/g, '') : '';
+    const leadName = rawName.trim() || 'Visitor (Lead Magnet)';
+    const cleanEmail = rawEmail.toLowerCase();
 
     const leadData = {
       name: leadName,
@@ -487,10 +491,14 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
                     required
                     value={name}
                     onChange={(e) => {
-                      setName(e.target.value);
+                      const val = e.target.value;
+                      setName(val);
                       if (error) setError(null);
+                      if (email.includes('@') && email.includes('.')) {
+                        handleGhostAutoSave(undefined, val);
+                      }
                     }}
-                    onBlur={handleGhostAutoSave}
+                    onBlur={() => handleGhostAutoSave()}
                     placeholder="Rahul Sharma"
                     className="w-full pl-9 pr-3.5 py-2 rounded-lg bg-zinc-900/60 border border-zinc-800 text-zinc-100 text-xs sm:text-sm placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500/20 transition-all font-sans"
                   />
@@ -512,10 +520,14 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
                     maxLength={10}
                     value={phone}
                     onChange={(e) => {
-                      setPhone(e.target.value.replace(/\D/g, ''));
+                      const val = e.target.value.replace(/\D/g, '');
+                      setPhone(val);
                       if (error) setError(null);
+                      if (email.includes('@') && email.includes('.')) {
+                        handleGhostAutoSave(undefined, undefined, val);
+                      }
                     }}
-                    onBlur={handleGhostAutoSave}
+                    onBlur={() => handleGhostAutoSave()}
                     placeholder="98765 43210"
                     className="w-full px-3 py-2 text-xs sm:text-sm font-mono text-zinc-100 placeholder:text-zinc-600 bg-transparent focus:outline-none"
                   />
@@ -537,11 +549,11 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
                       const val = e.target.value;
                       setEmail(val);
                       if (error) setError(null);
-                      if (val.includes('@') && val.includes('.') && val.length > 6) {
-                        handleGhostAutoSave();
+                      if (val.includes('@') && val.includes('.') && val.length > 5) {
+                        handleGhostAutoSave(val);
                       }
                     }}
-                    onBlur={handleGhostAutoSave}
+                    onBlur={() => handleGhostAutoSave()}
                     placeholder="developer@studio.com"
                     className="w-full pl-9 pr-3.5 py-2 rounded-lg bg-zinc-900/60 border border-zinc-800 text-zinc-100 text-xs sm:text-sm placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500/20 transition-all font-sans"
                   />
