@@ -114,12 +114,13 @@ import { sound } from '../lib/audioEngine';
 import { VaultItem } from '../data/vaultCatalog';
 import { InvoiceModal } from './InvoiceModal';
 import { LicenseModal } from './LicenseModal';
+import { BroadcastCenter } from './BroadcastCenter';
 
 interface AdminConsoleProps {
   onBackToSite: () => void;
 }
 
-type AdminTab = 'approvals' | 'retargeting' | 'ghosts' | 'orders' | 'cms' | 'team' | 'settings';
+type AdminTab = 'approvals' | 'retargeting' | 'ghosts' | 'orders' | 'cms' | 'broadcast' | 'team' | 'settings';
 
 export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
   const [tab, setTab] = useState<AdminTab>('approvals');
@@ -1108,6 +1109,21 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
           >
             <Sparkles className="w-4 h-4" />
             <span>Prompt CMS ({promptsList.length})</span>
+          </button>
+
+          <button
+            onClick={() => {
+              sound.playClick();
+              setTab('broadcast');
+            }}
+            className={`px-4 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 shrink-0 ${
+              tab === 'broadcast'
+                ? 'bg-cyan-500 text-black font-bold shadow-md shadow-cyan-500/30'
+                : 'text-white/60 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <Send className="w-4 h-4 text-cyan-400" />
+            <span>Broadcast &amp; Email Studio</span>
           </button>
 
           {/* Team Management Tab (Super Admin Only) */}
@@ -2146,6 +2162,16 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
               ))}
             </div>
           </div>
+        )}
+
+        {/* ------------------------------------------
+            TAB: EMAIL BROADCAST & CAMPAIGN STUDIO
+           ------------------------------------------ */}
+        {tab === 'broadcast' && (
+          <BroadcastCenter
+            adminEmail={session?.email || SUPER_ADMIN_EMAIL}
+            showToast={showToast}
+          />
         )}
 
         {/* ------------------------------------------
