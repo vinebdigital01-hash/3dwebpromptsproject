@@ -241,8 +241,16 @@ export function buildApprovalEmailHtml(order: LeadOrder, videoShowcaseMode: Show
                   <td align="right" style="color: #ffffff; font-family: 'SF Mono', monospace;">${order.invoiceNumber || 'INV-2026-TAX'}</td>
                 </tr>
                 <tr>
-                  <td style="padding-bottom: 6px;">Payment Method:</td>
-                  <td align="right" style="color: #ffffff;">Slice Merchant UPI Transfer</td>
+                  <td style="padding-bottom: 6px;">Payment Mode:</td>
+                  <td align="right" style="color: #ffffff;">Slice Merchant UPI (Direct App Transfer / QR)</td>
+                </tr>
+                <tr>
+                  <td style="padding-bottom: 6px;">Bank Ref (UTR):</td>
+                  <td align="right" style="color: #34d399; font-family: 'SF Mono', monospace; font-weight: bold;">${order.utrNumber || 'VERIFIED-UPI-UTR'}</td>
+                </tr>
+                <tr>
+                  <td style="padding-bottom: 6px;">Transaction Time:</td>
+                  <td align="right" style="color: #ffffff; font-family: 'SF Mono', monospace;">${order.approvedAt ? new Date(order.approvedAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }) + ' IST' : new Date().toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }) + ' IST'}</td>
                 </tr>
                 <tr>
                   <td>Issuing Entity:</td>
