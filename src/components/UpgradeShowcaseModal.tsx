@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { motion } from 'motion/react';
 import {
   X,
   Check,
@@ -10,16 +10,19 @@ import {
   FolderGit2,
   Clock,
   ShieldCheck,
-  ChevronRight,
-  Terminal,
-  Cpu,
-  Layers,
   Infinity,
 } from 'lucide-react';
 import { TierId } from './PricingSection';
 import { sound } from '../lib/audioEngine';
+import { getAdminSettings } from '../lib/adminSettings';
+import {
+  recordUpgradeModalView,
+  recordUpgradeTierSelection,
+  recordUpgradeCtaClick,
+  recordUpgradeModalDismiss,
+} from '../lib/leadTracker';
 
-interface UpgradeOption {
+export interface UpgradeOption {
   id: TierId;
   name: string;
   badge: string;
@@ -29,59 +32,89 @@ interface UpgradeOption {
   quotaLabel: string;
   isPopular?: boolean;
   isRecommended?: boolean;
+  accent: 'blue' | 'emerald' | 'amber' | 'gold';
   highlightPerks: string[];
 }
 
-const UPGRADE_OPTIONS: UpgradeOption[] = [
-  {
-    id: 'month_1',
-    name: '1-Month Pro Access',
-    badge: 'BUDGET FRIENDLY',
-    tagline: 'Ideal if ₹2,999 feels high right now. Ship client work all month.',
-    priceINR: 299,
-    durationLabel: '30 Days Validity',
-    quotaLabel: '3 Copies / Day',
-    highlightPerks: [
-      '3 copies daily (90 copies/month)',
-      'Full 500+ prompt catalog unlocked',
-      'Commercial License to charge clients $5k+',
-      'Standard Claude 3.7 & Cursor calibration',
-    ],
-  },
-  {
-    id: 'month_6',
-    name: '6-Month Studio Growth',
-    badge: 'MOST POPULAR',
-    tagline: 'High volume for active freelancers & boutique digital studios.',
-    priceINR: 699,
-    durationLabel: '180 Days (6 Months)',
-    quotaLabel: '15 Copies / Day',
-    isPopular: true,
-    highlightPerks: [
-      '15 copies daily (2,700 copies total)',
-      'All 500+ Prompts + 50+ PDF guides',
-      'Outbound client acquisition pitch scripts',
-      'Priority Discord assistance channel',
-    ],
-  },
-  {
-    id: 'lifetime',
-    name: 'Lifetime VIP All-Access',
-    badge: 'BEST VALUE // UNRESTRICTED',
-    tagline: 'The ultimate powerhouse. Zero daily limits and perpetual license.',
-    priceINR: 2999,
-    durationLabel: 'Lifetime (Never Expires)',
-    quotaLabel: 'UNLIMITED COPIES',
-    isRecommended: true,
-    highlightPerks: [
-      'Unlimited prompt copies (Zero daily caps)',
-      'Next.js 15 + R19 starter repositories (.zip & npx)',
-      '12+ Awwwards GLSL liquid & caustics shaders',
-      'Weekly new 3D architectures pushed forever',
-      'Direct WhatsApp 1-on-1 Three.js prompt helpdesk',
-    ],
-  },
-];
+export function getUpgradeOptions(): UpgradeOption[] {
+  const settings = getAdminSettings();
+  const pricing = settings.pricing || {
+    day_1: 49,
+    month_1: 299,
+    month_6: 699,
+    lifetime: 2999,
+  };
+
+  return [
+    {
+      id: 'day_pass',
+      name: '1-Day Sprint Pass',
+      badge: 'ENTRY SPRINT',
+      tagline: 'Ideal for rush test builds and single prompt deployment today.',
+      priceINR: pricing.day_1 || 49,
+      durationLabel: '24 Hours (1 Day)',
+      quotaLabel: '1 Copy / Day',
+      accent: 'blue',
+      highlightPerks: [
+        '1 copy daily (Any prompt in 500+ vault)',
+        'Full Commercial + Reseller License',
+        'Claude 3.7 & Cursor instant copy syntax',
+        'Three.js & WebGL component boilerplates',
+      ],
+    },
+    {
+      id: 'month_1',
+      name: '1-Month Pro Access',
+      badge: 'BUDGET FRIENDLY',
+      tagline: 'Perfect for active freelancers shipping weekly client work.',
+      priceINR: pricing.month_1 || 299,
+      durationLabel: '30 Days Validity',
+      quotaLabel: '3 Copies / Day',
+      accent: 'emerald',
+      highlightPerks: [
+        '3 copies daily (90 copies/month)',
+        'Full 500+ prompt catalog unlocked',
+        'Commercial License to charge clients $5k+',
+        'Standard Claude 3.7 & Cursor calibration',
+      ],
+    },
+    {
+      id: 'month_6',
+      name: '6-Month Studio Growth',
+      badge: 'MOST POPULAR',
+      tagline: 'High volume for active freelancers & boutique digital studios.',
+      priceINR: pricing.month_6 || 699,
+      durationLabel: '180 Days (6 Months)',
+      quotaLabel: '15 Copies / Day',
+      isPopular: true,
+      accent: 'amber',
+      highlightPerks: [
+        '15 copies daily (2,700 copies total)',
+        'All 500+ Prompts + 50+ PDF guides',
+        'Outbound client acquisition pitch scripts',
+        'Priority Discord assistance channel',
+      ],
+    },
+    {
+      id: 'lifetime',
+      name: 'Lifetime VIP All-Access',
+      badge: 'BEST VALUE // UNRESTRICTED',
+      tagline: 'The ultimate powerhouse. Zero daily limits and perpetual license.',
+      priceINR: pricing.lifetime || 2999,
+      durationLabel: 'Lifetime (Never Expires)',
+      quotaLabel: 'UNLIMITED COPIES',
+      isRecommended: true,
+      accent: 'gold',
+      highlightPerks: [
+        'Unlimited prompt copies (Zero daily caps)',
+        'Next.js 15 + R19 starter repositories (.zip & npx)',
+        '12+ Awwwards GLSL liquid & caustics shaders',
+        'Weekly new 3D architectures pushed forever',
+        'Direct WhatsApp 1-on-1 Three.js prompt helpdesk',
+      ],
+    },
+  ];
+}
 
 interface PerkTab {
   id: string;
@@ -98,9 +131,9 @@ const PERK_TABS: PerkTab[] = [
     id: 'quota',
     label: 'Daily Quotas',
     icon: <Zap className="w-3.5 h-3.5 text-amber-400" />,
-    headline: 'Say Goodbye to 1-Copy Daily Locks',
+    headline: 'Say Goodbye to Copy Limits',
     details:
-      'The 1-Day Pass limits you to 1 copy per day. Upgrades unlock 3 copies/day (1-Month), 15 copies/day (6-Month), or infinite unmetered copies (Lifetime VIP).',
+      'Free trial includes 1 lifetime sample. Paid passes unlock 1 copy/day (₹49 1-Day Pass), 3 copies/day (1-Month), 15 copies/day (6-Month), or infinite unmetered copies (Lifetime VIP).',
     bullet: 'No more waiting 24 hours to copy another prompt for client projects.',
   },
   {
@@ -133,13 +166,6 @@ const PERK_TABS: PerkTab[] = [
   },
 ];
 
-import {
-  recordUpgradeModalView,
-  recordUpgradeTierSelection,
-  recordUpgradeCtaClick,
-  recordUpgradeModalDismiss,
-} from '../lib/leadTracker';
-
 export interface UpgradeShowcaseModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -153,10 +179,11 @@ export const UpgradeShowcaseModal: React.FC<UpgradeShowcaseModalProps> = ({
   isOpen,
   onClose,
   onUpgrade,
-  currentTierName = '1-Day Sprint Pass',
+  currentTierName = 'Free Trial Member',
   triggerReason = 'quota_exceeded',
   activeCustomerIdentifier,
 }) => {
+  const upgradeOptions = useMemo(() => getUpgradeOptions(), []);
   const [selectedTierId, setSelectedTierId] = useState<TierId>('lifetime');
   const [activePerkTab, setActivePerkTab] = useState<string>('quota');
 
@@ -182,7 +209,7 @@ export const UpgradeShowcaseModal: React.FC<UpgradeShowcaseModalProps> = ({
   if (!isOpen) return null;
 
   const selectedTier =
-    UPGRADE_OPTIONS.find((o) => o.id === selectedTierId) || UPGRADE_OPTIONS[2];
+    upgradeOptions.find((o) => o.id === selectedTierId) || upgradeOptions[0];
 
   const handleSelectTier = (id: TierId) => {
     sound.playClick();
@@ -215,13 +242,13 @@ export const UpgradeShowcaseModal: React.FC<UpgradeShowcaseModalProps> = ({
       {/* Click Outside Backdrop */}
       <div className="fixed inset-0" onClick={handleDismiss} />
 
-      {/* Main Container - Constrained to 90vh with Sticky Header & Sticky Footer */}
+      {/* Main Container - Constrained to 92vh with Sticky Header & Sticky Footer */}
       <motion.div
         initial={{ opacity: 0, scale: 0.97, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.97, y: 10 }}
         transition={{ type: 'spring', stiffness: 240, damping: 24 }}
-        className="relative z-10 w-full max-w-4xl max-h-[92vh] sm:max-h-[88vh] rounded-2xl sm:rounded-3xl bg-[#08080f] border border-amber-500/25 text-white shadow-[0_24px_70px_-15px_rgba(0,0,0,0.9),0_0_40px_-10px_rgba(245,158,11,0.12)] flex flex-col overflow-hidden"
+        className="relative z-10 w-full max-w-6xl max-h-[94vh] sm:max-h-[90vh] rounded-2xl sm:rounded-3xl bg-[#08080f] border border-amber-500/25 text-white shadow-[0_24px_70px_-15px_rgba(0,0,0,0.9),0_0_40px_-10px_rgba(245,158,11,0.12)] flex flex-col overflow-hidden"
       >
         {/* Subtle Ambient Top Accent */}
         <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-amber-500/60 to-transparent shrink-0" />
@@ -237,34 +264,35 @@ export const UpgradeShowcaseModal: React.FC<UpgradeShowcaseModalProps> = ({
 
               {triggerReason === 'quota_exceeded' ? (
                 <span className="text-[10px] font-mono text-amber-400/90 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
-                  Daily Quota Limit Reached (1/1 Used Today)
+                  Daily Copy Limit Reached
                 </span>
               ) : (
                 <span className="text-[10px] font-mono text-zinc-400 bg-white/[0.04] px-2 py-0.5 rounded border border-white/[0.06]">
-                  Active Plan: {currentTierName}
+                  Active: {currentTierName}
                 </span>
               )}
             </div>
 
             <h2 className="text-base sm:text-xl font-bold text-white tracking-tight">
-              Upgrade Your Access Plan
+              Select Your Access Plan
             </h2>
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
-            {/* ₹49 Credit Ribbon */}
-            <div className="hidden sm:flex flex-col items-end text-right px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/25">
-              <span className="text-[9px] font-mono text-emerald-400 font-bold uppercase">
-                ₹49 SPRINT CREDITED
+            {/* Commercial License Ribbon */}
+            <div className="hidden sm:flex flex-col items-end text-right px-3 py-1 rounded-xl bg-amber-500/10 border border-amber-500/25">
+              <span className="text-[9px] font-mono text-amber-300 font-bold uppercase tracking-wider flex items-center gap-1">
+                <ShieldCheck className="w-3 h-3 text-amber-400" />
+                <span>COMMERCIAL LICENSE INCLUDED</span>
               </span>
               <span className="text-[9px] font-mono text-zinc-400">
-                Auto-deducted at checkout
+                Charge clients $5,000+ per site
               </span>
             </div>
 
             <button
               onClick={handleDismiss}
-              className="p-1.5 sm:p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-400 hover:text-white border border-white/[0.06] transition-colors"
+              className="p-1.5 sm:p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-400 hover:text-white border border-white/[0.06] transition-colors cursor-pointer"
               title="Close modal"
             >
               <X className="w-4 h-4" />
@@ -277,12 +305,12 @@ export const UpgradeShowcaseModal: React.FC<UpgradeShowcaseModalProps> = ({
           
           {/* Subtitle Directive */}
           <div className="text-xs text-zinc-300 leading-relaxed">
-            Your <strong>1-Day Sprint Pass</strong> has a strict 1 copy/day limit. Choose the plan that fits your budget:
+            Choose the access pass that fits your workflow — from quick <strong>₹{upgradeOptions[0]?.priceINR || 49} 1-Day Sprint</strong> access to full <strong>Lifetime VIP Unlimited</strong>:
           </div>
 
-          {/* 3 COMPARISON TIER CARDS */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-            {UPGRADE_OPTIONS.map((tier) => {
+          {/* ALL 4 COMPARISON TIER CARDS (Including ₹49 1-Day Pass) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            {upgradeOptions.map((tier) => {
               const isSelected = selectedTierId === tier.id;
 
               return (
@@ -293,19 +321,25 @@ export const UpgradeShowcaseModal: React.FC<UpgradeShowcaseModalProps> = ({
                     isSelected
                       ? tier.id === 'lifetime'
                         ? 'bg-[#100f07] border-2 border-amber-400 shadow-[0_8px_30px_rgba(245,158,11,0.25)] ring-1 ring-amber-400/50'
+                        : tier.id === 'month_6'
+                        ? 'bg-[#120c06] border-2 border-amber-500 shadow-[0_8px_30px_rgba(245,158,11,0.2)] ring-1 ring-amber-500/50'
+                        : tier.id === 'month_1'
+                        ? 'bg-[#08120e] border-2 border-emerald-400 shadow-[0_8px_30px_rgba(16,185,129,0.2)] ring-1 ring-emerald-400/50'
                         : 'bg-[#0a0d14] border-2 border-blue-400 shadow-[0_8px_30px_rgba(59,130,246,0.2)] ring-1 ring-blue-400/50'
                       : 'bg-[#09090e] border border-white/[0.08] hover:border-white/[0.2] hover:bg-[#0c0c14]'
                   }`}
                 >
-                  {/* Active Highlight Radio */}
+                  {/* Top Badge & Radio */}
                   <div className="flex items-center justify-between mb-2">
                     <span
                       className={`text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
                         tier.isRecommended
                           ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
                           : tier.isPopular
-                          ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
-                          : 'bg-white/[0.05] text-zinc-400 border border-white/[0.08]'
+                          ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+                          : tier.id === 'month_1'
+                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                          : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
                       }`}
                     >
                       {tier.badge}
@@ -314,8 +348,10 @@ export const UpgradeShowcaseModal: React.FC<UpgradeShowcaseModalProps> = ({
                     <div
                       className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${
                         isSelected
-                          ? tier.id === 'lifetime'
+                          ? tier.id === 'lifetime' || tier.id === 'month_6'
                             ? 'border-amber-400 bg-amber-400 text-black'
+                            : tier.id === 'month_1'
+                            ? 'border-emerald-400 bg-emerald-400 text-black'
                             : 'border-blue-400 bg-blue-400 text-black'
                           : 'border-white/20 bg-transparent'
                       }`}
@@ -349,7 +385,7 @@ export const UpgradeShowcaseModal: React.FC<UpgradeShowcaseModalProps> = ({
                       <span>{tier.quotaLabel}</span>
                     </div>
 
-                    <p className="text-[11px] text-zinc-400 mt-2 leading-relaxed">
+                    <p className="text-[11px] text-zinc-400 mt-2 leading-relaxed line-clamp-2">
                       {tier.tagline}
                     </p>
 
@@ -358,7 +394,7 @@ export const UpgradeShowcaseModal: React.FC<UpgradeShowcaseModalProps> = ({
                       {tier.highlightPerks.map((perk, i) => (
                         <div key={i} className="flex items-start gap-1.5 text-[11px] text-zinc-300">
                           <Check className="w-3 h-3 text-emerald-400 shrink-0 mt-0.5" />
-                          <span>{perk}</span>
+                          <span className="leading-tight">{perk}</span>
                         </div>
                       ))}
                     </div>
@@ -370,9 +406,11 @@ export const UpgradeShowcaseModal: React.FC<UpgradeShowcaseModalProps> = ({
                       type="button"
                       className={`w-full py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider transition-colors ${
                         isSelected
-                          ? tier.id === 'lifetime'
+                          ? tier.id === 'lifetime' || tier.id === 'month_6'
                             ? 'bg-amber-400 text-black'
-                            : 'bg-blue-400 text-black'
+                            : tier.id === 'month_1'
+                            ? 'bg-emerald-400 text-black'
+                            : 'bg-blue-400 text-white'
                           : 'bg-white/[0.05] text-zinc-400 group-hover:text-white'
                       }`}
                     >
@@ -387,7 +425,7 @@ export const UpgradeShowcaseModal: React.FC<UpgradeShowcaseModalProps> = ({
           {/* 4. COMPACT PERK PREVIEW BAR */}
           <div className="p-3 rounded-xl bg-[#06060a] border border-white/[0.06]">
             <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono mb-2">
-              <span className="text-zinc-500 uppercase tracking-wider">HIGHER TIER ASSETS UNLOCKED:</span>
+              <span className="text-zinc-500 uppercase tracking-wider">PRODUCTION ASSETS UNLOCKED:</span>
               <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
                 {PERK_TABS.map((tab) => {
                   const isActive = activePerkTab === tab.id;
@@ -427,15 +465,15 @@ export const UpgradeShowcaseModal: React.FC<UpgradeShowcaseModalProps> = ({
 
         </div>
 
-        {/* 3. STICKY FOOTER ACTION MATRIX (NEVER HIDDEN / ALWAYS VISIBLE) */}
+        {/* 3. STICKY FOOTER ACTION MATRIX (ALWAYS VISIBLE) */}
         <div className="shrink-0 px-5 sm:px-7 py-3 sm:py-4 border-t border-white/[0.08] bg-[#060609] flex flex-wrap items-center justify-between gap-3 sticky bottom-0 z-20 shadow-[0_-10px_25px_rgba(0,0,0,0.5)]">
           {/* Left: Summary of Selected Plan */}
           <div className="flex items-center gap-2 text-xs font-mono">
             <span className="text-zinc-500">SELECTED:</span>
             <span className="text-white font-bold">{selectedTier.name}</span>
-            <span className="text-amber-300 font-bold">₹{selectedTier.priceINR}</span>
-            <span className="text-emerald-400 text-[10px] hidden sm:inline-block">
-              (₹49 sprint fee credited)
+            <span className="text-amber-300 font-bold text-sm">₹{selectedTier.priceINR}</span>
+            <span className="text-zinc-400 text-[10px] hidden sm:inline-block">
+              ({selectedTier.durationLabel} · {selectedTier.quotaLabel})
             </span>
           </div>
 
@@ -443,7 +481,7 @@ export const UpgradeShowcaseModal: React.FC<UpgradeShowcaseModalProps> = ({
           <div className="flex items-center gap-2.5 sm:gap-3 w-full sm:w-auto justify-end">
             <button
               onClick={handleDismiss}
-              className="px-3.5 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-400 hover:text-white text-xs font-mono transition-colors border border-white/[0.06]"
+              className="px-3.5 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-400 hover:text-white text-xs font-mono transition-colors border border-white/[0.06] cursor-pointer"
             >
               Dismiss
             </button>
@@ -453,10 +491,14 @@ export const UpgradeShowcaseModal: React.FC<UpgradeShowcaseModalProps> = ({
               className={`px-5 py-2.5 rounded-xl text-xs font-mono font-bold tracking-wider uppercase transition-all shadow-lg active:scale-[0.98] flex items-center gap-2 cursor-pointer ${
                 selectedTier.id === 'lifetime'
                   ? 'bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-black shadow-amber-500/25'
+                  : selectedTier.id === 'month_6'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black shadow-amber-500/20'
+                  : selectedTier.id === 'day_pass'
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-500/20'
                   : 'bg-white hover:bg-zinc-200 text-black shadow-white/10'
               }`}
             >
-              <span>Upgrade to {selectedTier.name.split(' ')[0]} (₹{selectedTier.priceINR})</span>
+              <span>Get {selectedTier.name} (₹{selectedTier.priceINR})</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>

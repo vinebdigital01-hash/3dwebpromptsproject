@@ -38,7 +38,8 @@ export function generateRetargetingEmail(order: LeadOrder): { subject: string; b
     targetPrice = 2999;
   }
 
-  const creditedAmount = 49;
+  const hasPaidSprint = (order.amountINR && order.amountINR >= 49);
+  const creditedAmount = hasPaidSprint ? 49 : 0;
   const finalPrice = Math.max(0, targetPrice - creditedAmount);
   const checkoutUrl = `https://vinebdigital.store/#portal`;
 
@@ -50,17 +51,25 @@ export function generateRetargetingEmail(order: LeadOrder): { subject: string; b
   let opening = '';
 
   if (isCtaClicked) {
-    subject = `${name}, complete your upgrade to ${targetTierName} (₹49 credit applied)`;
-    headline = `Your workstation upgrade to ${targetTierName} is pending`;
-    opening = `We saw you started the upgrade to ${targetTierName} but didn't finish the transaction. Your ₹49 Sprint Pass investment has been credited to your invoice.`;
+    subject = hasPaidSprint
+      ? `${name}, complete your upgrade to ${targetTierName} (₹49 credit applied)`
+      : `${name}, complete your access pass to ${targetTierName}`;
+    headline = `Your workstation access to ${targetTierName} is pending`;
+    opening = hasPaidSprint
+      ? `We saw you started the upgrade to ${targetTierName} but didn't finish the transaction. Your ₹49 Sprint Pass investment has been credited to your invoice.`
+      : `We saw you started selecting ${targetTierName} but didn't finish the transaction. Complete your checkout to unlock unrestricted access today.`;
   } else if (isQuotaTriggered) {
-    subject = `${name}, your daily prompt copy threshold reached — unlock higher quota`;
-    headline = `Daily prompt quota threshold reached on your Sprint Pass`;
-    opening = `You reached your 1 copy/day limit today on your 1-Day Sprint Pass. Don't let your client delivery pause while waiting for midnight.`;
+    subject = `${name}, your prompt copy threshold reached — unlock higher quota`;
+    headline = `Prompt copy limit reached on your session`;
+    opening = hasPaidSprint
+      ? `You reached your 1 copy/day limit today on your 1-Day Sprint Pass. Don't let your client delivery pause while waiting for midnight.`
+      : `You reached your free copy limit today. Unlock unrestricted daily access to keep building client projects.`;
   } else {
-    subject = `${name}, exclusive upgrade options for your APEX 3D workstation`;
+    subject = `${name}, exclusive access pass options for your APEX 3D workstation`;
     headline = `Unlock more prompt copies and production repositories`;
-    opening = `You recently explored our workstation upgrade enclave. Here are your personalized pricing options with your ₹49 sprint fee credited:`;
+    opening = hasPaidSprint
+      ? `You recently explored our workstation upgrade enclave. Here are your personalized pricing options with your ₹49 sprint fee credited:`
+      : `You recently explored our workstation access enclave. Here are your personalized pricing options:`;
   }
 
   const bodyText = `Hi ${name},
@@ -69,9 +78,7 @@ ${opening}
 
 UPGRADE SUMMARY:
 - Target Tier: ${targetTierName}
-- Standard Price: ₹${targetPrice}
-- Sprint Pass Credit: -₹${creditedAmount} (Automatically deducted)
-- Final Due: ₹${finalPrice} only
+- Price: ₹${targetPrice}${hasPaidSprint ? `\n- Sprint Pass Credit: -₹${creditedAmount} (Automatically deducted)\n- Final Due: ₹${finalPrice} only` : ''}
 
 WHAT YOU UNLOCK IMMEDIATELY:
 - Higher daily prompt copy threshold (Up to unlimited)
