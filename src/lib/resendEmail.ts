@@ -624,9 +624,12 @@ export async function sendTestEmail(targetEmail: string): Promise<EmailDispatchR
   });
 }
 
+// Memory lock to prevent rapid concurrent duplicate dispatches
+const inFlightInstantLeadEmails = new Set<string>();
+
 /**
  * ⚡ Instant Lead Welcome & Starter Pack Email (Lead Magnet / Popup Capture)
- * Dispatched automatically as soon as user types email into popup or checkout
+ * Dispatched strictly ONCE upon confirmed form submission.
  */
 export async function sendInstantLeadMagnetOrAbandonedEmail(
   lead: {
@@ -638,13 +641,35 @@ export async function sendInstantLeadMagnetOrAbandonedEmail(
   },
   force = false
 ): Promise<EmailDispatchResult> {
-  if (!lead.email || !lead.email.includes('@')) {
-    return { success: false, message: 'Invalid email' };
+  const cleanEmail = lead.email?.trim().toLowerCase();
+  if (!cleanEmail || !cleanEmail.includes('@') || !cleanEmail.includes('.')) {
+    return { success: false, message: 'Invalid recipient email' };
   }
 
-  const dedupeKey = `apex_instant_lead_email_${lead.email.trim().toLowerCase()}`;
-  if (!force && typeof window !== 'undefined' && sessionStorage.getItem(dedupeKey)) {
-    return { success: true, message: 'Email already dispatched recently.' };
+  const dedupeKey = `apex_instant_lead_email_${cleanEmail}`;
+
+  // 1. In-flight race-condition protection (blocks parallel requests within same second)
+  if (!force && inFlightInstantLeadEmails.has(cleanEmail)) {
+    console.warn(`[Resend] Suppressed concurrent duplicate email to ${cleanEmail}`);
+    return { success: true, message: 'Email dispatch already in-flight.' };
+  }
+
+  // 2. Persistent 24-hour deduplication check in localStorage (survives reloads & autofill)
+  if (!force && typeof window !== 'undefined') {
+    const lastSent = localStorage.getItem(dedupeKey);
+    if (lastSent) {
+      const elapsed = Date.now() - parseInt(lastSent, 10);
+      if (!isNaN(elapsed) && elapsed < 24 * 60 * 60 * 1000) {
+        console.warn(`[Resend] Suppressed duplicate email to ${cleanEmail} (dispatched ${Math.round(elapsed / 1000)}s ago).`);
+        return { success: true, message: 'Email already dispatched recently.' };
+      }
+    }
+  }
+
+  // 3. SYNCHRONOUSLY claim lock immediately BEFORE any await or network request!
+  inFlightInstantLeadEmails.add(cleanEmail);
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(dedupeKey, Date.now().toString());
   }
 
   const name = lead.name?.trim() || 'Creator';
@@ -760,19 +785,24 @@ export async function sendInstantLeadMagnetOrAbandonedEmail(
 </body>
 </html>`;
 
-  const subject = `⚡ Your 3D WebGL Starter Pack is Ready [30+ Free Prompts Unlocked]`;
-  const result = await sendEmailViaResend({
-    to: lead.email,
-    subject,
-    html,
-    text: `Hey ${name}, your 3D WebGL Starter Pack is ready! Open your enclave workspace at ${BASE_PORTAL_URL}/#portal`,
-  });
-
-  if (result.success && typeof window !== 'undefined') {
-    sessionStorage.setItem(dedupeKey, 'true');
+  try {
+    const subject = `⚡ Your 3D WebGL Starter Pack is Ready [30+ Free Prompts Unlocked]`;
+    const result = await sendEmailViaResend({
+      to: cleanEmail,
+      subject,
+      html,
+      text: `Hey ${name}, your 3D WebGL Starter Pack is ready! Open your enclave workspace at ${BASE_PORTAL_URL}/#portal`,
+    });
+    return result;
+  } catch (err: any) {
+    console.error('Error dispatching starter pack email:', err);
+    return { success: false, message: err?.message || 'Failed to dispatch email' };
+  } finally {
+    // Release in-flight lock after 15 seconds to prevent race conditions from queued microtasks
+    setTimeout(() => {
+      inFlightInstantLeadEmails.delete(cleanEmail);
+    }, 15000);
   }
-
-  return result;
 }
 
 /**

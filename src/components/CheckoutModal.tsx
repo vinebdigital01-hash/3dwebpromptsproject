@@ -344,9 +344,6 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     } catch {
       // storage error ignored
     }
-
-    // 3. Dispatch instant welcome/abandoned recovery email via Resend
-    sendInstantLeadMagnetOrAbandonedEmail(leadData).catch(() => {});
   };
 
   const handleSaveContact = (e: React.FormEvent) => {
