@@ -55,6 +55,31 @@ const DEFAULT_SUPER_ADMIN: AdminUser = {
   lastLoginAt: new Date().toISOString(),
 };
 
+const DUMMY_ADMIN_EMAILS = new Set(['liveproject072@gmail.com']);
+
+/**
+ * Remove any test/dummy moderators from admin list
+ */
+export function purgeDummyAdmins(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const raw = localStorage.getItem(ADMIN_TEAM_STORAGE_KEY);
+    if (raw) {
+      const list: AdminUser[] = JSON.parse(raw);
+      if (Array.isArray(list)) {
+        const cleaned = list.filter(
+          (a) =>
+            a.email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase() ||
+            !DUMMY_ADMIN_EMAILS.has(a.email.toLowerCase().trim())
+        );
+        saveAdminList(cleaned);
+      }
+    }
+  } catch (err) {
+    console.error('Failed to purge dummy admins:', err);
+  }
+}
+
 /**
  * Retrieve all registered admins from storage
  */
@@ -67,13 +92,22 @@ export function getAllAdmins(): AdminUser[] {
       return [DEFAULT_SUPER_ADMIN];
     }
     const list: AdminUser[] = JSON.parse(raw);
+    const sanitized = list.filter(
+      (a) =>
+        a.email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase() ||
+        !DUMMY_ADMIN_EMAILS.has(a.email.toLowerCase().trim())
+    );
+
     // Ensure Super Admin always exists and has super_admin role
-    const hasSuper = list.some((a) => a.email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase());
+    const hasSuper = sanitized.some((a) => a.email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase());
     if (!hasSuper) {
-      list.unshift(DEFAULT_SUPER_ADMIN);
-      localStorage.setItem(ADMIN_TEAM_STORAGE_KEY, JSON.stringify(list));
+      sanitized.unshift(DEFAULT_SUPER_ADMIN);
     }
-    return list;
+
+    if (sanitized.length !== list.length || !hasSuper) {
+      localStorage.setItem(ADMIN_TEAM_STORAGE_KEY, JSON.stringify(sanitized));
+    }
+    return sanitized;
   } catch (err) {
     console.error('Failed to read admin list from localStorage:', err);
     return [DEFAULT_SUPER_ADMIN];

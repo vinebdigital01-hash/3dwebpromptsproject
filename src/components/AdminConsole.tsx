@@ -63,6 +63,7 @@ import {
   verifyAdminOtpCode,
   verifyAdminInviteToken,
   isSuperAdminEmail,
+  purgeDummyAdmins,
 } from '../lib/adminAuthStore';
 import {
   getAllOrders,
@@ -72,6 +73,8 @@ import {
   LeadOrder,
   calculateTierExpiry,
   triggerDripFollowupHeartbeat,
+  purgeAllDummyData,
+  clearAllOrders,
 } from '../lib/leadTracker';
 import {
   generateRetargetingEmail,
@@ -203,6 +206,9 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
   };
 
   useEffect(() => {
+    // Purge any legacy dummy records from localStorage immediately on mount
+    purgeAllDummyData();
+    purgeDummyAdmins();
     loadData();
     // Background self-healing check: check if any Day 1 / Day 2 follow-ups are due
     triggerDripFollowupHeartbeat(false).catch(() => {});
@@ -381,6 +387,16 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
       const res = deleteAdminPermanently(admin.id);
       showToast(res.message);
       setTeamList(getAllAdmins());
+    }
+  };
+
+  const handlePurgeAllDummyData = () => {
+    sound.playClick();
+    if (window.confirm('Purge all dummy, test, and ghost records? This will ensure the console is completely clean and zeroed out.')) {
+      const res = purgeAllDummyData();
+      purgeDummyAdmins();
+      loadData();
+      showToast(`Purged ${res.removedOrdersCount} dummy/test record(s). Admin console is completely clean!`);
     }
   };
 
@@ -920,6 +936,17 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
               <RefreshCw className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Refresh</span>
             </button>
+
+            {isSuperAdmin && (
+              <button
+                onClick={handlePurgeAllDummyData}
+                className="p-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/20 transition-all text-xs font-mono flex items-center gap-1.5 cursor-pointer"
+                title="Purge Test/Dummy Records"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Purge Test Data</span>
+              </button>
+            )}
 
             <button
               onClick={() => {
@@ -1756,7 +1783,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                     <div>
                       <div className="flex flex-wrap items-center gap-2 mb-1">
                         <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">
-                          {order.invoiceNumber || 'INV-2026-001'}
+                          {order.invoiceNumber || 'INV-PENDING'}
                         </span>
                         <span className="text-xs font-semibold text-white">{order.name}</span>
                         <span className="text-xs font-mono text-white/50">({order.email})</span>
@@ -1772,7 +1799,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                       </div>
 
                       <div className="mt-2 text-[11px] font-mono text-white/40 flex items-center gap-2">
-                        <span>License Hash: <strong className="text-slate-300">{order.licenseKey || 'LIC-APX-PRO'}</strong></span>
+                        <span>License Hash: <strong className="text-slate-300">{order.licenseKey || 'N/A'}</strong></span>
                       </div>
                     </div>
 
@@ -1781,8 +1808,8 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                         <a
                           href={`https://wa.me/91${order.phone.replace(/\D/g, '')}?text=${encodeURIComponent(
                             `Hello ${order.name}! 🚀 Your APEX3D Vault access (${order.tierName}) is APPROVED!\n\n` +
-                            `🔑 License Key: ${order.licenseKey || 'LIC-VIP-84K2-91Q7'}\n` +
-                            `📄 Commercial Invoice: ${order.invoiceNumber || 'INV-2026-8941'}\n` +
+                            `🔑 License Key: ${order.licenseKey || 'N/A'}\n` +
+                            `📄 Commercial Invoice: ${order.invoiceNumber || 'N/A'}\n` +
                             `📦 Order ID: ${order.orderNumber}\n\n` +
                             `Access your 500+ Prompts, Three.js Starter Kits, and Invoices at:\n` +
                             `👉 https://vinebdigital.store/#portal\n\n` +

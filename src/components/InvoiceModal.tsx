@@ -14,8 +14,8 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, isOpen, onClo
 
   if (!isOpen || !order) return null;
 
-  const invoiceNo = order.invoiceNumber || `INV-2026-${order.orderNumber.replace(/\D/g, '').slice(-4) || '8941'}`;
-  const licenseKey = order.licenseKey || 'LIC-VIP-84K2-91Q7';
+  const invoiceNo = order.invoiceNumber || (order.orderNumber ? `INV-2026-${order.orderNumber.replace(/\D/g, '').slice(-4)}` : 'INV-2026-PENDING');
+  const licenseKey = order.licenseKey || 'PENDING-APPROVAL';
 
   // Format exact date & time
   const formatDateTime = (dateStr?: string) => {

@@ -12,7 +12,7 @@ interface LicenseModalProps {
 export const LicenseModal: React.FC<LicenseModalProps> = ({ order, isOpen, onClose }) => {
   if (!isOpen || !order) return null;
 
-  const licenseKey = order.licenseKey || 'LIC-VIP-84K2-91Q7';
+  const licenseKey = order.licenseKey || 'PENDING-APPROVAL';
   const issueDate = order.approvedAt
     ? new Date(order.approvedAt).toLocaleDateString('en-IN', {
         day: '2-digit',

@@ -128,119 +128,106 @@ export function getAdAttribution() {
     fbclid,
   };
 }
+ 
+export const SEED_ORDERS: LeadOrder[] = [];
 
-const SEED_ORDERS: LeadOrder[] = [
-  {
-    id: 'ORD-982142',
-    orderNumber: 'APX-982142',
-    name: 'Vikram Malhotra',
-    email: 'vikram.design@agencyapex.in',
-    phone: '9820194821',
-    tierId: 'month_1',
-    tierName: '1-Month Pro Access',
-    amountINR: 299,
-    status: 'pending_approval',
-    utrNumber: '428190812345',
-    upiId: 'vikram@okhdfcbank',
-    createdAt: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
-    updatedAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-    utm: { source: 'facebook_ads', campaign: '3d_agency_scale_q2', fbclid: 'fb.1.17128491.9841' },
-  },
-  {
-    id: 'GHOST-aditya948-day_pass',
-    orderNumber: 'APX-774102',
-    name: 'Aditya Sen',
-    email: 'aditya.sen@gmail.com',
-    phone: '9876543210',
-    tierId: 'day_pass',
-    tierName: '1-Day Sprint Pass',
-    amountINR: 49,
-    status: 'unsubmitted_keystroke',
-    createdAt: new Date(Date.now() - 1000 * 60 * 42).toISOString(),
-    updatedAt: new Date(Date.now() - 1000 * 60 * 42).toISOString(),
-    utm: { source: 'instagram_reels', campaign: 'awwwards_shaders', fbclid: 'ig.1.849201.21' },
-  },
-  {
-    id: 'ORD-651902',
-    orderNumber: 'APX-651902',
-    name: 'Rohan Joshi',
-    email: 'rohan@studiocraft.co',
-    phone: '9811234567',
-    tierId: 'month_6',
-    tierName: '6-Month Studio Growth',
-    amountINR: 699,
-    status: 'abandoned_at_qr',
-    createdAt: new Date(Date.now() - 1000 * 60 * 75).toISOString(),
-    updatedAt: new Date(Date.now() - 1000 * 60 * 72).toISOString(),
-    utm: { source: 'meta_retargeting', campaign: 'cart_abandoners_v1' },
-  },
-  {
-    id: 'ORD-1DAY-4901',
-    orderNumber: 'APX-104921',
-    name: 'Kabir Verma (Sprint Pass)',
-    email: 'kabir.sprint@gmail.com',
-    phone: '9876500049',
-    tierId: 'day_pass',
-    tierName: '1-Day Sprint Pass',
-    amountINR: 49,
-    status: 'approved',
-    utrNumber: '429108471920',
-    upiId: 'kabir@oksbi',
-    invoiceNumber: 'INV-2026-4901',
-    licenseKey: 'LIC-PRO-1DAY-99X2',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-    approvedAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-    expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 22).toISOString(), // 22 Hours Remaining
-    upgradeTelemetry: {
-      viewsCount: 2,
-      clicksCount: 1,
-      lastViewedAt: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
-      lastClickedAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-      lastSelectedTierId: 'month_1',
-      triggerReason: 'quota_exceeded',
-      isAbandoned: true,
-      history: [
-        {
-          timestamp: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
-          action: 'modal_viewed',
-          triggerReason: 'quota_exceeded',
-        },
-        {
-          timestamp: new Date(Date.now() - 1000 * 60 * 20).toISOString(),
-          action: 'tier_selected',
-          tierId: 'month_1',
-        },
-        {
-          timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-          action: 'cta_clicked',
-          tierId: 'month_1',
-        },
-      ],
-    },
-    utm: { source: 'instagram_reels', campaign: 'shader_vault_49' },
-  },
-  {
-    id: 'ORD-310492',
-    orderNumber: 'APX-310492',
-    name: 'Priya Nambiar',
-    email: 'priya@voxelstudios.com',
-    phone: '9899123456',
-    tierId: 'lifetime',
-    tierName: 'Lifetime Agency Mastermind',
-    amountINR: 2999,
-    status: 'approved',
-    utrNumber: '419082716354',
-    upiId: 'priya@icici',
-    invoiceNumber: 'INV-2026-8941',
-    licenseKey: 'LIC-VIP-84K2-91Q7',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
-    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
-    approvedAt: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
-    expiresAt: null,
-    utm: { source: 'meta_ads', campaign: 'high_ticket_studios' },
-  },
-];
+// Known dummy and mock record identifiers to purge
+const DUMMY_ORDER_IDS = new Set([
+  'ORD-982142',
+  'GHOST-aditya948-day_pass',
+  'ORD-651902',
+  'ORD-1DAY-4901',
+  'ORD-310492',
+]);
+
+const DUMMY_ORDER_NUMBERS = new Set([
+  'APX-982142',
+  'APX-774102',
+  'APX-651902',
+  'APX-104921',
+  'APX-310492',
+]);
+
+const DUMMY_EMAILS = new Set([
+  'vikram.design@agencyapex.in',
+  'aditya.sen@gmail.com',
+  'rohan@studiocraft.co',
+  'kabir.sprint@gmail.com',
+  'priya@voxelstudios.com',
+]);
+
+/**
+ * Check if an order is dummy/seed data
+ */
+export function isDummyOrder(order?: Partial<LeadOrder> | null): boolean {
+  if (!order) return false;
+  if (order.id && DUMMY_ORDER_IDS.has(order.id)) return true;
+  if (order.orderNumber && DUMMY_ORDER_NUMBERS.has(order.orderNumber)) return true;
+  if (order.email && DUMMY_EMAILS.has(order.email.toLowerCase().trim())) return true;
+  if (
+    order.name &&
+    (order.name.includes('Vikram Malhotra') ||
+      order.name.includes('Aditya Sen') ||
+      order.name.includes('Rohan Joshi') ||
+      order.name.includes('Kabir Verma') ||
+      order.name.includes('Priya Nambiar'))
+  ) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Thoroughly purge any legacy dummy records from browser localStorage
+ */
+export function purgeAllDummyData(): { removedOrdersCount: number } {
+  if (typeof window === 'undefined') return { removedOrdersCount: 0 };
+  let removedCount = 0;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        const cleaned = parsed.filter((o) => !isDummyOrder(o));
+        removedCount = parsed.length - cleaned.length;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
+      }
+    }
+
+    // Clean marketing campaigns if any reference dummy emails or orders
+    const mktRaw = localStorage.getItem('apex3d_marketing_campaigns_db');
+    if (mktRaw) {
+      const parsedMkt = JSON.parse(mktRaw);
+      if (Array.isArray(parsedMkt)) {
+        const cleanedMkt = parsedMkt.filter(
+          (m: any) =>
+            !DUMMY_EMAILS.has((m.recipientEmail || '').toLowerCase().trim()) &&
+            !DUMMY_ORDER_NUMBERS.has(m.orderNumber || '')
+        );
+        localStorage.setItem('apex3d_marketing_campaigns_db', JSON.stringify(cleanedMkt));
+      }
+    }
+
+    window.dispatchEvent(new CustomEvent('apex_order_updated', { detail: null }));
+    window.dispatchEvent(new CustomEvent('apex_marketing_dispatched', { detail: null }));
+  } catch (err) {
+    console.error('Error purging dummy data:', err);
+  }
+  return { removedOrdersCount: removedCount };
+}
+
+/**
+ * Clear all orders in storage (full reset to zero)
+ */
+export function clearAllOrders(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
+    window.dispatchEvent(new CustomEvent('apex_order_updated', { detail: null }));
+  } catch (err) {
+    console.error('Error clearing orders:', err);
+  }
+}
 
 /**
  * Retrieve all orders from local database (mirrors Firebase Firestore)
@@ -250,34 +237,20 @@ export function getAllOrders(): LeadOrder[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(SEED_ORDERS));
-      return SEED_ORDERS;
+      return [];
     }
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      const sprintOrderIndex = parsed.findIndex((o) => o.id === 'ORD-1DAY-4901' || (o.tierId === 'day_pass' && o.status === 'approved'));
-      const sprintSeed = SEED_ORDERS.find((o) => o.id === 'ORD-1DAY-4901');
-
-      if (sprintOrderIndex === -1 && sprintSeed) {
-        parsed.unshift({
-          ...sprintSeed,
-          expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 22).toISOString(),
-        });
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
-      } else if (sprintOrderIndex >= 0 && parsed[sprintOrderIndex].expiresAt) {
-        // If expired or close to expiring, give fresh 22h session for simulation
-        const expTime = new Date(parsed[sprintOrderIndex].expiresAt!).getTime();
-        if (expTime < Date.now()) {
-          parsed[sprintOrderIndex].expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 22).toISOString();
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
-        }
+    if (Array.isArray(parsed)) {
+      const cleaned = parsed.filter((o) => !isDummyOrder(o));
+      if (cleaned.length !== parsed.length) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
       }
-      return parsed;
+      return cleaned;
     }
-    return SEED_ORDERS;
+    return [];
   } catch (err) {
     console.error('Failed to read orders database:', err);
-    return SEED_ORDERS;
+    return [];
   }
 }
 
