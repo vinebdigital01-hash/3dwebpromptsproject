@@ -222,7 +222,7 @@
   opacity: 0 !important;
 }
 
-/* Print Styles for Tax Invoices and Commercial Licenses */
+/* Print Styles for Commercial Invoices and Licenses */
 @media print {
   body {
     background-color: #ffffff !important;

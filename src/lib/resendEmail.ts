@@ -119,7 +119,7 @@ export async function sendEmailViaResend(options: {
 }
 
 /**
- * Generate Branded Approval HTML Email (Paid & Verified + Full Luxury B&W Tax Invoice)
+ * Generate Branded Approval HTML Email (Paid & Verified + Luxury B&W Commercial Invoice)
  */
 export function buildApprovalEmailHtml(order: LeadOrder, videoShowcaseMode: ShowcaseMode = 'most_copies'): string {
   const portalUrl = typeof window !== 'undefined'
@@ -133,9 +133,6 @@ export function buildApprovalEmailHtml(order: LeadOrder, videoShowcaseMode: Show
   const issueDate = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   const issueTime = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }) + ' IST';
   const issueFull = `${issueDate}, ${issueTime}`;
-
-  const baseAmount = Math.round((order.amountINR / 1.18) * 100) / 100;
-  const gstAmount = Math.round((order.amountINR - baseAmount) * 100) / 100;
 
   const numberToWords = (amt: number): string => {
     const map: Record<number, string> = {
@@ -161,12 +158,12 @@ export function buildApprovalEmailHtml(order: LeadOrder, videoShowcaseMode: Show
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Your 3D Vault Pass &amp; Tax Invoice [${order.orderNumber}]</title>
+  <title>Your 3D Vault Pass &amp; Commercial Invoice [${order.orderNumber}]</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #06060c; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #ffffff; -webkit-font-smoothing: antialiased;">
   <!-- Preheader text -->
   <div style="display: none; font-size: 1px; color: #06060c; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden;">
-    Your payment of ₹${order.amountINR} is verified. Official Tax Invoice ${invoiceNo} and License Key inside.
+    Your payment of ₹${order.amountINR} is verified. Official Commercial Invoice ${invoiceNo} and License Key inside.
   </div>
 
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #06060c; padding: 36px 12px;">
@@ -196,7 +193,7 @@ export function buildApprovalEmailHtml(order: LeadOrder, videoShowcaseMode: Show
                 </tr>
               </table>
               <h1 style="margin: 14px 0 0 0; font-size: 24px; font-weight: 800; letter-spacing: -0.02em; color: #ffffff; line-height: 1.25;">
-                Access Granted. Your Pass &amp; Tax Invoice are Active.
+                Access Granted. Your Pass &amp; Commercial Invoice are Active.
               </h1>
             </td>
           </tr>
@@ -205,7 +202,7 @@ export function buildApprovalEmailHtml(order: LeadOrder, videoShowcaseMode: Show
           <tr>
             <td style="padding: 24px 32px 16px 32px; font-size: 14px; line-height: 1.65; color: #9ca3af;">
               Hey <strong style="color: #ffffff;">${order.name}</strong>,<br><br>
-              Your payment of <strong style="color: #ffffff;">₹${order.amountINR}</strong> via Slice Merchant UPI (Bank UTR: <span style="font-family: 'SF Mono', monospace; color: #34d399; font-weight: bold;">${order.utrNumber || 'VERIFIED'}</span>) has been reconciled. Your developer pass and official Tax Invoice have been generated below.
+              Your payment of <strong style="color: #ffffff;">₹${order.amountINR}</strong> via Slice Merchant UPI (Bank UTR: <span style="font-family: 'SF Mono', monospace; color: #34d399; font-weight: bold;">${order.utrNumber || 'VERIFIED'}</span>) has been reconciled. Your developer pass and official Commercial Invoice have been generated below.
             </td>
           </tr>
 
@@ -240,11 +237,11 @@ export function buildApprovalEmailHtml(order: LeadOrder, videoShowcaseMode: Show
             </td>
           </tr>
 
-          <!-- FULL LUXURY BLACK & WHITE TAX INVOICE SHEET (EMBEDDED) -->
+          <!-- FULL LUXURY BLACK & WHITE COMMERCIAL INVOICE SHEET (EMBEDDED) -->
           <tr>
             <td style="padding: 0 32px 28px 32px;">
               <div style="font-family: 'SF Mono', Consolas, monospace; font-size: 10px; font-weight: 700; color: #34d399; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 8px;">
-                &#9889; OFFICIAL TAX INVOICE RECORD:
+                &#9889; OFFICIAL COMMERCIAL INVOICE RECORD:
               </div>
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" bgcolor="#ffffff" style="background-color: #ffffff; color: #18181b; border: 1px solid #d4d4d8; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
                 <!-- Invoice Header Bar -->
@@ -267,6 +264,7 @@ export function buildApprovalEmailHtml(order: LeadOrder, videoShowcaseMode: Show
                                   MARKETING AGENCY &bull; 3D SYSTEMS
                                 </div>
                                 <div style="font-family: 'SF Mono', Consolas, monospace; font-size: 9px; color: #71717a; margin-top: 4px; line-height: 1.4;">
+                                  MSME Reg: <strong style="color: #000000;">UDYAM-UP-29-0208780</strong><br>
                                   UPI VPA: <strong style="color: #000000;">s5305704393562990@slc</strong><br>
                                   Support: support@vinebdigital.store
                                 </div>
@@ -278,7 +276,7 @@ export function buildApprovalEmailHtml(order: LeadOrder, videoShowcaseMode: Show
                         <!-- Invoice Badge, No, Date & Exact Time -->
                         <td align="right" valign="top">
                           <span style="display: inline-block; padding: 3px 8px; background-color: #000000; color: #ffffff; font-family: 'SF Mono', monospace; font-size: 9px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 4px;">
-                            TAX INVOICE
+                            COMMERCIAL INVOICE
                           </span>
                           <div style="font-family: 'SF Mono', monospace; font-size: 12px; font-weight: bold; color: #000000;">
                             ${invoiceNo}
@@ -357,7 +355,7 @@ export function buildApprovalEmailHtml(order: LeadOrder, videoShowcaseMode: Show
                       <thead>
                         <tr bgcolor="#f4f4f5" style="border-bottom: 1px solid #d4d4d8;">
                           <th align="left" style="padding: 8px 10px; font-family: 'SF Mono', monospace; font-size: 9px; color: #3f3f46; text-transform: uppercase;">Item Description</th>
-                          <th align="center" style="padding: 8px 6px; font-family: 'SF Mono', monospace; font-size: 9px; color: #3f3f46; text-transform: uppercase;">SAC</th>
+                          <th align="center" style="padding: 8px 6px; font-family: 'SF Mono', monospace; font-size: 9px; color: #3f3f46; text-transform: uppercase;">Category</th>
                           <th align="center" style="padding: 8px 6px; font-family: 'SF Mono', monospace; font-size: 9px; color: #3f3f46; text-transform: uppercase;">Qty</th>
                           <th align="right" style="padding: 8px 10px; font-family: 'SF Mono', monospace; font-size: 9px; color: #3f3f46; text-transform: uppercase;">Unit Price</th>
                           <th align="right" style="padding: 8px 10px; font-family: 'SF Mono', monospace; font-size: 9px; color: #3f3f46; text-transform: uppercase;">Amount (INR)</th>
@@ -370,25 +368,25 @@ export function buildApprovalEmailHtml(order: LeadOrder, videoShowcaseMode: Show
                             <span style="color: #52525b; font-size: 10px;">500+ Calibrated WebGL Architecture Prompts, Three.js Kits, Claude 3.7 &amp; Cursor AI Blueprints</span><br>
                             <span style="font-family: 'SF Mono', monospace; font-size: 9px; color: #71717a;">License Key: ${licenseKey}</span>
                           </td>
-                          <td align="center" style="padding: 10px 6px; font-family: 'SF Mono', monospace; font-size: 10px; color: #52525b;">998313</td>
+                          <td align="center" style="padding: 10px 6px; font-family: 'SF Mono', monospace; font-size: 10px; color: #52525b;">Digital License</td>
                           <td align="center" style="padding: 10px 6px; font-family: 'SF Mono', monospace; font-size: 10px; color: #52525b;">1</td>
-                          <td align="right" style="padding: 10px; font-family: 'SF Mono', monospace; font-size: 10px; color: #52525b;">₹${baseAmount.toFixed(2)}</td>
-                          <td align="right" style="padding: 10px; font-family: 'SF Mono', monospace; font-size: 11px; font-weight: bold; color: #000000;">₹${baseAmount.toFixed(2)}</td>
+                          <td align="right" style="padding: 10px; font-family: 'SF Mono', monospace; font-size: 10px; color: #52525b;">₹${order.amountINR.toFixed(2)}</td>
+                          <td align="right" style="padding: 10px; font-family: 'SF Mono', monospace; font-size: 11px; font-weight: bold; color: #000000;">₹${order.amountINR.toFixed(2)}</td>
                         </tr>
                         <tr style="border-bottom: 1px solid #e4e4e7; background-color: #fafafa;">
                           <td colspan="4" align="right" style="padding: 6px 10px; font-family: 'SF Mono', monospace; font-size: 10px; color: #71717a;">
-                            Taxable Subtotal Value:
+                            Subtotal:
                           </td>
                           <td align="right" style="padding: 6px 10px; font-family: 'SF Mono', monospace; font-size: 10px; color: #000000;">
-                            ₹${baseAmount.toFixed(2)}
+                            ₹${order.amountINR.toFixed(2)}
                           </td>
                         </tr>
                         <tr style="border-bottom: 1px solid #e4e4e7; background-color: #fafafa;">
                           <td colspan="4" align="right" style="padding: 6px 10px; font-family: 'SF Mono', monospace; font-size: 10px; color: #71717a;">
-                            Integrated GST (18.00% IGST &bull; SAC 998313):
+                            Applicable Tax / GST (0% &bull; Exempt under MSME):
                           </td>
                           <td align="right" style="padding: 6px 10px; font-family: 'SF Mono', monospace; font-size: 10px; color: #000000;">
-                            ₹${gstAmount.toFixed(2)}
+                            ₹0.00
                           </td>
                         </tr>
                         <tr bgcolor="#f4f4f5" style="border-top: 2px solid #000000;">
@@ -429,8 +427,8 @@ export function buildApprovalEmailHtml(order: LeadOrder, videoShowcaseMode: Show
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                       <tr>
                         <td align="left" style="font-family: 'SF Mono', monospace; font-size: 9px; color: #71717a; line-height: 1.4;">
-                          <strong>DECLARATION:</strong> Computer-generated electronic tax invoice issued under Section 31 of CGST Act 2017 &amp; IT Act 2000.<br>
-                          No physical signature required. Reconciled with Slice Merchant UPI Banking.
+                          <strong>DECLARATION:</strong> Computer-generated commercial invoice &amp; payment receipt.<br>
+                          Registered MSME Enterprise: <strong>UDYAM-UP-29-0208780</strong> &bull; Exempt under MSME turnover threshold (CGST Act Sec 22/23). Reconciled with Slice Merchant UPI.
                         </td>
                         <td align="right" style="padding-left: 12px;">
                           <div style="border: 1px solid #000000; padding: 4px 8px; border-radius: 4px; text-align: center; display: inline-block;">
@@ -438,7 +436,10 @@ export function buildApprovalEmailHtml(order: LeadOrder, videoShowcaseMode: Show
                               &#10003; VINE B DIGITAL
                             </div>
                             <div style="font-family: 'SF Mono', monospace; font-size: 7px; color: #52525b; text-transform: uppercase;">
-                              VERIFIED TAX RECEIPT
+                              VERIFIED INVOICE
+                            </div>
+                            <div style="font-family: 'SF Mono', monospace; font-size: 6px; color: #71717a;">
+                              MSME: UDYAM-UP-29-0208780
                             </div>
                           </div>
                         </td>
@@ -900,7 +901,7 @@ export async function sendCartRecoveryEmail(lead: {
           <!-- Secondary WhatsApp Assistance -->
           <tr>
             <td style="padding: 0 32px 24px 32px; text-align: center; font-size: 12px; color: #64748b;">
-              Need UPI assistance or custom corporate GST invoice? Chat directly on WhatsApp:
+              Need UPI assistance or official invoice copy? Chat directly on WhatsApp:
               <a href="${WHATSAPP_LINK}" style="color: #34d399; font-weight: bold; text-decoration: underline;">${WHATSAPP_DISPLAY}</a>
             </td>
           </tr>

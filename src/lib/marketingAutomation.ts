@@ -78,7 +78,7 @@ WHAT YOU UNLOCK IMMEDIATELY:
 - Full Next.js 15 & React 19 Three.js hardware repositories
 - 12+ Awwwards GLSL liquid & displacement shaders
 - 100% Commercial Client License to bill $5k+ per project
-- Official GST Tax Invoice for business deduction
+- Official Commercial Invoice for business deduction
 
 Resume your workstation session:
 ${checkoutUrl}

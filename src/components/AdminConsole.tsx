@@ -1302,7 +1302,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                           href={`https://wa.me/91${order.phone.replace(/\D/g, '')}?text=${encodeURIComponent(
                             `Hello ${order.name}! 🚀 Your APEX3D Vault access (${order.tierName}) is APPROVED!\n\n` +
                             `🔑 License Key: ${order.licenseKey || 'LIC-VIP-84K2-91Q7'}\n` +
-                            `📄 Tax Invoice: ${order.invoiceNumber || 'INV-2026-8941'}\n` +
+                            `📄 Commercial Invoice: ${order.invoiceNumber || 'INV-2026-8941'}\n` +
                             `📦 Order ID: ${order.orderNumber}\n\n` +
                             `Access your 500+ Prompts, Three.js Starter Kits, and Invoices at:\n` +
                             `👉 https://vinebdigital.store/#portal\n\n` +
@@ -1342,11 +1342,11 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                       <button
                         onClick={async () => {
                           sound.playClick();
-                          showToast(`⏳ Dispatching credentials & Tax Invoice email to ${order.email}...`);
+                          showToast(`⏳ Dispatching credentials & Commercial Invoice email to ${order.email}...`);
                           try {
                             const res = await sendOrderApprovalEmail(order);
                             if (res.success) {
-                              showToast(`📧 Credentials & Tax Invoice dispatched to ${order.email}!`);
+                              showToast(`📧 Credentials & Commercial Invoice dispatched to ${order.email}!`);
                             } else {
                               showToast(`Email error: ${res.message}`);
                             }
@@ -1355,7 +1355,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                           }
                         }}
                         className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-xs font-semibold flex items-center gap-1.5 border border-white/10 transition-colors"
-                        title="Resend email with access credentials and tax invoice"
+                        title="Resend email with access credentials and commercial invoice"
                       >
                         <Send className="w-3.5 h-3.5 text-blue-400" />
                         <span>Resend Invoice &amp; Pass</span>
@@ -1940,7 +1940,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
         </div>
       )}
 
-      {/* Official Tax Invoice Modal */}
+      {/* Official Commercial Invoice Modal */}
       <InvoiceModal
         isOpen={!!selectedInvoiceOrder}
         order={selectedInvoiceOrder}

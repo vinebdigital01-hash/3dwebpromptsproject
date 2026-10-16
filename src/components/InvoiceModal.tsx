@@ -43,10 +43,6 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, isOpen, onClo
   const createdTimestamp = formatDateTime(order.createdAt);
   const reconciledTimestamp = formatDateTime(order.approvedAt || order.createdAt);
 
-  // Financial calculations
-  const baseAmount = Math.round((order.amountINR / 1.18) * 100) / 100;
-  const gstAmount = Math.round((order.amountINR - baseAmount) * 100) / 100;
-
   // Amount in words
   const numberToWords = (amt: number): string => {
     const map: Record<number, string> = {
@@ -83,10 +79,10 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, isOpen, onClo
           <div className="flex items-center gap-2.5">
             <Building2 className="w-4 h-4 text-zinc-400" />
             <span className="text-xs font-mono font-semibold tracking-wider text-zinc-200 uppercase">
-              Official Tax Invoice // {invoiceNo}
+              Official Commercial Invoice // {invoiceNo}
             </span>
             <span className="hidden sm:inline-block px-2 py-0.5 rounded bg-zinc-800 text-[10px] font-mono text-zinc-300">
-              Black &amp; White Luxury Edition
+              MSME Reg: UDYAM-UP-29-0208780
             </span>
           </div>
 
@@ -137,6 +133,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, isOpen, onClo
                   Marketing Agency &bull; 3D Systems Division
                 </p>
                 <div className="text-[10px] text-zinc-500 font-mono space-y-0.5 mt-2">
+                  <p>MSME Reg: <span className="text-zinc-900 font-bold">UDYAM-UP-29-0208780</span> (Govt. of India)</p>
                   <p>UPI Merchant VPA: <span className="text-zinc-900 font-semibold">s5305704393562990@slc</span></p>
                   <p>Support Hotline: <span className="text-zinc-900">support@vinebdigital.store</span> &bull; +91 8860090791</p>
                   <p>Issuing Entity: Vine B Digital Marketing Agency (India)</p>
@@ -147,7 +144,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, isOpen, onClo
             {/* Right: Invoice Type, Number, Date and Exact Time */}
             <div className="sm:text-right w-full sm:w-auto">
               <div className="inline-block px-3 py-1 bg-black text-white text-[11px] font-mono font-bold tracking-widest uppercase mb-2">
-                TAX INVOICE
+                COMMERCIAL INVOICE
               </div>
               <div className="font-mono text-sm font-bold text-black tracking-tight">
                 {invoiceNo}
@@ -239,10 +236,10 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, isOpen, onClo
               <thead>
                 <tr className="bg-zinc-100 border-b border-zinc-300 text-[10px] font-mono text-zinc-700 uppercase tracking-wider">
                   <th className="py-2.5 px-4 font-bold">Item Description</th>
-                  <th className="py-2.5 px-3 text-center font-bold">SAC Code</th>
+                  <th className="py-2.5 px-3 text-center font-bold">Category</th>
                   <th className="py-2.5 px-3 text-center font-bold">Qty</th>
                   <th className="py-2.5 px-3 text-right font-bold">Unit Price</th>
-                  <th className="py-2.5 px-4 text-right font-bold">Amount (INR)</th>
+                  <th className="py-2.5 px-4 text-right font-bold">Total (INR)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-200 font-mono text-xs">
@@ -257,31 +254,31 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, isOpen, onClo
                       <span>Commercial License Hash: <strong className="text-zinc-800">{licenseKey}</strong></span>
                     </div>
                   </td>
-                  <td className="py-4 px-3 text-center text-zinc-600 text-[11px]">998313</td>
+                  <td className="py-4 px-3 text-center text-zinc-600 text-[11px]">Digital License</td>
                   <td className="py-4 px-3 text-center text-zinc-600 text-[11px]">1</td>
                   <td className="py-4 px-3 text-right text-zinc-600 text-[11px]">
-                    ₹{baseAmount.toFixed(2)}
+                    ₹{order.amountINR.toFixed(2)}
                   </td>
                   <td className="py-4 px-4 text-right font-bold text-black text-sm">
-                    ₹{baseAmount.toFixed(2)}
+                    ₹{order.amountINR.toFixed(2)}
                   </td>
                 </tr>
 
                 {/* Subtotal & Tax Breakdown Rows */}
                 <tr className="bg-zinc-50/50 text-zinc-600 text-[11px]">
                   <td colSpan={4} className="py-2 px-4 text-right">
-                    Taxable Subtotal Value:
+                    Subtotal:
                   </td>
                   <td className="py-2 px-4 text-right font-semibold text-zinc-800">
-                    ₹{baseAmount.toFixed(2)}
+                    ₹{order.amountINR.toFixed(2)}
                   </td>
                 </tr>
                 <tr className="bg-zinc-50/50 text-zinc-600 text-[11px]">
                   <td colSpan={4} className="py-2 px-4 text-right">
-                    Applicable Integrated GST (18.00% IGST &bull; SAC 998313):
+                    Applicable Tax / GST (0% &bull; Exempt under MSME):
                   </td>
                   <td className="py-2 px-4 text-right font-semibold text-zinc-800">
-                    ₹{gstAmount.toFixed(2)}
+                    ₹0.00
                   </td>
                 </tr>
                 <tr className="bg-zinc-100/80 text-black text-sm font-bold border-t-2 border-black">
@@ -342,8 +339,9 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, isOpen, onClo
           {/* Legal Compliance Footer & Verification Stamp */}
           <div className="pt-4 border-t-2 border-black flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 text-[10px] font-mono text-zinc-500">
             <div className="space-y-1">
-              <p className="font-semibold text-zinc-700">DECLARATION &bull; COMPUTER GENERATED TAX INVOICE</p>
-              <p>Issued under Section 31 of CGST Act, 2017 &bull; SAC: 998313 (IT Software Licensing &amp; Design Blueprints).</p>
+              <p className="font-semibold text-zinc-700">DECLARATION &bull; COMPUTER GENERATED COMMERCIAL INVOICE &amp; RECEIPT</p>
+              <p>Registered MSME Enterprise: <strong className="text-zinc-900">UDYAM-UP-29-0208780</strong> &bull; Issued under MSME Development Act, 2006.</p>
+              <p>Turnover within statutory exemption threshold under Section 22/23 of CGST Act. No GST collected.</p>
               <p>No physical signature required as this document is electronically authenticated and reconciled.</p>
               <p>Member Access: <span className="text-zinc-900 underline">https://vinebdigital.store/#portal</span></p>
             </div>
@@ -355,10 +353,10 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, isOpen, onClo
                 <span>VINE B DIGITAL</span>
               </div>
               <div className="text-[8px] font-bold text-zinc-700 tracking-wider uppercase mt-0.5">
-                VERIFIED TAX INVOICE
+                VERIFIED COMMERCIAL INVOICE
               </div>
               <div className="text-[8px] text-zinc-500 font-mono mt-0.5">
-                TIME: {issueTimestamp.time}
+                MSME: UDYAM-UP-29-0208780
               </div>
             </div>
           </div>

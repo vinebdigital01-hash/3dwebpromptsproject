@@ -66,16 +66,17 @@ https://3dwebprompts-vineb.vercel.app/#portal?prompt=luxury-watchmaker&orderId={
 
 
 ------------------------------------------------------------------------
-TRANSACTION & TAX RECEIPT
+TRANSACTION & COMMERCIAL RECEIPT
 ------------------------------------------------------------------------
 Order ID        : {{order_number}}
 Invoice Ref     : {{invoice_number}}
+MSME Reg No     : UDYAM-UP-29-0208780
 Payment Method  : Slice Merchant UPI (VPA: s5305704393562990@slc)
 Bank UTR / Ref  : {{utr_number}}
-Amount Settled  : INR {{amount}}
+Amount Settled  : INR {{amount}} (0% GST · MSME Exempt)
 Issued By       : Vine B Digital Marketing Agency
 
-Download Tax Invoice PDF:
+Download Commercial Invoice PDF:
 {{invoice_download_url}}
 
 

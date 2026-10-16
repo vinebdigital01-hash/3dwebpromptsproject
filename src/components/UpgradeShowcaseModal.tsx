@@ -129,7 +129,7 @@ const PERK_TABS: PerkTab[] = [
     headline: '100% White-Label Commercial Studio License',
     details:
       'Deliver spatial 3D websites to unlimited commercial clients and bill $5,000 to $20,000 per project. Zero royalties and no attribution required.',
-    bullet: 'Includes verified GST tax invoice for 100% business expense deduction.',
+    bullet: 'Includes official commercial invoice & MSME certificate for 100% business expense deduction.',
   },
 ];
 

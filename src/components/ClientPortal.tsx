@@ -1134,7 +1134,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
               className="px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white text-[11px] font-mono uppercase tracking-wider flex items-center gap-1.5 border border-white/[0.08] transition-colors cursor-pointer"
             >
               <FileText className="w-3.5 h-3.5 text-blue-400" />
-              <span>Tax Invoice</span>
+              <span>Official Invoice</span>
             </button>
 
             <button
@@ -1894,15 +1894,15 @@ Rules:
               </div>
               <h2 className="text-lg font-bold text-white">Commercial Documents & Invoices</h2>
               <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
-                Tax invoice for corporate bookkeeping and commercial certificate granting worldwide client deployment rights.
+                Official commercial invoice for corporate bookkeeping and commercial certificate granting worldwide client deployment rights.
               </p>
             </div>
 
-            {/* Tax Invoice */}
+            {/* Commercial Invoice */}
             <div className="p-6 rounded-xl bg-[#09090e] border border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-1">
-                  TAX INVOICE RECORD
+                  OFFICIAL COMMERCIAL INVOICE
                 </div>
                 <h3 className="text-base font-mono font-bold text-white">
                   {activeOrder.invoiceNumber || 'INV-2026-8941'}
@@ -1920,7 +1920,7 @@ Rules:
                 className="px-4 py-2.5 rounded-lg bg-white/[0.06] hover:bg-white text-zinc-200 hover:text-black text-xs font-mono font-bold uppercase transition-colors flex items-center gap-1.5 shrink-0 border border-white/[0.08]"
               >
                 <FileText className="w-3.5 h-3.5" />
-                <span>View & Print Tax Invoice</span>
+                <span>View & Print Official Invoice</span>
               </button>
             </div>
 
@@ -2102,7 +2102,7 @@ Rules:
         </div>
       )}
 
-      {/* Tax Invoice Modal */}
+      {/* Official Commercial Invoice Modal */}
       <InvoiceModal
         isOpen={isInvoiceOpen}
         order={activeOrder}
