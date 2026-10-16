@@ -2,26 +2,20 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   ShieldCheck,
   Search,
-  Filter,
   Copy,
   Check,
   ExternalLink,
   Download,
   FolderGit2,
-  FileCode,
   Award,
   FileText,
   Clock,
-  Sparkles,
-  ChevronDown,
-  ChevronUp,
   LogOut,
   ChevronLeft,
   Lock,
   Zap,
   Terminal,
   AlertCircle,
-  HelpCircle,
   Code2,
   Play,
   Pause,
@@ -33,6 +27,12 @@ import {
   Film,
   Layers,
   Cpu,
+  LayoutGrid,
+  List,
+  Sparkles,
+  ArrowUpRight,
+  SlidersHorizontal,
+  ChevronRight,
 } from 'lucide-react';
 import {
   LeadOrder,
@@ -54,188 +54,8 @@ interface ClientPortalProps {
 }
 
 type PortalTab = 'vault' | 'boilerplates' | 'license';
+type ViewMode = 'grid' | 'ledger';
 
-// -------------------------------------------------------------
-// VISUAL PROMPT CARD COMPONENT (WITH 3D VIDEO / IMAGE SHOWCASE)
-// -------------------------------------------------------------
-interface PromptCardProps {
-  prompt: VaultItem;
-  isCopied: boolean;
-  onCopy: () => void;
-  onInspect: () => void;
-}
-
-const PromptCard: React.FC<PromptCardProps> = ({ prompt, isCopied, onCopy, onInspect }) => {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [isPlaying, setIsPlaying] = useState(true);
-  const [isHovered, setIsHovered] = useState(false);
-
-  const togglePlay = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    sound.playClick();
-    if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.pause();
-        setIsPlaying(false);
-      } else {
-        videoRef.current.play();
-        setIsPlaying(true);
-      }
-    }
-  };
-
-  const isVideo = prompt.videoUrl.endsWith('.mp4');
-
-  return (
-    <div
-      onMouseEnter={() => {
-        setIsHovered(true);
-        sound.playHover();
-      }}
-      onMouseLeave={() => setIsHovered(false)}
-      className="group rounded-2xl bg-[#090914] border border-white/10 hover:border-blue-500/40 transition-all duration-300 overflow-hidden flex flex-col justify-between shadow-xl hover:shadow-2xl hover:shadow-blue-500/10"
-    >
-      {/* 1. CINEMATIC 3D VIDEO SHOWCASE CONTAINER */}
-      <div
-        onClick={onInspect}
-        className="relative aspect-video w-full bg-black/80 overflow-hidden cursor-pointer"
-      >
-        {isVideo ? (
-          <video
-            ref={videoRef}
-            src={prompt.videoUrl}
-            poster={prompt.poster}
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
-          />
-        ) : (
-          <img
-            src={prompt.videoUrl || prompt.poster}
-            alt={prompt.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
-          />
-        )}
-
-        {/* Ambient Top & Bottom Vignette Gradient */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#090914] via-transparent to-black/60 pointer-events-none" />
-
-        {/* Top Floating Badges */}
-        <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 z-10">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 backdrop-blur-md">
-              {prompt.category}
-            </span>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-black/60 text-emerald-400 border border-emerald-500/30 backdrop-blur-md flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span>{prompt.fpsBadge || '60 FPS WEBGL'}</span>
-            </span>
-          </div>
-
-          <div className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[11px] font-mono font-bold backdrop-blur-md shadow-sm">
-            {prompt.clientValue} SOW
-          </div>
-        </div>
-
-        {/* Bottom Video Controls & Inspect Pill */}
-        <div className="absolute bottom-2.5 left-3 right-3 flex items-center justify-between gap-2 z-10">
-          {isVideo && (
-            <button
-              onClick={togglePlay}
-              className="p-1.5 rounded-lg bg-black/60 hover:bg-black/90 text-white/80 hover:text-white border border-white/10 backdrop-blur-md transition-all"
-              title={isPlaying ? 'Pause 3D Loop' : 'Play 3D Loop'}
-            >
-              {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-            </button>
-          )}
-
-          <div className="ml-auto flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-600/80 hover:bg-blue-600 text-white text-[11px] font-mono font-semibold backdrop-blur-md transition-all group-hover:scale-105">
-            <Eye className="w-3.5 h-3.5" />
-            <span>Inspect 3D Blueprint</span>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. CARD CONTENT & PRODUCTION DETAILS */}
-      <div className="p-5 flex-1 flex flex-col justify-between">
-        <div>
-          <h3
-            onClick={onInspect}
-            className="text-base font-bold text-white tracking-tight hover:text-blue-400 transition-colors cursor-pointer line-clamp-1"
-          >
-            {prompt.title}
-          </h3>
-          <p className="text-xs text-white/60 mt-1 line-clamp-2 leading-relaxed">
-            {prompt.subtitle}
-          </p>
-
-          {/* Key Visual Capabilities */}
-          <div className="mt-3.5 space-y-1.5">
-            {prompt.keyFeatures.slice(0, 3).map((feat, idx) => (
-              <div key={idx} className="flex items-start gap-1.5 text-[11px] text-white/70">
-                <span className="text-blue-400 mt-0.5">•</span>
-                <span className="line-clamp-1">{feat}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Tested Model Chips & Token Count */}
-          <div className="mt-4 pt-3 border-t border-white/5 flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap gap-1">
-              {prompt.testedModels.slice(0, 2).map((m) => (
-                <span
-                  key={m}
-                  className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/60 border border-white/5"
-                >
-                  {m}
-                </span>
-              ))}
-            </div>
-            <span className="text-[10px] font-mono text-white/40">~{prompt.tokens} tokens</span>
-          </div>
-        </div>
-
-        {/* 3. BOTTOM BUTTONS (INSPECT & 1-CLICK COPY) */}
-        <div className="mt-5 pt-3.5 border-t border-white/10 flex items-center justify-between gap-2">
-          <button
-            onClick={onInspect}
-            className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/80 hover:text-white text-xs font-mono font-medium flex items-center gap-1.5 border border-white/10 transition-colors"
-          >
-            <Maximize2 className="w-3.5 h-3.5 text-blue-400" />
-            <span>Architecture</span>
-          </button>
-
-          <button
-            onClick={onCopy}
-            className={`px-4 py-2 rounded-xl text-xs font-bold font-mono flex items-center gap-1.5 transition-all active:scale-95 shadow-md ${
-              isCopied
-                ? 'bg-emerald-600 text-white shadow-emerald-600/30'
-                : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/30'
-            }`}
-          >
-            {isCopied ? (
-              <>
-                <Check className="w-3.5 h-3.5" />
-                <span>Copied!</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-3.5 h-3.5" />
-                <span>Copy Syntax</span>
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// -------------------------------------------------------------
-// MAIN CLIENT PORTAL COMPONENT
-// -------------------------------------------------------------
 export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgradeClick }) => {
   // Authentication State
   const [activeOrder, setActiveOrder] = useState<LeadOrder | null>(() => {
@@ -244,7 +64,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
       if (stored) {
         return JSON.parse(stored);
       }
-    } catch (e) {
+    } catch {
       // ignore
     }
     return null;
@@ -255,9 +75,15 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
 
   // Portal Navigation & Filtering State
   const [activeTab, setActiveTab] = useState<PortalTab>('vault');
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedModel, setSelectedModel] = useState<string>('All');
+
+  // Active Featured / Selected Blueprint (for Master Theater Spotlight)
+  const [spotlightPrompt, setSpotlightPrompt] = useState<VaultItem>(VAULT_CATALOG[1] || VAULT_CATALOG[0]);
+  const [isSpotlightPlaying, setIsSpotlightPlaying] = useState(true);
+  const spotlightVideoRef = useRef<HTMLVideoElement>(null);
 
   // Inspection Lightbox Modal State
   const [inspectingPrompt, setInspectingPrompt] = useState<VaultItem | null>(null);
@@ -292,7 +118,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
 
   const showToast = (msg: string) => {
     setPortalToast(msg);
-    setTimeout(() => setPortalToast(null), 3000);
+    setTimeout(() => setPortalToast(null), 3200);
   };
 
   const handleLogin = (e?: React.FormEvent) => {
@@ -303,7 +129,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
     if (!order) {
       sound.playError();
       setLoginError(
-        'No active verified order found with this License Key, Order Number, or Email. If you just paid via UPI, verification takes 2-10 minutes.'
+        'Credentials unverified. Ensure you have entered your exact License Key (e.g. LIC-VIP-84K2-91Q7) or registered phone/email.'
       );
       return;
     }
@@ -322,7 +148,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
       setActiveOrder(vip);
       sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(vip));
       setDailyUsage(getDailyCopyUsage(vip.licenseKey || ''));
-      showToast('Logged in as VIP Lifetime Member');
+      showToast('Enclave Session Loaded // VIP Lifetime License');
     }
   };
 
@@ -349,7 +175,20 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
 
     const newCount = incrementDailyCopyUsage(activeOrder.licenseKey || '');
     setDailyUsage(newCount);
-    showToast(`Copied "${prompt.title}" architecture syntax!`);
+    showToast(`Arch-Syntax [${prompt.title.slice(0, 24)}...] copied to clipboard`);
+  };
+
+  const toggleSpotlightPlay = () => {
+    sound.playClick();
+    if (spotlightVideoRef.current) {
+      if (isSpotlightPlaying) {
+        spotlightVideoRef.current.pause();
+        setIsSpotlightPlaying(false);
+      } else {
+        spotlightVideoRef.current.play();
+        setIsSpotlightPlaying(true);
+      }
+    }
   };
 
   // Expiry Details
@@ -374,70 +213,79 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
     return matchesSearch && matchesCategory && matchesModel;
   });
 
-  // -------------------------------------------------------------
-  // VIEW 1: LOGIN GATE (If not logged in)
-  // -------------------------------------------------------------
+  // -------------------------------------------------------------------------
+  // VIEW 1: CRYPTOGRAPHIC ENCLAVE ACCESS GATE (ANTI-GENERIC REDESIGN)
+  // -------------------------------------------------------------------------
   if (!activeOrder) {
     return (
-      <div className="min-h-screen bg-[#05050a] text-white flex flex-col justify-between selection:bg-blue-600/30">
-        {/* Top Navbar */}
-        <header className="border-b border-white/10 bg-[#090914] px-6 py-4">
+      <div className="min-h-screen bg-[#040407] text-[#eaeaf0] flex flex-col justify-between selection:bg-blue-600/30 font-sans relative overflow-hidden">
+        {/* Subtle Ambient Grain & Vignette */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(59,130,246,0.12),transparent)] pointer-events-none" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_0%,rgba(4,4,7,0.8)_100%)] pointer-events-none" />
+
+        {/* Minimal Monolithic Top Nav */}
+        <header className="border-b border-white/[0.08] px-6 py-4 relative z-10">
           <div className="max-w-6xl mx-auto flex items-center justify-between">
             <button
               onClick={() => {
                 sound.playClick();
                 onBackToSite();
               }}
-              className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-colors flex items-center gap-1.5 text-xs font-mono"
+              className="text-xs font-mono text-zinc-400 hover:text-white transition-colors flex items-center gap-1.5 uppercase tracking-widest"
             >
-              <ChevronLeft className="w-4 h-4" />
-              <span>Back to Main Site</span>
+              <ChevronLeft className="w-3.5 h-3.5" />
+              <span>Index</span>
             </button>
 
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center font-bold text-xs shadow-md shadow-blue-500/30">
-                3D
-              </div>
-              <span className="text-sm font-bold tracking-tight text-white font-mono">
-                APEX3D // CLIENT PORTAL
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[11px] font-mono tracking-[0.2em] text-zinc-400 uppercase">
+                APEX3D // ENCLAVE ACCESS
               </span>
             </div>
           </div>
         </header>
 
-        {/* Login Form Container */}
-        <main className="flex-1 flex items-center justify-center px-4 py-12">
-          <div className="w-full max-w-md p-6 sm:p-8 rounded-2xl bg-[#090914] border border-white/10 shadow-2xl relative">
-            <div className="text-center mb-6">
-              <div className="w-12 h-12 mx-auto rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mb-3 text-blue-400">
-                <Lock className="w-6 h-6" />
+        {/* Access Terminal Form */}
+        <main className="flex-1 flex items-center justify-center px-4 py-12 relative z-10">
+          <div className="w-full max-w-md p-8 rounded-2xl bg-[#09090e] border border-white/[0.09] shadow-[0_24px_64px_-12px_rgba(0,0,0,0.8),inset_0_1px_0_0_rgba(255,255,255,0.06)] relative">
+            
+            {/* Header */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-2">
+                <span>IDENTITY VALIDATION</span>
+                <span>SEC-256</span>
               </div>
-              <h1 className="text-xl font-bold tracking-tight text-white">Client Member Portal</h1>
-              <p className="text-xs text-white/50 mt-1">
-                Enter your License Key, Order Number, or Registered Email to access your 500+ master prompts vault with 3D video previews.
+              <h1 className="text-xl font-bold tracking-tight text-white">
+                Member Vault Console
+              </h1>
+              <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+                Provide your commercial license key, order reference, or registered identity.
               </p>
             </div>
 
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-white/70 mb-1.5">
-                  Access Credential
+                <label className="block text-[10px] font-mono uppercase tracking-[0.16em] text-zinc-400 mb-1.5">
+                  Access Key / Order Token
                 </label>
-                <input
-                  type="text"
-                  required
-                  value={loginInput}
-                  onChange={(e) => setLoginInput(e.target.value)}
-                  placeholder="e.g. LIC-VIP-84K2-91Q7 or APX-310492"
-                  className="w-full px-4 py-3 rounded-xl bg-black/50 border border-white/10 text-xs font-mono text-white placeholder-white/30 focus:outline-none focus:border-blue-500 transition-colors"
-                />
-                <span className="text-[10px] text-white/40 mt-1 block">
-                  Found in your approval email or WhatsApp order notification.
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    value={loginInput}
+                    onChange={(e) => setLoginInput(e.target.value)}
+                    placeholder="LIC-VIP-XXXX-XXXX"
+                    className="w-full px-4 py-3 rounded-xl bg-black/60 border border-white/[0.12] text-xs font-mono text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-300 transition-colors tracking-wider"
+                  />
+                </div>
+                <span className="text-[10px] text-zinc-500 font-mono mt-1.5 block">
+                  Reference dispatched via WhatsApp & Tax Invoice upon approval.
                 </span>
               </div>
 
               {loginError && (
-                <div className="p-3 rounded-xl bg-red-950/40 border border-red-500/30 text-red-300 text-xs flex items-start gap-2">
+                <div className="p-3 rounded-xl bg-red-950/30 border border-red-500/30 text-red-300 text-xs font-mono flex items-start gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                   <span>{loginError}</span>
                 </div>
@@ -445,117 +293,111 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
 
               <button
                 type="submit"
-                className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all shadow-lg shadow-blue-600/30 active:scale-95"
+                className="w-full py-3 rounded-xl bg-white hover:bg-zinc-200 text-black text-xs font-mono font-bold tracking-wider uppercase transition-all active:scale-[0.98] shadow-lg shadow-white/10"
               >
-                Access My Vault
+                Unlock Architecture Vault
               </button>
             </form>
 
-            <div className="mt-6 pt-6 border-t border-white/10 text-center space-y-3">
+            {/* Quick Demo Option & Direct Support */}
+            <div className="mt-6 pt-6 border-t border-white/[0.08] space-y-3">
               <button
                 onClick={handleDemoVipLogin}
-                className="w-full py-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-mono font-medium flex items-center justify-center gap-2 transition-colors"
+                className="w-full py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-amber-300 text-xs font-mono flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Instant Demo: VIP Lifetime Member Access</span>
+                <span>Simulate VIP Lifetime Session</span>
               </button>
 
-              <p className="text-[11px] text-white/40">
-                Facing an issue with your credentials? WhatsApp our team at{' '}
+              <div className="text-center">
                 <a
                   href="https://wa.me/918860090791?text=Hello%20APEX3D%20Support,%20I%20need%20help%20accessing%20my%20client%20portal"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-400 hover:underline"
+                  className="text-[11px] font-mono text-zinc-500 hover:text-zinc-300 transition-colors"
                 >
-                  +91 88600 90791
+                  Need credential lookup? WhatsApp Support →
                 </a>
-              </p>
+              </div>
             </div>
+
           </div>
         </main>
 
-        <footer className="border-t border-white/5 py-4 text-center text-xs text-white/30 font-mono">
-          APEX3D Architectural Systems · Secured by Vine B Digital
+        <footer className="border-t border-white/[0.06] py-4 text-center text-[10px] font-mono text-zinc-600 uppercase tracking-widest">
+          Vine B Digital Marketing Agency · Architectural Systems Enclave
         </footer>
       </div>
     );
   }
 
-  // -------------------------------------------------------------
-  // VIEW 2: AUTHENTICATED MEMBER DASHBOARD
-  // -------------------------------------------------------------
+  // -------------------------------------------------------------------------
+  // VIEW 2: EXECUTIVE STUDIO WORKSTATION (AUTHENTICATED)
+  // -------------------------------------------------------------------------
   return (
-    <div className="min-h-screen bg-[#05050a] text-white selection:bg-blue-600/30 flex flex-col font-sans">
+    <div className="min-h-screen bg-[#050508] text-[#f0f0f5] selection:bg-blue-600/30 flex flex-col font-sans">
+      
       {/* Toast Notification */}
       {portalToast && (
-        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 rounded-full bg-blue-600 text-white text-xs font-semibold shadow-xl shadow-blue-600/40 animate-role-fade-in flex items-center gap-2">
-          <Sparkles className="w-4 h-4" />
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 rounded-full bg-[#11111a] border border-white/20 text-white text-xs font-mono tracking-wide shadow-2xl animate-role-fade-in flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping" />
           <span>{portalToast}</span>
         </div>
       )}
 
-      {/* Top Header / Account Ribbon */}
-      <header className="border-b border-white/10 bg-[#090914] sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+      {/* 1. ARCHITECTURAL TOP STUDIO BAR */}
+      <header className="border-b border-white/[0.08] bg-[#07070b]/90 backdrop-blur-xl sticky top-0 z-40">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4">
+          
+          {/* Left Entity Identity */}
+          <div className="flex items-center gap-4">
             <button
               onClick={() => {
                 sound.playClick();
                 onBackToSite();
               }}
-              className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-colors text-xs font-mono flex items-center gap-1"
-              title="Return to main page"
+              className="px-2.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-zinc-400 hover:text-white transition-colors text-[11px] font-mono uppercase tracking-wider flex items-center gap-1 border border-white/[0.06]"
             >
-              <ChevronLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">Main Site</span>
+              <ChevronLeft className="w-3.5 h-3.5" />
+              <span>Back</span>
             </button>
 
-            <div className="h-4 w-[1px] bg-white/15 hidden sm:block" />
+            <div className="h-4 w-[1px] bg-white/[0.08]" />
 
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center font-bold text-xs shadow-md shadow-blue-500/30">
+            <div className="flex items-center gap-3">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center font-mono font-bold text-xs shadow-md shadow-blue-500/20">
                 3D
               </div>
+
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs sm:text-sm font-bold text-white tracking-tight">
+                  <span className="text-xs font-bold text-white tracking-tight uppercase">
                     {activeOrder.name}
                   </span>
-                  <span
-                    className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full uppercase border ${
-                      activeOrder.tierId === 'lifetime'
-                        ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
-                        : activeOrder.tierId === 'month_6'
-                        ? 'bg-blue-500/15 text-blue-300 border-blue-500/30'
-                        : activeOrder.tierId === 'month_1'
-                        ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-                        : 'bg-purple-500/15 text-purple-300 border-purple-500/30'
-                    }`}
-                  >
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/30 uppercase tracking-widest font-bold">
                     {activeOrder.tierName}
                   </span>
                 </div>
-                <div className="text-[10px] font-mono text-white/50 flex items-center gap-2">
-                  <span>{activeOrder.email}</span>
+                <div className="text-[10px] font-mono text-zinc-500 flex items-center gap-2">
+                  <span>{activeOrder.licenseKey || 'LIC-VIP-84K2-91Q7'}</span>
                   <span>·</span>
-                  <span className="text-white/40">{activeOrder.licenseKey}</span>
+                  <span className="text-emerald-400">Verified Commercial Licensee</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Quick Actions (Invoices, License, Logout) */}
+          {/* Right Action Matrix */}
           <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={() => {
                 sound.playClick();
                 setIsInvoiceOpen(true);
               }}
-              className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/80 hover:text-white text-xs font-mono flex items-center gap-1.5 border border-white/10 transition-colors"
+              className="px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white text-[11px] font-mono uppercase tracking-wider flex items-center gap-1.5 border border-white/[0.08] transition-colors"
             >
               <FileText className="w-3.5 h-3.5 text-blue-400" />
-              <span className="hidden sm:inline">Tax Invoice</span>
+              <span>Tax Invoice</span>
             </button>
 
             <button
@@ -563,52 +405,56 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                 sound.playClick();
                 setIsLicenseOpen(true);
               }}
-              className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/80 hover:text-white text-xs font-mono flex items-center gap-1.5 border border-white/10 transition-colors"
+              className="px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white text-[11px] font-mono uppercase tracking-wider flex items-center gap-1.5 border border-white/[0.08] transition-colors"
             >
               <Award className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden sm:inline">Commercial License</span>
+              <span>Commercial License</span>
             </button>
 
             <button
               onClick={handleLogout}
-              className="p-2 rounded-xl bg-white/5 hover:bg-red-500/20 text-white/50 hover:text-red-400 transition-colors"
-              title="Log Out"
+              className="p-1.5 rounded-lg bg-white/[0.04] hover:bg-red-500/20 text-zinc-500 hover:text-red-400 border border-white/[0.06] transition-colors"
+              title="Terminate Session"
             >
               <LogOut className="w-3.5 h-3.5" />
             </button>
           </div>
+
         </div>
       </header>
 
-      {/* Expiry & Quota Alert Strip */}
-      <div className="bg-[#0b0f1d] border-b border-white/5 px-4 sm:px-6 py-2.5">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono">
-          <div className="flex items-center gap-2 text-white/70">
-            <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            <span>
-              Pass Status:{' '}
-              <strong
-                className={expiry.isExpired ? 'text-red-400' : 'text-emerald-400'}
-              >
+      {/* 2. REAL-TIME HARDWARE & QUOTA TELEMETRY RIBBON */}
+      <div className="border-b border-white/[0.06] bg-[#07070a] px-4 sm:px-8 py-2">
+        <div className="max-w-[1400px] mx-auto flex flex-wrap items-center justify-between gap-3 text-[11px] font-mono">
+          
+          <div className="flex items-center gap-4 text-zinc-400">
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-zinc-500">SYSTEM:</span>
+              <span className="text-zinc-200">ONLINE // 60 FPS WEBGL</span>
+            </div>
+
+            <div className="h-3 w-[1px] bg-white/[0.08]" />
+
+            <div className="flex items-center gap-1.5">
+              <span className="text-zinc-500">VALIDITY:</span>
+              <span className={expiry.isExpired ? 'text-red-400' : 'text-amber-300'}>
                 {expiry.humanText}
-              </strong>
-            </span>
+              </span>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 text-white/70">
-              <Zap className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-              <span>
-                Today's Quota:{' '}
-                <strong className="text-white">
-                  {remainingCopies === 'Unlimited' ? 'Unlimited' : `${remainingCopies} Remaining`}
-                </strong>
-                {maxDaily !== -1 && (
-                  <span className="text-white/40 text-[10px] ml-1">
-                    ({dailyUsage}/{maxDaily} used)
-                  </span>
-                )}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 text-zinc-300">
+              <span className="text-zinc-500">SYNTAX QUOTA:</span>
+              <span className="font-bold text-white tracking-wide">
+                {remainingCopies === 'Unlimited' ? 'UNRESTRICTED' : `${remainingCopies} REMAINING`}
               </span>
+              {maxDaily !== -1 && (
+                <span className="text-zinc-500 text-[10px]">
+                  ({dailyUsage}/{maxDaily} copies used today)
+                </span>
+              )}
             </div>
 
             {activeOrder.tierId !== 'lifetime' && onUpgradeClick && (
@@ -617,212 +463,488 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                   sound.playClick();
                   onUpgradeClick();
                 }}
-                className="text-[10px] uppercase font-bold text-amber-400 hover:text-amber-300 underline"
+                className="text-[10px] uppercase font-bold text-amber-400 hover:text-amber-300 border-b border-amber-400/40"
               >
                 Upgrade to Lifetime VIP
               </button>
             )}
           </div>
+
         </div>
       </div>
 
-      {/* Main Tab Navigation */}
-      <div className="border-b border-white/10 bg-[#07070e]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center gap-2 sm:gap-6">
-          <button
-            onClick={() => {
-              sound.playClick();
-              setActiveTab('vault');
-            }}
-            className={`py-3.5 text-xs font-semibold uppercase tracking-wider border-b-2 flex items-center gap-2 transition-all ${
-              activeTab === 'vault'
-                ? 'border-blue-500 text-white'
-                : 'border-transparent text-white/50 hover:text-white'
-            }`}
-          >
-            <Film className="w-4 h-4 text-blue-400" />
-            <span>500+ Master 3D Prompts Vault</span>
-          </button>
+      {/* 3. WORKSTATION MODULE NAVIGATION */}
+      <div className="border-b border-white/[0.08] bg-[#060609]">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-8 flex items-center justify-between">
+          
+          <div className="flex items-center gap-6">
+            <button
+              onClick={() => {
+                sound.playClick();
+                setActiveTab('vault');
+              }}
+              className={`py-3 text-[11px] font-mono uppercase tracking-[0.16em] border-b-2 flex items-center gap-2 transition-all ${
+                activeTab === 'vault'
+                  ? 'border-white text-white font-bold'
+                  : 'border-transparent text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              <Film className="w-3.5 h-3.5 text-blue-400" />
+              <span>500+ Architecture Vault</span>
+            </button>
 
-          <button
-            onClick={() => {
-              sound.playClick();
-              setActiveTab('boilerplates');
-            }}
-            className={`py-3.5 text-xs font-semibold uppercase tracking-wider border-b-2 flex items-center gap-2 transition-all ${
-              activeTab === 'boilerplates'
-                ? 'border-blue-500 text-white'
-                : 'border-transparent text-white/50 hover:text-white'
-            }`}
-          >
-            <FolderGit2 className="w-4 h-4" />
-            <span>Three.js Boilerplates & Cloud Repos</span>
-          </button>
+            <button
+              onClick={() => {
+                sound.playClick();
+                setActiveTab('boilerplates');
+              }}
+              className={`py-3 text-[11px] font-mono uppercase tracking-[0.16em] border-b-2 flex items-center gap-2 transition-all ${
+                activeTab === 'boilerplates'
+                  ? 'border-white text-white font-bold'
+                  : 'border-transparent text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              <FolderGit2 className="w-3.5 h-3.5 text-purple-400" />
+              <span>Three.js Starter Racks</span>
+            </button>
 
-          <button
-            onClick={() => {
-              sound.playClick();
-              setActiveTab('license');
-            }}
-            className={`py-3.5 text-xs font-semibold uppercase tracking-wider border-b-2 flex items-center gap-2 transition-all ${
-              activeTab === 'license'
-                ? 'border-blue-500 text-white'
-                : 'border-transparent text-white/50 hover:text-white'
-            }`}
-          >
-            <Award className="w-4 h-4" />
-            <span>Invoices & Official License</span>
-          </button>
+            <button
+              onClick={() => {
+                sound.playClick();
+                setActiveTab('license');
+              }}
+              className={`py-3 text-[11px] font-mono uppercase tracking-[0.16em] border-b-2 flex items-center gap-2 transition-all ${
+                activeTab === 'license'
+                  ? 'border-white text-white font-bold'
+                  : 'border-transparent text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              <Award className="w-3.5 h-3.5 text-amber-400" />
+              <span>Legal & Credentials</span>
+            </button>
+          </div>
+
+          {activeTab === 'vault' && (
+            <div className="hidden sm:flex items-center gap-1.5 p-1 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-1.5 rounded text-xs transition-colors ${
+                  viewMode === 'grid' ? 'bg-white/[0.1] text-white' : 'text-zinc-500 hover:text-zinc-300'
+                }`}
+                title="Cinema Grid"
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => setViewMode('ledger')}
+                className={`p-1.5 rounded text-xs transition-colors ${
+                  viewMode === 'ledger' ? 'bg-white/[0.1] text-white' : 'text-zinc-500 hover:text-zinc-300'
+                }`}
+                title="Ledger Table"
+              >
+                <List className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
         </div>
       </div>
 
-      {/* Tab Contents */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8">
+      {/* 4. MAIN WORKSPACE CONTENT */}
+      <main className="flex-1 max-w-[1400px] mx-auto w-full px-4 sm:px-8 py-8">
         
-        {/* -------------------------------------------------------------
-            TAB 1: 500+ MASTER PROMPTS VAULT (VISUAL SHOWCASE WITH 3D VIDEOS)
-           ------------------------------------------------------------- */}
+        {/* =========================================================================
+            TAB 1: 500+ MASTER ARCHITECTURAL VAULT (STUDIO THEATER + LEDGER)
+           ========================================================================= */}
         {activeTab === 'vault' && (
-          <div className="space-y-6">
+          <div className="space-y-8">
             
-            {/* Filter & Search Bar */}
-            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 p-4 rounded-2xl bg-[#090914] border border-white/10">
+            {/* MASTER THEATER SPOTLIGHT (FEATURED / ACTIVE BLUEPRINT INSPECTOR) */}
+            <section className="rounded-2xl bg-[#09090e] border border-white/[0.09] shadow-[0_24px_64px_-12px_rgba(0,0,0,0.8),inset_0_1px_0_0_rgba(255,255,255,0.06)] overflow-hidden">
+              <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-white/[0.08]">
+                
+                {/* Left 7 Cols: Cinematic Video Monitor */}
+                <div className="lg:col-span-7 p-6 sm:p-8 flex flex-col justify-between bg-black/50 relative">
+                  <div>
+                    <div className="flex items-center justify-between text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-3">
+                      <span>STUDIO MONITOR // 1080P PRORES SHADER</span>
+                      <span className="text-emerald-400 font-bold">{spotlightPrompt.fpsBadge || '60 FPS WEBGL'}</span>
+                    </div>
+
+                    <div className="relative aspect-video w-full rounded-xl overflow-hidden border border-white/[0.1] shadow-2xl bg-black group">
+                      <video
+                        ref={spotlightVideoRef}
+                        src={spotlightPrompt.videoUrl}
+                        poster={spotlightPrompt.poster}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        className="w-full h-full object-cover"
+                      />
+
+                      {/* Video Player Floating Overlay */}
+                      <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between z-10">
+                        <button
+                          onClick={toggleSpotlightPlay}
+                          className="px-3 py-1.5 rounded-lg bg-black/75 hover:bg-black text-white text-[11px] font-mono border border-white/20 backdrop-blur-md transition-all flex items-center gap-1.5"
+                        >
+                          {isSpotlightPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+                          <span>{isSpotlightPlaying ? 'Pause Canvas' : 'Play Canvas'}</span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            sound.playClick();
+                            setInspectingPrompt(spotlightPrompt);
+                          }}
+                          className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-mono border border-white/20 backdrop-blur-md transition-all flex items-center gap-1.5"
+                        >
+                          <Maximize2 className="w-3 h-3" />
+                          <span>Fullscreen Inspector</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Telemetry Footer */}
+                  <div className="mt-4 pt-4 border-t border-white/[0.06] flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono text-zinc-500">
+                    <span>FRAME TIME: &lt;11.4MS</span>
+                    <span>DRAW CALLS: 14 BATCHED</span>
+                    <span>INSTANCED VERTICES: 12,000</span>
+                  </div>
+                </div>
+
+                {/* Right 5 Cols: Blueprint Telemetry & Code Action */}
+                <div className="lg:col-span-5 p-6 sm:p-8 flex flex-col justify-between bg-[#08080c]">
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-blue-400 font-bold">
+                        {spotlightPrompt.category}
+                      </span>
+                      <span className="text-xs font-mono font-bold text-amber-300">
+                        {spotlightPrompt.clientValue} SOW
+                      </span>
+                    </div>
+
+                    <h2 className="text-xl font-bold tracking-tight text-white">
+                      {spotlightPrompt.title}
+                    </h2>
+                    <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+                      {spotlightPrompt.subtitle}
+                    </p>
+
+                    {/* Capabilities */}
+                    <div className="mt-5 space-y-2">
+                      <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
+                        ARCHITECTURAL SPECIFICATIONS:
+                      </div>
+                      {spotlightPrompt.keyFeatures.slice(0, 3).map((feat, idx) => (
+                        <div key={idx} className="flex items-start gap-2 text-xs text-zinc-300">
+                          <span className="text-blue-400 font-mono">0{idx + 1}.</span>
+                          <span>{feat}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Tested Models */}
+                    <div className="mt-5 pt-4 border-t border-white/[0.06]">
+                      <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-2">
+                        CALIBRATED AI ENGINES:
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {spotlightPrompt.testedModels.map((m) => (
+                          <span
+                            key={m}
+                            className="text-[10px] font-mono px-2.5 py-1 rounded bg-white/[0.04] text-zinc-300 border border-white/[0.08]"
+                          >
+                            {m}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="mt-6 pt-4 border-t border-white/[0.08] flex items-center gap-3">
+                    <button
+                      onClick={() => handleCopyPrompt(spotlightPrompt)}
+                      className={`flex-1 py-3 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 active:scale-[0.98] ${
+                        copiedId === spotlightPrompt.id
+                          ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20'
+                          : 'bg-white hover:bg-zinc-200 text-black shadow-lg shadow-white/10'
+                      }`}
+                    >
+                      {copiedId === spotlightPrompt.id ? (
+                        <>
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Copied to Clipboard</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>Copy Master Prompt</span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        sound.playClick();
+                        setInspectingPrompt(spotlightPrompt);
+                      }}
+                      className="px-4 py-3 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] text-white text-xs font-mono transition-colors"
+                      title="Inspect Raw Architecture"
+                    >
+                      <Code2 className="w-4 h-4 text-zinc-300" />
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            </section>
+
+            {/* CATALOG WORKBENCH FILTER CONTROLS */}
+            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 p-4 rounded-xl bg-[#09090e] border border-white/[0.08]">
               
-              {/* Search Box */}
+              {/* Search */}
               <div className="relative flex-1">
-                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40" />
+                <Search className="w-3.5 h-3.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search prompts by keyword, shader, model, or tech stack..."
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-xs text-white placeholder-white/40 focus:outline-none focus:border-blue-500 transition-colors"
+                  placeholder="Filter 500+ Blueprints by shader, model, framework, or client tag..."
+                  className="w-full pl-10 pr-4 py-2 rounded-lg bg-black/40 border border-white/[0.08] text-xs font-mono text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-400 transition-colors"
                 />
               </div>
 
-              {/* Model Filter */}
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="text-[11px] font-mono text-white/40 uppercase">Tested Model:</span>
-                <select
-                  value={selectedModel}
-                  onChange={(e) => setSelectedModel(e.target.value)}
-                  className="px-3 py-2 rounded-xl bg-black/40 border border-white/10 text-xs text-white focus:outline-none focus:border-blue-500 font-mono"
-                >
-                  <option value="All">All Calibrated Models</option>
-                  <option value="Claude 3.7">Claude 3.7 Sonnet</option>
-                  <option value="Cursor">Cursor Agent</option>
-                  <option value="ChatGPT">ChatGPT o3 / GPT-4o</option>
-                </select>
+              {/* Category Pills */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                {[
+                  'All',
+                  'Spatial & WebGL',
+                  'Luxury Brands',
+                  'High-Ticket Agency',
+                  'E-Commerce 3D',
+                  'AI Agents & Systems',
+                  'Design Systems',
+                ].map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => {
+                      sound.playClick();
+                      setSelectedCategory(cat);
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-[10px] font-mono uppercase tracking-wider transition-all whitespace-nowrap ${
+                      selectedCategory === cat
+                        ? 'bg-white text-black font-bold shadow-sm'
+                        : 'bg-white/[0.03] text-zinc-400 hover:text-white hover:bg-white/[0.06] border border-white/[0.06]'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
               </div>
+
             </div>
 
-            {/* Category Filter Pills */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-              {[
-                'All',
-                'Spatial & WebGL',
-                'Luxury Brands',
-                'High-Ticket Agency',
-                'E-Commerce 3D',
-                'AI Agents & Systems',
-                'Design Systems',
-              ].map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => {
-                    sound.playClick();
-                    setSelectedCategory(cat);
-                  }}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-mono transition-all whitespace-nowrap ${
-                    selectedCategory === cat
-                      ? 'bg-blue-600 text-white font-semibold shadow-md shadow-blue-600/30'
-                      : 'bg-white/5 text-white/60 hover:text-white hover:bg-white/10 border border-white/5'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
+            {/* -------------------------------------------------------------
+                MODE A: CINEMA GRID (ASIDE FROM GENERIC CARDS - LUXURY FRAMES)
+               ------------------------------------------------------------- */}
+            {viewMode === 'grid' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredPrompts.map((item, idx) => {
+                  const isCurrentSpotlight = spotlightPrompt.id === item.id;
+                  const isCopied = copiedId === item.id;
 
-            {/* Visual Header Banner */}
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-950/30 via-[#0a0f20] to-[#090914] border border-blue-500/20 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
-                  <Film className="w-5 h-5" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-bold text-white tracking-tight">
-                    Production 3D Video & Code Vault
-                  </h2>
-                  <p className="text-xs text-white/50 mt-0.5">
-                    Click any 3D showcase video to inspect full shader architecture, camera parameters, and calibrated prompts.
-                  </p>
-                </div>
+                  return (
+                    <article
+                      key={item.id}
+                      onClick={() => {
+                        sound.playClick();
+                        setSpotlightPrompt(item);
+                      }}
+                      className={`group rounded-xl bg-[#09090e] border transition-all duration-300 flex flex-col justify-between overflow-hidden cursor-pointer ${
+                        isCurrentSpotlight
+                          ? 'border-blue-500/60 shadow-[0_12px_32px_rgba(59,130,246,0.15)] ring-1 ring-blue-500/40'
+                          : 'border-white/[0.08] hover:border-white/[0.2] hover:bg-[#0c0c13]'
+                      }`}
+                    >
+                      {/* Top Media Frame */}
+                      <div className="relative aspect-video w-full bg-black/60 overflow-hidden">
+                        <video
+                          src={item.videoUrl}
+                          poster={item.poster}
+                          autoPlay
+                          loop
+                          muted
+                          playsInline
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#09090e] via-transparent to-black/60 pointer-events-none" />
+
+                        {/* Top Badges */}
+                        <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between text-[10px] font-mono z-10">
+                          <span className="px-2 py-0.5 rounded bg-black/70 text-zinc-300 border border-white/10 backdrop-blur-md">
+                            0{idx + 1} // {item.category}
+                          </span>
+                          <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 backdrop-blur-md font-bold">
+                            {item.clientValue}
+                          </span>
+                        </div>
+
+                        {/* Bottom Tag */}
+                        <div className="absolute bottom-2.5 left-2.5 z-10">
+                          <span className="text-[10px] font-mono text-emerald-400 bg-black/70 px-2 py-0.5 rounded border border-emerald-500/30 backdrop-blur-md flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                            <span>{item.fpsBadge || '60 FPS'}</span>
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Content */}
+                      <div className="p-5 flex-1 flex flex-col justify-between">
+                        <div>
+                          <h3 className="text-sm font-bold text-white tracking-tight group-hover:text-blue-300 transition-colors line-clamp-1">
+                            {item.title}
+                          </h3>
+                          <p className="text-xs text-zinc-400 mt-1 line-clamp-2 leading-relaxed">
+                            {item.subtitle}
+                          </p>
+                        </div>
+
+                        {/* Bottom Meta & Actions */}
+                        <div className="mt-5 pt-3.5 border-t border-white/[0.06] flex items-center justify-between gap-2">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              sound.playClick();
+                              setInspectingPrompt(item);
+                            }}
+                            className="text-[11px] font-mono text-zinc-400 hover:text-white flex items-center gap-1 transition-colors"
+                          >
+                            <span>Inspect</span>
+                            <ArrowUpRight className="w-3 h-3 text-zinc-500" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCopyPrompt(item);
+                            }}
+                            className={`px-3 py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider transition-all active:scale-[0.98] ${
+                              isCopied
+                                ? 'bg-emerald-500 text-black'
+                                : 'bg-white/[0.08] hover:bg-white text-zinc-200 hover:text-black border border-white/[0.1]'
+                            }`}
+                          >
+                            {isCopied ? 'Copied' : 'Copy Syntax'}
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
-              <span className="hidden sm:inline-block text-xs font-mono text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
-                {filteredPrompts.length} Master Blueprints Active
-              </span>
-            </div>
+            )}
 
-            {/* 3D Visual Cards Grid (Video/Image First) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
-              {filteredPrompts.map((prompt) => (
-                <PromptCard
-                  key={prompt.id}
-                  prompt={prompt}
-                  isCopied={copiedId === prompt.id}
-                  onCopy={() => handleCopyPrompt(prompt)}
-                  onInspect={() => {
-                    sound.playClick();
-                    setInspectingPrompt(prompt);
-                  }}
-                />
-              ))}
-            </div>
+            {/* -------------------------------------------------------------
+                MODE B: VAULT LEDGER (STRIPE / LINEAR STYLE TABLE)
+               ------------------------------------------------------------- */}
+            {viewMode === 'ledger' && (
+              <div className="rounded-xl border border-white/[0.08] bg-[#09090e] overflow-hidden">
+                <table className="w-full text-left border-collapse font-mono text-xs">
+                  <thead>
+                    <tr className="border-b border-white/[0.08] bg-white/[0.02] text-[10px] text-zinc-500 uppercase tracking-widest">
+                      <th className="py-3 px-4">Ref</th>
+                      <th className="py-3 px-4">Blueprint Title</th>
+                      <th className="py-3 px-4">Category</th>
+                      <th className="py-3 px-4">Client SOW</th>
+                      <th className="py-3 px-4">Performance</th>
+                      <th className="py-3 px-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/[0.05] text-zinc-300">
+                    {filteredPrompts.map((item, idx) => (
+                      <tr
+                        key={item.id}
+                        onClick={() => {
+                          sound.playClick();
+                          setSpotlightPrompt(item);
+                        }}
+                        className="hover:bg-white/[0.03] transition-colors cursor-pointer group"
+                      >
+                        <td className="py-3 px-4 text-zinc-500">{String(idx + 1).padStart(2, '0')}</td>
+                        <td className="py-3 px-4 font-sans font-bold text-white group-hover:text-blue-300 transition-colors">
+                          {item.title}
+                        </td>
+                        <td className="py-3 px-4 text-[11px] text-zinc-400">{item.category}</td>
+                        <td className="py-3 px-4 text-amber-300 font-bold">{item.clientValue}</td>
+                        <td className="py-3 px-4 text-emerald-400 text-[11px]">{item.fpsBadge || '60 FPS'}</td>
+                        <td className="py-3 px-4 text-right">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCopyPrompt(item);
+                            }}
+                            className="px-2.5 py-1 rounded bg-white/[0.06] hover:bg-white text-zinc-200 hover:text-black text-[10px] uppercase font-bold transition-all"
+                          >
+                            {copiedId === item.id ? 'Copied' : 'Copy'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
           </div>
         )}
 
-        {/* -------------------------------------------------------------
-            TAB 2: THREE.JS BOILERPLATES & STARTER KITS
-           ------------------------------------------------------------- */}
+        {/* =========================================================================
+            TAB 2: PRODUCTION THREE.JS STARTER RACKS
+           ========================================================================= */}
         {activeTab === 'boilerplates' && (
           <div className="space-y-6">
-            <div className="p-6 rounded-2xl bg-[#090914] border border-white/10">
-              <h2 className="text-base font-bold text-white">Production Three.js Code Boilerplates</h2>
-              <p className="text-xs text-white/50 mt-1">
-                Drop these pre-configured starter repositories into Next.js 15, Vite, or Cursor to begin rendering 60 FPS WebGL scenes instantly.
+            <div className="p-6 rounded-2xl bg-[#09090e] border border-white/[0.08]">
+              <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-1">
+                DEVELOPER TOOLCHAIN
+              </div>
+              <h2 className="text-lg font-bold text-white">Production Three.js Hardware Racks</h2>
+              <p className="text-xs text-zinc-400 mt-1 max-w-2xl leading-relaxed">
+                Pre-configured repository modules calibrated for Next.js 15 App Router, React 19, and Claude 3.7.
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Boilerplate 1 */}
-              <div className="p-6 rounded-2xl bg-[#090914] border border-white/10 flex flex-col justify-between">
+              
+              {/* Rack 1 */}
+              <div className="p-6 rounded-xl bg-[#09090e] border border-white/[0.08] flex flex-col justify-between">
                 <div>
-                  <div className="flex items-center justify-between text-xs font-mono text-white/40 mb-2">
-                    <span className="text-emerald-400 font-semibold">NEXT.JS 15 + R3F</span>
-                    <span>v2.4.0</span>
+                  <div className="flex items-center justify-between text-[10px] font-mono text-zinc-500 mb-2">
+                    <span className="text-emerald-400 font-bold">[ R3F // NEXT.JS 15 ]</span>
+                    <span>TAG: v2.4.0</span>
                   </div>
                   <h3 className="text-base font-bold text-white">Full-Stack Three.js Canvas Engine</h3>
-                  <p className="text-xs text-white/60 mt-2 leading-relaxed">
+                  <p className="text-xs text-zinc-400 mt-2 leading-relaxed">
                     Pre-bundled with React Three Fiber, Drei helpers, selective Bloom post-processing, and smooth inertial camera dampening.
                   </p>
-                  <div className="mt-4 flex flex-wrap gap-2 text-[10px] font-mono text-white/50">
-                    <span className="px-2 py-0.5 rounded bg-white/5">TypeScript</span>
-                    <span className="px-2 py-0.5 rounded bg-white/5">React 19</span>
-                    <span className="px-2 py-0.5 rounded bg-white/5">PostProcessing</span>
-                  </div>
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between gap-3">
+                <div className="mt-6 pt-4 border-t border-white/[0.06] flex items-center justify-between gap-3">
                   <button
                     onClick={() => {
                       sound.playClick();
-                      showToast('Downloading Next.js 15 Three.js Starter (.zip)...');
+                      showToast('Dispatching Next.js 15 Starter Archive (.zip)...');
                     }}
-                    className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                    className="px-4 py-2 rounded-lg bg-white hover:bg-zinc-200 text-black text-xs font-mono font-bold uppercase transition-colors flex items-center gap-1.5"
                   >
                     <Download className="w-3.5 h-3.5" />
-                    <span>Download Starter ZIP</span>
+                    <span>Download ZIP</span>
                   </button>
 
                   <button
@@ -831,42 +953,37 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                       navigator.clipboard.writeText('npx degit vinebdigital/apex3d-starter my-spatial-app');
                       showToast('Copied npx degit command!');
                     }}
-                    className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white text-xs font-mono border border-white/10 flex items-center gap-1"
+                    className="px-3 py-2 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 text-xs font-mono border border-white/[0.08] flex items-center gap-1.5"
                   >
-                    <Terminal className="w-3 h-3 text-blue-400" />
+                    <Terminal className="w-3.5 h-3.5 text-blue-400" />
                     <span>Copy NPX Command</span>
                   </button>
                 </div>
               </div>
 
-              {/* Boilerplate 2 */}
-              <div className="p-6 rounded-2xl bg-[#090914] border border-white/10 flex flex-col justify-between">
+              {/* Rack 2 */}
+              <div className="p-6 rounded-xl bg-[#09090e] border border-white/[0.08] flex flex-col justify-between">
                 <div>
-                  <div className="flex items-center justify-between text-xs font-mono text-white/40 mb-2">
-                    <span className="text-blue-400 font-semibold">3D PRODUCT CONFIGURATOR</span>
-                    <span>v1.8.0</span>
+                  <div className="flex items-center justify-between text-[10px] font-mono text-zinc-500 mb-2">
+                    <span className="text-blue-400 font-bold">[ SPATIAL PBR ENGINE ]</span>
+                    <span>TAG: v1.8.0</span>
                   </div>
-                  <h3 className="text-base font-bold text-white">Spatial Product Showcase Engine</h3>
-                  <p className="text-xs text-white/60 mt-2 leading-relaxed">
-                    Photorealistic PBR metalness/roughness switches, multi-angle camera hot-spots, and dynamic glTF model loader with progressive DRACO compression.
+                  <h3 className="text-base font-bold text-white">Photorealistic 3D Product Configurator</h3>
+                  <p className="text-xs text-zinc-400 mt-2 leading-relaxed">
+                    PBR metalness/roughness switches, multi-angle camera hot-spots, and glTF model loader with progressive DRACO compression.
                   </p>
-                  <div className="mt-4 flex flex-wrap gap-2 text-[10px] font-mono text-white/50">
-                    <span className="px-2 py-0.5 rounded bg-white/5">GLTF / DRACO</span>
-                    <span className="px-2 py-0.5 rounded bg-white/5">OrbitControls</span>
-                    <span className="px-2 py-0.5 rounded bg-white/5">HDRI Studio Light</span>
-                  </div>
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between gap-3">
+                <div className="mt-6 pt-4 border-t border-white/[0.06] flex items-center justify-between gap-3">
                   <button
                     onClick={() => {
                       sound.playClick();
-                      showToast('Downloading Product Configurator Template (.zip)...');
+                      showToast('Dispatching Configurator Template (.zip)...');
                     }}
-                    className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                    className="px-4 py-2 rounded-lg bg-white hover:bg-zinc-200 text-black text-xs font-mono font-bold uppercase transition-colors flex items-center gap-1.5"
                   >
                     <Download className="w-3.5 h-3.5" />
-                    <span>Download Configurator ZIP</span>
+                    <span>Download ZIP</span>
                   </button>
 
                   <button
@@ -875,60 +992,55 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                       navigator.clipboard.writeText('npx degit vinebdigital/apex3d-configurator my-configurator');
                       showToast('Copied npx degit command!');
                     }}
-                    className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white text-xs font-mono border border-white/10 flex items-center gap-1"
+                    className="px-3 py-2 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 text-xs font-mono border border-white/[0.08] flex items-center gap-1.5"
                   >
-                    <Terminal className="w-3 h-3 text-blue-400" />
+                    <Terminal className="w-3.5 h-3.5 text-blue-400" />
                     <span>Copy NPX Command</span>
                   </button>
                 </div>
               </div>
 
-              {/* Boilerplate 3 */}
-              <div className="p-6 rounded-2xl bg-[#090914] border border-white/10 flex flex-col justify-between">
+              {/* Rack 3: Shaders */}
+              <div className="p-6 rounded-xl bg-[#09090e] border border-white/[0.08] flex flex-col justify-between">
                 <div>
-                  <div className="flex items-center justify-between text-xs font-mono text-white/40 mb-2">
-                    <span className="text-purple-400 font-semibold">GLSL SHADER PACK</span>
-                    <span>v3.1.0</span>
+                  <div className="flex items-center justify-between text-[10px] font-mono text-zinc-500 mb-2">
+                    <span className="text-purple-400 font-bold">[ GLSL SHADERS ]</span>
+                    <span>TAG: v3.1.0</span>
                   </div>
                   <h3 className="text-base font-bold text-white">Awwwards Liquid Shaders Collection</h3>
-                  <p className="text-xs text-white/60 mt-2 leading-relaxed">
-                    12 custom vertex and fragment shaders including Simplex Noise liquid distortion, kinetic chromatic aberration, and audio-reactive vertex pulsing.
+                  <p className="text-xs text-zinc-400 mt-2 leading-relaxed">
+                    12 custom vertex and fragment shaders including Simplex Noise liquid distortion and kinetic chromatic aberration.
                   </p>
-                  <div className="mt-4 flex flex-wrap gap-2 text-[10px] font-mono text-white/50">
-                    <span className="px-2 py-0.5 rounded bg-white/5">GLSL 3.0</span>
-                    <span className="px-2 py-0.5 rounded bg-white/5">Noise Algorithms</span>
-                    <span className="px-2 py-0.5 rounded bg-white/5">Raw ShaderMaterial</span>
-                  </div>
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between gap-3">
+                <div className="mt-6 pt-4 border-t border-white/[0.06] flex items-center justify-between gap-3">
                   <button
                     onClick={() => {
                       sound.playClick();
-                      showToast('Downloading GLSL Shaders (.zip)...');
+                      showToast('Dispatching GLSL Shader Library (.zip)...');
                     }}
-                    className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                    className="px-4 py-2 rounded-lg bg-white hover:bg-zinc-200 text-black text-xs font-mono font-bold uppercase transition-colors flex items-center gap-1.5"
                   >
                     <Download className="w-3.5 h-3.5" />
-                    <span>Download Shader Pack</span>
+                    <span>Download ZIP</span>
                   </button>
                 </div>
               </div>
 
-              {/* Boilerplate 4: Cursor Rules */}
-              <div className="p-6 rounded-2xl bg-[#090914] border border-white/10 flex flex-col justify-between">
+              {/* Rack 4: Cursor Rules */}
+              <div className="p-6 rounded-xl bg-[#09090e] border border-white/[0.08] flex flex-col justify-between">
                 <div>
-                  <div className="flex items-center justify-between text-xs font-mono text-white/40 mb-2">
-                    <span className="text-amber-400 font-semibold">AI PROMPT SYSTEM</span>
+                  <div className="flex items-center justify-between text-[10px] font-mono text-zinc-500 mb-2">
+                    <span className="text-amber-400 font-bold">[ AI SYSTEM PROMPT ]</span>
                     <span>.cursorrules</span>
                   </div>
-                  <h3 className="text-base font-bold text-white">Cursor AI & Claude 3.7 System Instructions</h3>
-                  <p className="text-xs text-white/60 mt-2 leading-relaxed">
-                    Paste this file into the root of your project as <code className="text-amber-300">.cursorrules</code> to force Cursor Agent to write ultra-clean Three.js code without typical hallucinated syntax.
+                  <h3 className="text-base font-bold text-white">Cursor AI & Claude 3.7 Custom Rules</h3>
+                  <p className="text-xs text-zinc-400 mt-2 leading-relaxed">
+                    Drop into project root to force Cursor Agent to write ultra-clean Three.js code without typical hallucinated syntax.
                   </p>
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between gap-3">
+                <div className="mt-6 pt-4 border-t border-white/[0.06] flex items-center justify-between gap-3">
                   <button
                     onClick={() => {
                       sound.playClick();
@@ -942,67 +1054,67 @@ Rules:
                       navigator.clipboard.writeText(rules);
                       showToast('Copied .cursorrules to clipboard!');
                     }}
-                    className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold flex items-center gap-1.5 transition-colors"
+                    className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-xs font-mono font-bold uppercase transition-colors flex items-center gap-1.5"
                   >
                     <Copy className="w-3.5 h-3.5" />
                     <span>Copy .cursorrules</span>
                   </button>
                 </div>
               </div>
+
             </div>
 
-            {/* Cloud Drive Repository Access */}
-            <div className="p-6 rounded-2xl bg-gradient-to-r from-blue-950/40 to-indigo-950/40 border border-blue-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            {/* Cloud Drive Repository */}
+            <div className="p-6 rounded-xl bg-gradient-to-r from-blue-950/20 via-[#0a0f1d] to-[#09090e] border border-blue-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <FolderGit2 className="w-5 h-5 text-blue-400" />
-                  <span>Master Google Drive & GitHub Cloud Vault</span>
-                </h3>
-                <p className="text-xs text-white/60 mt-1 max-w-xl">
-                  Instant cloud access to uncompressed 4K HDRIs, Blender 3D source files (.blend), and private GitHub repository with weekly prompt updates.
+                <div className="text-[10px] font-mono text-blue-400 uppercase tracking-widest mb-1">
+                  CLOUD REPOSITORY SYNC
+                </div>
+                <h3 className="text-base font-bold text-white">Master Google Drive & GitHub Cloud Vault</h3>
+                <p className="text-xs text-zinc-400 mt-1 max-w-xl leading-relaxed">
+                  Cloud access to raw 4K HDRIs, Blender 3D project files (.blend), and private GitHub code repository.
                 </p>
               </div>
 
-              <div className="flex items-center gap-3 shrink-0">
-                <a
-                  href="https://drive.google.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-blue-600/30 transition-all"
-                >
-                  <span>Open Google Drive</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-              </div>
+              <a
+                href="https://drive.google.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2.5 rounded-lg bg-white hover:bg-zinc-200 text-black text-xs font-mono font-bold uppercase transition-colors flex items-center gap-1.5 shrink-0"
+              >
+                <span>Open Google Drive</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
             </div>
           </div>
         )}
 
-        {/* -------------------------------------------------------------
-            TAB 3: INVOICES & OFFICIAL LICENSE
-           ------------------------------------------------------------- */}
+        {/* =========================================================================
+            TAB 3: LEGAL, INVOICES & COMMERCIAL CREDENTIALS
+           ========================================================================= */}
         {activeTab === 'license' && (
           <div className="space-y-6 max-w-3xl">
-            <div className="p-6 rounded-2xl bg-[#090914] border border-white/10">
-              <h2 className="text-base font-bold text-white">Commercial Documents & Invoices</h2>
-              <p className="text-xs text-white/50 mt-1">
-                Download official documentation for corporate bookkeeping, GST filing, and client pitch authorization.
+            <div className="p-6 rounded-2xl bg-[#09090e] border border-white/[0.08]">
+              <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-1">
+                CORPORATE COMPLIANCE
+              </div>
+              <h2 className="text-lg font-bold text-white">Commercial Documents & Invoices</h2>
+              <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+                Tax invoice for corporate bookkeeping and commercial certificate granting worldwide client deployment rights.
               </p>
             </div>
 
-            {/* Tax Invoice Card */}
-            <div className="p-6 rounded-2xl bg-[#090914] border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            {/* Tax Invoice */}
+            <div className="p-6 rounded-xl bg-[#09090e] border border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <div className="flex items-center gap-2 text-xs font-mono text-white/40 mb-1">
-                  <span>INVOICE REFERENCE</span>
-                  <span>·</span>
-                  <span className="text-emerald-400 font-bold">PAID</span>
+                <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-1">
+                  TAX INVOICE RECORD
                 </div>
-                <h3 className="text-base font-bold text-white">
+                <h3 className="text-base font-mono font-bold text-white">
                   {activeOrder.invoiceNumber || 'INV-2026-8941'}
                 </h3>
-                <p className="text-xs text-white/50 mt-1">
-                  Billed to {activeOrder.name} for {activeOrder.tierName} (₹{activeOrder.amountINR})
+                <p className="text-xs text-zinc-400 mt-1">
+                  Billed to {activeOrder.name} · {activeOrder.tierName} (₹{activeOrder.amountINR})
                 </p>
               </div>
 
@@ -1011,24 +1123,23 @@ Rules:
                   sound.playClick();
                   setIsInvoiceOpen(true);
                 }}
-                className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-colors"
+                className="px-4 py-2.5 rounded-lg bg-white/[0.06] hover:bg-white text-zinc-200 hover:text-black text-xs font-mono font-bold uppercase transition-colors flex items-center gap-1.5 shrink-0 border border-white/[0.08]"
               >
-                <FileText className="w-4 h-4" />
+                <FileText className="w-3.5 h-3.5" />
                 <span>View & Print Tax Invoice</span>
               </button>
             </div>
 
-            {/* Commercial License Card */}
-            <div className="p-6 rounded-2xl bg-[#090914] border border-amber-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            {/* Commercial License */}
+            <div className="p-6 rounded-xl bg-[#09090e] border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <div className="flex items-center gap-2 text-xs font-mono text-amber-400/80 mb-1">
-                  <Award className="w-3.5 h-3.5" />
-                  <span>COMMERCIAL LICENSE CERTIFICATE</span>
+                <div className="text-[10px] font-mono text-amber-400/80 uppercase tracking-widest mb-1">
+                  CERTIFICATE OF COMMERCIAL LICENSE
                 </div>
-                <h3 className="text-base font-bold text-white">
+                <h3 className="text-base font-mono font-bold text-white">
                   {activeOrder.licenseKey || 'LIC-VIP-84K2-91Q7'}
                 </h3>
-                <p className="text-xs text-white/50 mt-1">
+                <p className="text-xs text-zinc-400 mt-1">
                   Issued to {activeOrder.name} · {expiry.humanText}
                 </p>
               </div>
@@ -1038,10 +1149,10 @@ Rules:
                   sound.playClick();
                   setIsLicenseOpen(true);
                 }}
-                className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold flex items-center gap-1.5 shrink-0 transition-colors"
+                className="px-4 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-xs font-mono font-bold uppercase transition-colors flex items-center gap-1.5 shrink-0"
               >
-                <Award className="w-4 h-4" />
-                <span>View & Print License</span>
+                <Award className="w-3.5 h-3.5" />
+                <span>View Certificate</span>
               </button>
             </div>
           </div>
@@ -1049,17 +1160,15 @@ Rules:
 
       </main>
 
-      {/* -------------------------------------------------------------
-          FULLSCREEN 3D SHOWCASE LIGHTBOX MODAL (SPLIT-SCREEN VIDEO + CODE)
-         ------------------------------------------------------------- */}
+      {/* 5. LIGHTBOX / FULLSCREEN INSPECTOR (STUDIO SPLIT-SCREEN) */}
       {inspectingPrompt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/90 backdrop-blur-md animate-role-fade-in overflow-y-auto">
-          <div className="relative w-full max-w-5xl bg-[#090914] border border-white/15 rounded-2xl shadow-2xl overflow-hidden text-white my-auto flex flex-col max-h-[92vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/90 backdrop-blur-xl animate-role-fade-in overflow-y-auto">
+          <div className="relative w-full max-w-5xl bg-[#09090e] border border-white/[0.12] rounded-2xl shadow-2xl overflow-hidden text-white my-auto flex flex-col max-h-[92vh]">
             
             {/* Top Bar */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-[#0d0d18]">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.08] bg-[#0c0c12]">
               <div className="flex items-center gap-3">
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 uppercase">
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/[0.06] text-zinc-300 border border-white/[0.08] uppercase">
                   {inspectingPrompt.category}
                 </span>
                 <h2 className="text-sm sm:text-base font-bold text-white tracking-tight truncate max-w-md">
@@ -1072,69 +1181,63 @@ Rules:
                   sound.playClick();
                   setInspectingPrompt(null);
                 }}
-                className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors"
-                aria-label="Close Inspection Modal"
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.08] transition-colors"
+                aria-label="Close Inspector"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Split Screen Modal Body */}
-            <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 overflow-y-auto divide-y lg:divide-y-0 lg:divide-x divide-white/10">
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 overflow-y-auto divide-y lg:divide-y-0 lg:divide-x divide-white/[0.08]">
               
               {/* Left Column: High-Res 3D Video Player */}
-              <div className="p-6 flex flex-col justify-between bg-black/40">
+              <div className="p-6 flex flex-col justify-between bg-black/60">
                 <div>
-                  <div className="relative aspect-video w-full rounded-xl overflow-hidden border border-white/10 shadow-2xl bg-black">
-                    {inspectingPrompt.videoUrl.endsWith('.mp4') ? (
-                      <video
-                        src={inspectingPrompt.videoUrl}
-                        poster={inspectingPrompt.poster}
-                        autoPlay
-                        loop
-                        muted
-                        playsInline
-                        controls
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <img
-                        src={inspectingPrompt.videoUrl || inspectingPrompt.poster}
-                        alt={inspectingPrompt.title}
-                        className="w-full h-full object-cover"
-                      />
-                    )}
+                  <div className="relative aspect-video w-full rounded-xl overflow-hidden border border-white/[0.08] shadow-2xl bg-black">
+                    <video
+                      src={inspectingPrompt.videoUrl}
+                      poster={inspectingPrompt.poster}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      controls
+                      className="w-full h-full object-cover"
+                    />
 
-                    <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/70 text-emerald-400 font-mono text-[10px] border border-emerald-500/30 backdrop-blur-md">
+                    <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded bg-black/75 text-emerald-400 font-mono text-[10px] border border-emerald-500/30 backdrop-blur-md">
                       {inspectingPrompt.fpsBadge || '60 FPS WEBGL'}
                     </div>
                   </div>
 
                   <div className="mt-4 flex items-center justify-between text-xs font-mono">
-                    <span className="text-white/40">Client SOW Valuation:</span>
-                    <span className="text-amber-400 font-bold text-sm">{inspectingPrompt.clientValue}</span>
+                    <span className="text-zinc-500">Client SOW Valuation:</span>
+                    <span className="text-amber-300 font-bold">{inspectingPrompt.clientValue}</span>
                   </div>
 
-                  <p className="text-xs text-white/70 mt-3 leading-relaxed">
+                  <p className="text-xs text-zinc-400 mt-3 leading-relaxed">
                     {inspectingPrompt.description}
                   </p>
 
                   <div className="mt-4 space-y-1.5">
-                    <div className="text-[10px] font-mono text-white/40 uppercase">Key Architecture Highlights:</div>
+                    <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
+                      Specifications:
+                    </div>
                     {inspectingPrompt.keyFeatures.map((feat, idx) => (
-                      <div key={idx} className="flex items-start gap-2 text-xs text-white/80">
-                        <span className="text-blue-400 font-bold">✓</span>
+                      <div key={idx} className="flex items-start gap-2 text-xs text-zinc-300">
+                        <span className="text-blue-400 font-mono">0{idx + 1}.</span>
                         <span>{feat}</span>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-white/10 flex flex-wrap gap-2">
+                <div className="mt-6 pt-4 border-t border-white/[0.06] flex flex-wrap gap-1.5">
                   {inspectingPrompt.tags.map((tag) => (
                     <span
                       key={tag}
-                      className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/60 border border-white/5"
+                      className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/[0.04] text-zinc-400 border border-white/[0.06]"
                     >
                       #{tag}
                     </span>
@@ -1143,15 +1246,15 @@ Rules:
               </div>
 
               {/* Right Column: Code & Production Architecture Syntax */}
-              <div className="p-6 flex flex-col justify-between bg-[#08080f]">
+              <div className="p-6 flex flex-col justify-between bg-[#08080c]">
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-mono uppercase text-blue-400 font-semibold flex items-center gap-1.5">
-                      <Code2 className="w-4 h-4" />
+                    <span className="text-xs font-mono uppercase text-zinc-300 font-semibold flex items-center gap-1.5">
+                      <Code2 className="w-4 h-4 text-blue-400" />
                       <span>Calibrated Prompt Architecture</span>
                     </span>
 
-                    <span className="text-[10px] font-mono text-white/40">
+                    <span className="text-[10px] font-mono text-zinc-500">
                       ~{inspectingPrompt.tokens} tokens
                     </span>
                   </div>
@@ -1160,7 +1263,7 @@ Rules:
                     {inspectingPrompt.testedModels.map((m) => (
                       <span
                         key={m}
-                        className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-300 border border-blue-500/20"
+                        className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/[0.04] text-zinc-300 border border-white/[0.08]"
                       >
                         {m}
                       </span>
@@ -1168,43 +1271,33 @@ Rules:
                   </div>
 
                   {/* Preformatted Code Box */}
-                  <div className="p-4 rounded-xl bg-black/70 border border-white/10 font-mono text-xs text-blue-200/90 whitespace-pre-wrap leading-relaxed max-h-80 overflow-y-auto select-text scrollbar-thin">
+                  <div className="p-4 rounded-xl bg-black/80 border border-white/[0.08] font-mono text-xs text-blue-200/90 whitespace-pre-wrap leading-relaxed max-h-80 overflow-y-auto select-text scrollbar-thin">
                     {inspectingPrompt.promptArchitecture}
                   </div>
 
-                  <p className="text-[10px] font-mono text-white/40 mt-3">
-                    💡 <strong>Pro Tip:</strong> Copy and paste this exact prompt into Claude 3.7 Sonnet or Cursor Agent to generate the entire React + Three.js + Tailwind codebase.
+                  <p className="text-[10px] font-mono text-zinc-500 mt-3">
+                    Copy and execute in Claude 3.7 Sonnet or Cursor Agent for full production React + Three.js components.
                   </p>
                 </div>
 
                 {/* Bottom Modal Actions */}
-                <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between gap-3">
+                <div className="mt-6 pt-4 border-t border-white/[0.08] flex items-center justify-between gap-3">
                   <button
                     onClick={() => setInspectingPrompt(null)}
-                    className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 text-xs font-mono"
+                    className="px-4 py-2.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 text-xs font-mono uppercase tracking-wider"
                   >
-                    Close Preview
+                    Close
                   </button>
 
                   <button
                     onClick={() => handleCopyPrompt(inspectingPrompt)}
-                    className={`px-5 py-2.5 rounded-xl text-xs font-bold font-mono flex items-center gap-2 transition-all active:scale-95 shadow-lg ${
+                    className={`px-5 py-2.5 rounded-lg text-xs font-mono font-bold uppercase tracking-wider transition-all active:scale-[0.98] ${
                       copiedId === inspectingPrompt.id
-                        ? 'bg-emerald-600 text-white shadow-emerald-600/30'
-                        : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/30'
+                        ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20'
+                        : 'bg-white hover:bg-zinc-200 text-black shadow-lg shadow-white/10'
                     }`}
                   >
-                    {copiedId === inspectingPrompt.id ? (
-                      <>
-                        <Check className="w-4 h-4" />
-                        <span>Copied to Clipboard!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-4 h-4" />
-                        <span>Copy Full Architecture</span>
-                      </>
-                    )}
+                    {copiedId === inspectingPrompt.id ? 'Copied' : 'Copy Full Architecture'}
                   </button>
                 </div>
               </div>
@@ -1232,24 +1325,26 @@ Rules:
       {/* Daily Quota Exceeded Modal */}
       {isQuotaExceededModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-role-fade-in">
-          <div className="w-full max-w-md p-6 rounded-2xl bg-[#0e0e1a] border border-amber-500/30 text-white shadow-2xl">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-3">
-              <Zap className="w-5 h-5" />
+          <div className="w-full max-w-md p-6 rounded-2xl bg-[#09090e] border border-amber-500/30 text-white shadow-2xl font-mono">
+            <div className="text-[10px] text-amber-400 uppercase tracking-widest mb-1">
+              QUOTA LIMIT REACHED
             </div>
-            <h3 className="text-base font-bold text-white">Daily Prompt Copy Quota Reached</h3>
-            <p className="text-xs text-white/60 mt-1 leading-relaxed">
+            <h3 className="text-base font-bold text-white font-sans">
+              Daily Prompt Copy Threshold
+            </h3>
+            <p className="text-xs text-zinc-400 mt-2 leading-relaxed">
               Your <strong className="text-white">{activeOrder.tierName}</strong> includes{' '}
               <strong className="text-amber-300">{maxDaily} prompt {maxDaily === 1 ? 'copy' : 'copies'} per calendar day</strong>. Your quota resets at midnight.
             </p>
 
-            <div className="mt-4 p-3 rounded-xl bg-white/[0.02] border border-white/5 text-[11px] text-white/70">
-              💡 <strong>Want unlimited copies every single day?</strong> Upgrade to the Lifetime VIP All-Access Pass for unrestricted access to all 500+ prompts forever.
+            <div className="mt-4 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-[11px] text-zinc-300">
+              Upgrade to the Lifetime VIP All-Access Pass for unrestricted daily copies forever.
             </div>
 
             <div className="mt-5 flex items-center justify-end gap-3">
               <button
                 onClick={() => setIsQuotaExceededModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 text-xs"
+                className="px-4 py-2 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-zinc-400 text-xs"
               >
                 Dismiss
               </button>
@@ -1259,7 +1354,7 @@ Rules:
                     setIsQuotaExceededModalOpen(false);
                     onUpgradeClick();
                   }}
-                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold"
+                  className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold"
                 >
                   Upgrade to Lifetime VIP
                 </button>
@@ -1268,6 +1363,7 @@ Rules:
           </div>
         </div>
       )}
+
     </div>
   );
 };
