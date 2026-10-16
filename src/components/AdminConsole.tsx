@@ -46,6 +46,7 @@ import {
   Ban,
   ShieldAlert,
   Shield,
+  Pencil,
 } from 'lucide-react';
 import {
   SUPER_ADMIN_EMAIL,
@@ -169,6 +170,21 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
   const [newVideoUrl, setNewVideoUrl] = useState('');
   const [newSyntax, setNewSyntax] = useState('');
   const [newAllowFreeTrialCopy, setNewAllowFreeTrialCopy] = useState(false);
+
+  // Edit Existing Prompt State
+  const [editingPrompt, setEditingPrompt] = useState<VaultItem | null>(null);
+  const [isEditPromptModalOpen, setIsEditPromptModalOpen] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editSubtitle, setEditSubtitle] = useState('');
+  const [editCategory, setEditCategory] = useState<VaultItem['filterGroup']>('Spatial & WebGL');
+  const [editClientValue, setEditClientValue] = useState('');
+  const [editVideoUrl, setEditVideoUrl] = useState('');
+  const [editPosterUrl, setEditPosterUrl] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editSyntax, setEditSyntax] = useState('');
+  const [editAllowFreeTrialCopy, setEditAllowFreeTrialCopy] = useState(false);
+  const [editTestedModels, setEditTestedModels] = useState('');
+  const [editTags, setEditTags] = useState('');
 
   // Settings State (Persistent via adminSettings)
   const [settings, setSettings] = useState<AdminSettings>(() => getAdminSettings());
@@ -556,6 +572,58 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
     const defaults = resetToDefaultPrompts();
     setPromptsList(defaults);
     showToast('Vault prompts reset to pristine master catalog.');
+  };
+
+  const handleOpenEditPrompt = (item: VaultItem) => {
+    sound.playClick();
+    setEditingPrompt(item);
+    setEditTitle(item.title || '');
+    setEditSubtitle(item.subtitle || '');
+    setEditCategory(item.filterGroup || 'Spatial & WebGL');
+    setEditClientValue(item.clientValue || '');
+    setEditVideoUrl(item.videoUrl || '');
+    setEditPosterUrl(item.poster || '');
+    setEditDescription(item.description || '');
+    setEditSyntax(item.promptArchitecture || '');
+    setEditAllowFreeTrialCopy(!!item.allowFreeTrialCopy);
+    setEditTestedModels((item.testedModels || []).join(', '));
+    setEditTags((item.tags || []).join(', '));
+    setIsEditPromptModalOpen(true);
+  };
+
+  const handleSaveEditPrompt = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPrompt || !editTitle.trim() || !editSyntax.trim()) return;
+    sound.playSuccess();
+
+    const parsedTestedModels = editTestedModels
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const parsedTags = editTags
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const updated = updateVaultPrompt(editingPrompt.id, {
+      title: editTitle.trim(),
+      subtitle: editSubtitle.trim(),
+      filterGroup: editCategory,
+      clientValue: editClientValue.trim() || '$18,000 SOW',
+      videoUrl: editVideoUrl.trim(),
+      poster: editPosterUrl.trim(),
+      description: editDescription.trim() || editSubtitle.trim(),
+      promptArchitecture: editSyntax.trim(),
+      allowFreeTrialCopy: editAllowFreeTrialCopy,
+      testedModels: parsedTestedModels.length > 0 ? parsedTestedModels : editingPrompt.testedModels,
+      tags: parsedTags.length > 0 ? parsedTags : editingPrompt.tags,
+    });
+
+    setPromptsList(updated);
+    setIsEditPromptModalOpen(false);
+    setEditingPrompt(null);
+    showToast(`Blueprint "${editTitle.trim()}" successfully updated!`);
   };
 
   const handleSaveSettings = () => {
@@ -2150,6 +2218,16 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                     </button>
 
                     <span className="text-xs font-mono font-bold text-amber-400">{item.clientValue}</span>
+
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEditPrompt(item)}
+                      className="p-1.5 rounded-lg hover:bg-blue-500/20 text-white/70 hover:text-blue-400 transition-colors cursor-pointer"
+                      title="Edit this prompt"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+
                     <button
                       onClick={() => handleDeletePrompt(item.id, item.title)}
                       className="p-1.5 rounded-lg hover:bg-red-500/20 text-white/40 hover:text-red-400 transition-colors cursor-pointer"
@@ -2814,6 +2892,207 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                 Confirm Rejection
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Prompt Blueprint Modal */}
+      {isEditPromptModalOpen && editingPrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-role-fade-in">
+          <div className="w-full max-w-2xl rounded-2xl bg-[#090a14] border border-blue-500/40 text-white shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-[#06070e]">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-blue-500/20 border border-blue-400/40 flex items-center justify-center text-blue-400">
+                  <Pencil className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-mono text-blue-400 uppercase tracking-widest font-bold">
+                      PROMPT CMS ARCHITECTURE
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/10 text-zinc-300">
+                      ID: {editingPrompt.id}
+                    </span>
+                  </div>
+                  <h3 className="text-base font-bold text-white mt-0.5 truncate max-w-md">
+                    Edit: {editingPrompt.title}
+                  </h3>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsEditPromptModalOpen(false);
+                  setEditingPrompt(null);
+                }}
+                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white cursor-pointer transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Form Body */}
+            <form onSubmit={handleSaveEditPrompt} className="p-6 space-y-4 overflow-y-auto flex-1 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-white/80 mb-1">
+                    Blueprint Title *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    placeholder="e.g. Hazmat Cybersecurity Master 3D"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-black/60 border border-white/15 text-xs text-white placeholder-white/30 focus:outline-none focus:border-blue-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-white/80 mb-1">
+                    Filter Category *
+                  </label>
+                  <select
+                    value={editCategory}
+                    onChange={(e) => setEditCategory(e.target.value as VaultItem['filterGroup'])}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-black/60 border border-white/15 text-xs text-white focus:outline-none focus:border-blue-400"
+                  >
+                    <option value="Luxury Brands">Luxury Brands</option>
+                    <option value="Spatial & WebGL">Spatial & WebGL</option>
+                    <option value="High-Ticket Agency">High-Ticket Agency</option>
+                    <option value="AI Agents & Systems">AI Agents & Systems</option>
+                    <option value="E-Commerce 3D">E-Commerce 3D</option>
+                    <option value="Design Systems">Design Systems</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-white/80 mb-1">
+                    Client Valuation SOW
+                  </label>
+                  <input
+                    type="text"
+                    value={editClientValue}
+                    onChange={(e) => setEditClientValue(e.target.value)}
+                    placeholder="e.g. $18,000 SOW"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-black/60 border border-white/15 text-xs text-white placeholder-white/30 focus:outline-none focus:border-blue-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-white/80 mb-1">
+                    Video / WebP Showcase URL
+                  </label>
+                  <input
+                    type="text"
+                    value={editVideoUrl}
+                    onChange={(e) => setEditVideoUrl(e.target.value)}
+                    placeholder="https://.../video.mp4"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-black/60 border border-white/15 text-xs text-white placeholder-white/30 focus:outline-none focus:border-blue-400"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-white/80 mb-1">
+                  Subtitle / Deliverable Story
+                </label>
+                <input
+                  type="text"
+                  value={editSubtitle}
+                  onChange={(e) => setEditSubtitle(e.target.value)}
+                  placeholder="Short explanation of deliverables and Three.js tech stack..."
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/60 border border-white/15 text-xs text-white placeholder-white/30 focus:outline-none focus:border-blue-400"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-white/80 mb-1">
+                  Exact Production Prompt Syntax (Claude 3.7 / Cursor AI) *
+                </label>
+                <textarea
+                  required
+                  rows={8}
+                  value={editSyntax}
+                  onChange={(e) => setEditSyntax(e.target.value)}
+                  placeholder="// Production prompt architecture..."
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/70 border border-white/15 text-xs font-mono text-cyan-300 leading-relaxed placeholder-white/30 focus:outline-none focus:border-blue-400 scrollbar-thin"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-white/80 mb-1">
+                    Tested AI Models (comma-separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={editTestedModels}
+                    onChange={(e) => setEditTestedModels(e.target.value)}
+                    placeholder="Claude 3.7 Sonnet, Cursor Agent, ChatGPT o3"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-black/60 border border-white/15 text-xs text-white placeholder-white/30 focus:outline-none focus:border-blue-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-white/80 mb-1">
+                    Tags (comma-separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={editTags}
+                    onChange={(e) => setEditTags(e.target.value)}
+                    placeholder="WebGL 60FPS, GLSL Shaders, Three.js"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-black/60 border border-white/15 text-xs text-white placeholder-white/30 focus:outline-none focus:border-blue-400"
+                  />
+                </div>
+              </div>
+
+              {/* Free Trial Copy Permission Toggle */}
+              <div className="pt-2">
+                <label className="flex items-center gap-3 cursor-pointer p-3.5 rounded-xl bg-black/40 border border-white/15 hover:border-emerald-500/40 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={editAllowFreeTrialCopy}
+                    onChange={(e) => setEditAllowFreeTrialCopy(e.target.checked)}
+                    className="w-4 h-4 rounded border-white/20 bg-black/60 text-emerald-500 focus:ring-0 cursor-pointer"
+                  />
+                  <div>
+                    <span className="text-xs font-mono font-bold text-white flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Allow Free Users to copy this prompt as their 1 lifetime sample</span>
+                    </span>
+                    <p className="text-[10px] text-white/50 mt-0.5">
+                      Free users can only copy 1 free sample prompt total. If unchecked, this prompt remains exclusively locked behind a paid pass.
+                    </p>
+                  </div>
+                </label>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEditPromptModalOpen(false);
+                    setEditingPrompt(null);
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 text-xs font-semibold transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-blue-600/30 transition-all active:scale-95"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>Save Blueprint Updates</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
