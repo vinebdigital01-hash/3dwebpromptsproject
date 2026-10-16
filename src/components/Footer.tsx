@@ -67,12 +67,22 @@ export const Footer: React.FC<FooterProps> = ({ onAdminClick }) => {
           <button
             onClick={() => {
               sound.playClick();
+              window.location.hash = '#portal';
+            }}
+            className="hover:text-emerald-400 font-mono text-[11px] transition-colors text-white/40 flex items-center gap-1"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            <span>Member Portal</span>
+          </button>
+          <button
+            onClick={() => {
+              sound.playClick();
               if (onAdminClick) onAdminClick();
               else window.location.hash = '#admin';
             }}
             className="hover:text-blue-400 font-mono text-[11px] transition-colors text-white/35 flex items-center gap-1"
           >
-            <span>🔒 Admin Console</span>
+            <span>🔒 Admin</span>
           </button>
         </div>
       </div>

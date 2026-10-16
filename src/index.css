@@ -205,3 +205,47 @@
   height: 4px;
   opacity: 0 !important;
 }
+
+/* Print Styles for Tax Invoices and Commercial Licenses */
+@media print {
+  body {
+    background-color: #ffffff !important;
+    color: #111111 !important;
+  }
+
+  .no-print,
+  nav,
+  footer,
+  .magnetic-cursor-dot,
+  .magnetic-cursor-ring,
+  #admin-header {
+    display: none !important;
+  }
+
+  #printable-tax-invoice,
+  #printable-commercial-license {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  #printable-tax-invoice *,
+  #printable-commercial-license * {
+    color: #111111 !important;
+    border-color: #cccccc !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  #printable-tax-invoice .bg-white\/5,
+  #printable-tax-invoice .bg-white\/\[0\.02\],
+  #printable-tax-invoice .bg-white\/\[0\.03\] {
+    background-color: #f7f7f9 !important;
+  }
+
+  @page {
+    margin: 15mm;
+    size: auto;
+  }
+}

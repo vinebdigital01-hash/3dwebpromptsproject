@@ -306,3 +306,126 @@ export function rejectOrder(orderId: string, reason: string): LeadOrder | null {
   window.dispatchEvent(new CustomEvent('apex_order_updated', { detail: updated }));
   return updated;
 }
+
+/**
+ * Lookup an approved order by License Key, Order Number, Email, or Phone
+ */
+export function findApprovedOrder(identifier: string): LeadOrder | null {
+  if (!identifier) return null;
+  const clean = identifier.trim().toLowerCase();
+  const digitsOnly = identifier.replace(/\D/g, '');
+  const orders = getAllOrders();
+
+  return (
+    orders.find((o) => {
+      if (o.status !== 'approved') return false;
+      if (o.licenseKey && o.licenseKey.toLowerCase() === clean) return true;
+      if (o.orderNumber && o.orderNumber.toLowerCase() === clean) return true;
+      if (o.email && o.email.toLowerCase() === clean) return true;
+      if (digitsOnly.length >= 10 && o.phone && o.phone.replace(/\D/g, '').includes(digitsOnly)) return true;
+      return false;
+    }) || null
+  );
+}
+
+/**
+ * Determine daily quota based on tier
+ * day_pass / day_1: 1
+ * month_1: 3
+ * month_6: 15
+ * lifetime: -1 (unlimited)
+ */
+export function getMaxDailyCopies(tierId: string): number {
+  switch (tierId) {
+    case 'day_pass':
+    case 'day_1':
+      return 1;
+    case 'month_1':
+      return 3;
+    case 'month_6':
+      return 15;
+    case 'lifetime':
+    default:
+      return -1; // Unlimited
+  }
+}
+
+/**
+ * Get daily usage for a user today
+ */
+export function getDailyCopyUsage(licenseKey: string): number {
+  if (typeof window === 'undefined' || !licenseKey) return 0;
+  const today = new Date().toISOString().slice(0, 10);
+  const key = `apex3d_quota_${licenseKey}_${today}`;
+  const val = localStorage.getItem(key);
+  return val ? parseInt(val, 10) || 0 : 0;
+}
+
+/**
+ * Increment daily usage
+ */
+export function incrementDailyCopyUsage(licenseKey: string): number {
+  if (typeof window === 'undefined' || !licenseKey) return 1;
+  const today = new Date().toISOString().slice(0, 10);
+  const key = `apex3d_quota_${licenseKey}_${today}`;
+  const current = getDailyCopyUsage(licenseKey);
+  const next = current + 1;
+  localStorage.setItem(key, String(next));
+  return next;
+}
+
+/**
+ * Format expiry countdown
+ */
+export function getExpiryDetails(expiresAt: string | null | undefined): {
+  isLifetime: boolean;
+  isExpired: boolean;
+  humanText: string;
+  daysRemaining: number;
+  hoursRemaining: number;
+} {
+  if (!expiresAt) {
+    return {
+      isLifetime: true,
+      isExpired: false,
+      humanText: 'Active Forever (Lifetime VIP)',
+      daysRemaining: 9999,
+      hoursRemaining: 9999,
+    };
+  }
+
+  const expiryDate = new Date(expiresAt).getTime();
+  const now = Date.now();
+  const diffMs = expiryDate - now;
+
+  if (diffMs <= 0) {
+    return {
+      isLifetime: false,
+      isExpired: true,
+      humanText: 'Pass Expired',
+      daysRemaining: 0,
+      hoursRemaining: 0,
+    };
+  }
+
+  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+  let humanText = '';
+  if (days > 0) {
+    humanText = `${days}d ${hours}h remaining`;
+  } else if (hours > 0) {
+    humanText = `${hours}h ${mins}m remaining`;
+  } else {
+    humanText = `${mins}m remaining`;
+  }
+
+  return {
+    isLifetime: false,
+    isExpired: false,
+    humanText,
+    daysRemaining: days,
+    hoursRemaining: hours,
+  };
+}

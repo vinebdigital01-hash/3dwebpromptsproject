@@ -20,6 +20,7 @@ import { CustomMagneticCursor } from './components/CustomMagneticCursor';
 import { AgencyMarquee } from './components/AgencyMarquee';
 import { initAntiScraperShield } from './lib/security';
 import { AdminConsole } from './components/AdminConsole';
+import { ClientPortal } from './components/ClientPortal';
 
 export default function App() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -29,6 +30,9 @@ export default function App() {
   const [currentCurrency, setCurrentCurrency] = useState<Currency>('INR');
   const [isAdminMode, setIsAdminMode] = useState<boolean>(() => {
     return window.location.hash === '#admin' || window.location.pathname === '/admin';
+  });
+  const [isPortalMode, setIsPortalMode] = useState<boolean>(() => {
+    return window.location.hash === '#portal' || window.location.pathname === '/portal';
   });
 
   useEffect(() => {
@@ -42,6 +46,7 @@ export default function App() {
 
     const handleHashChange = () => {
       setIsAdminMode(window.location.hash === '#admin' || window.location.pathname === '/admin');
+      setIsPortalMode(window.location.hash === '#portal' || window.location.pathname === '/portal');
     };
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
@@ -49,21 +54,21 @@ export default function App() {
 
   // Automatic popup in 12 seconds (10-15s window) if user is just browsing and has no active intent to checkout yet
   useEffect(() => {
-    if (isCheckoutOpen || isAdminMode) return;
+    if (isCheckoutOpen || isAdminMode || isPortalMode) return;
 
     // Check if visitor has already seen or closed the automatic lead magnet in this session
     const alreadyTriggered = sessionStorage.getItem('vineb_lead_magnet_auto_shown');
     if (alreadyTriggered) return;
 
     const timer = setTimeout(() => {
-      if (!isCheckoutOpen && !isAdminMode) {
+      if (!isCheckoutOpen && !isAdminMode && !isPortalMode) {
         setIsLeadMagnetOpen(true);
         sessionStorage.setItem('vineb_lead_magnet_auto_shown', 'true');
       }
     }, 12000); // 12 seconds (within 10-15s range)
 
     return () => clearTimeout(timer);
-  }, [isCheckoutOpen, isAdminMode]);
+  }, [isCheckoutOpen, isAdminMode, isPortalMode]);
 
   const handleOpenCheckout = (tier?: PricingTier, currency?: Currency) => {
     if (tier) setSelectedTier(tier);
@@ -95,6 +100,22 @@ export default function App() {
         onBackToSite={() => {
           window.location.hash = '';
           setIsAdminMode(false);
+        }}
+      />
+    );
+  }
+
+  if (isPortalMode) {
+    return (
+      <ClientPortal
+        onBackToSite={() => {
+          window.location.hash = '';
+          setIsPortalMode(false);
+        }}
+        onUpgradeClick={() => {
+          window.location.hash = '';
+          setIsPortalMode(false);
+          handleScrollToPricing();
         }}
       />
     );

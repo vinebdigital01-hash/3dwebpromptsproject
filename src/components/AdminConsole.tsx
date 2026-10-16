@@ -23,6 +23,8 @@ import {
   Send,
   AlertTriangle,
   ChevronLeft,
+  Award,
+  MessageSquare,
 } from 'lucide-react';
 import {
   getAllOrders,
@@ -33,6 +35,8 @@ import {
 } from '../lib/leadTracker';
 import { sound } from '../lib/audioEngine';
 import { VAULT_CATALOG, VaultItem } from '../data/vaultCatalog';
+import { InvoiceModal } from './InvoiceModal';
+import { LicenseModal } from './LicenseModal';
 
 interface AdminConsoleProps {
   onBackToSite: () => void;
@@ -48,6 +52,8 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
   const [rejectionModalOrder, setRejectionModalOrder] = useState<LeadOrder | null>(null);
   const [rejectionReason, setRejectionReason] = useState('Payment not credited in bank account');
   const [statusNotification, setStatusNotification] = useState<string | null>(null);
+  const [selectedInvoiceOrder, setSelectedInvoiceOrder] = useState<LeadOrder | null>(null);
+  const [selectedLicenseOrder, setSelectedLicenseOrder] = useState<LeadOrder | null>(null);
 
   // Prompt CMS State
   const [promptsList, setPromptsList] = useState<VaultItem[]>(VAULT_CATALOG);
@@ -619,27 +625,59 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex flex-wrap items-center gap-2 shrink-0">
+                      {order.phone && (
+                        <a
+                          href={`https://wa.me/91${order.phone.replace(/\D/g, '')}?text=${encodeURIComponent(
+                            `Hello ${order.name}! 🚀 Your APEX3D Vault access (${order.tierName}) is APPROVED!\n\n` +
+                            `🔑 License Key: ${order.licenseKey || 'LIC-VIP-84K2-91Q7'}\n` +
+                            `📄 Tax Invoice: ${order.invoiceNumber || 'INV-2026-8941'}\n` +
+                            `📦 Order ID: ${order.orderNumber}\n\n` +
+                            `Access your 500+ Prompts, Three.js Starter Kits, and Invoices at:\n` +
+                            `👉 https://vinebdigital.store/#portal\n\n` +
+                            `Support: support@vinebdigital.store`
+                          )}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          <span>WhatsApp Credentials</span>
+                        </a>
+                      )}
+
                       <button
                         onClick={() => {
                           sound.playClick();
-                          showToast(`📧 Credentials email re-dispatched via Resend to ${order.email}!`);
+                          setSelectedInvoiceOrder(order);
                         }}
-                        className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white text-xs font-semibold flex items-center gap-1.5 border border-white/10"
+                        className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors"
                       >
-                        <Send className="w-3.5 h-3.5 text-blue-400" />
-                        <span>Resend Email</span>
+                        <FileText className="w-3.5 h-3.5" />
+                        <span>View Invoice</span>
                       </button>
 
                       <button
                         onClick={() => {
                           sound.playClick();
-                          showToast(`📄 Generating downloadable PDF for ${order.invoiceNumber}...`);
+                          setSelectedLicenseOrder(order);
                         }}
-                        className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center gap-1.5"
+                        className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold flex items-center gap-1.5 transition-colors"
                       >
-                        <Download className="w-3.5 h-3.5" />
-                        <span>Download Invoice</span>
+                        <Award className="w-3.5 h-3.5" />
+                        <span>Commercial License</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          sound.playClick();
+                          showToast(`📧 Credentials email re-dispatched via Resend to ${order.email}!`);
+                        }}
+                        className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-xs font-semibold flex items-center gap-1.5 border border-white/10 transition-colors"
+                        title="Resend email with access credentials"
+                      >
+                        <Send className="w-3.5 h-3.5 text-blue-400" />
+                        <span>Resend Email</span>
                       </button>
                     </div>
                   </div>
@@ -941,6 +979,20 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
           </div>
         </div>
       )}
+
+      {/* Official Tax Invoice Modal */}
+      <InvoiceModal
+        isOpen={!!selectedInvoiceOrder}
+        order={selectedInvoiceOrder}
+        onClose={() => setSelectedInvoiceOrder(null)}
+      />
+
+      {/* Commercial License Certificate Modal */}
+      <LicenseModal
+        isOpen={!!selectedLicenseOrder}
+        order={selectedLicenseOrder}
+        onClose={() => setSelectedLicenseOrder(null)}
+      />
     </div>
   );
 };

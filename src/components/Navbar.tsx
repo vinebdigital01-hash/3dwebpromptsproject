@@ -174,6 +174,20 @@ export const Navbar: React.FC<NavbarProps> = ({ onUnlockClick, onLeadMagnetClick
               Free 30+ Prompts (.PDF)
             </button>
 
+            {/* Member Portal Access Link */}
+            <a
+              href="#portal"
+              onClick={(e) => {
+                e.preventDefault();
+                sound.playClick();
+                window.location.hash = '#portal';
+              }}
+              className="hidden sm:inline-flex px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-mono text-white/70 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all items-center gap-1.5"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <span>Portal</span>
+            </a>
+
             {/* Unlock Access CTA (Bright Royal Blue & Indigo Button) */}
             <button
               onClick={() => {
@@ -240,6 +254,17 @@ export const Navbar: React.FC<NavbarProps> = ({ onUnlockClick, onLeadMagnetClick
                 className="w-full py-3.5 rounded-full text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 transition-all shadow-lg active:scale-95"
               >
                 Unlock The Vault — From ₹49
+              </button>
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  sound.playClick();
+                  window.location.hash = '#portal';
+                }}
+                className="w-full py-3 rounded-full text-xs font-mono text-emerald-300 border border-emerald-500/30 bg-emerald-500/10 flex items-center justify-center gap-2"
+              >
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                <span>Client Member Portal Access</span>
               </button>
               <button
                 onClick={() => {
