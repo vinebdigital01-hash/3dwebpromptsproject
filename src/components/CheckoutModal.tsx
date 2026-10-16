@@ -975,6 +975,74 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             </div>
           )}
 
+          {/* STEP 3: SUCCESS VIEW (Desktop) */}
+          {view === 'success' && (
+            <div className="px-8 py-6 flex-1 flex flex-col justify-center items-center text-center max-w-[460px] mx-auto w-full animate-role-fade-in">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 mb-4 shadow-sm">
+                <Check className="w-7 h-7 stroke-[2.5]" />
+              </div>
+
+              <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-emerald-600 font-bold mb-1">
+                UTR RECORDED &bull; PENDING ADMIN RECONCILIATION
+              </div>
+
+              <h4 className="text-xl font-bold text-slate-900 tracking-tight mb-2">
+                Order Confirmed!
+              </h4>
+
+              <p className="text-xs text-slate-500 mb-5 leading-relaxed">
+                Thank you, <strong className="text-slate-800">{name || 'Developer'}</strong>! Your payment of <strong className="text-slate-900">{formattedAmount}</strong> (UTR: <code className="font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-bold">{utrNumber}</code>) has been submitted for instant verification.
+              </p>
+
+              {/* Order Credential Box */}
+              <div className="w-full p-4 rounded-xl bg-slate-50 border border-slate-200 text-left mb-4 space-y-2 text-xs">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500 font-mono text-[11px]">Reference / Order #</span>
+                  <span className="font-mono font-bold text-slate-900">{currentOrder?.orderNumber || 'APX-CONFIRMED'}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500 font-mono text-[11px]">Selected Tier</span>
+                  <span className="font-semibold text-slate-900">{tier?.name}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500 font-mono text-[11px]">Registered Email</span>
+                  <span className="font-mono text-slate-800 truncate max-w-[200px]">{email}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500 font-mono text-[11px]">WhatsApp Alerts</span>
+                  <span className="font-mono text-slate-800">+91 {phone}</span>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-[11px] text-blue-900 text-left mb-5 leading-relaxed">
+                <strong>Where to log in?</strong> Once verified (usually 5-15 mins), you'll receive your <strong>Commercial License Key</strong>, <strong>Official Invoice</strong>, and <strong>1-Click Instant Login Link</strong> at <strong>{email}</strong>.
+              </div>
+
+              <div className="w-full space-y-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    sound.playSuccess();
+                    handleCloseDirect();
+                    window.location.hash = '#portal';
+                  }}
+                  className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
+                >
+                  <User className="w-4 h-4" />
+                  <span>Go to Member Login / Client Portal →</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleCloseDirect}
+                  className="w-full py-2.5 px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-xs font-semibold transition-all cursor-pointer"
+                >
+                  Dismiss & Return to Website
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Bottom Security Footer */}
           <div className="px-7 py-2.5 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400 font-sans">
             <span>Customer ID: {phone.replace(/\D/g, '') || '8860090791'}</span>
@@ -1246,6 +1314,70 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </form>
+            </div>
+          )}
+
+          {/* Mobile Success View */}
+          {view === 'success' && (
+            <div className="p-4 flex-1 flex flex-col justify-center items-center text-center animate-role-fade-in">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 mb-3 shadow-sm">
+                <Check className="w-6 h-6 stroke-[2.5]" />
+              </div>
+
+              <div className="text-[9px] font-mono uppercase tracking-[0.16em] text-emerald-600 font-bold mb-1">
+                UTR RECORDED &bull; PENDING RECONCILIATION
+              </div>
+
+              <h4 className="text-lg font-bold text-slate-900 tracking-tight mb-1.5">
+                Order Confirmed!
+              </h4>
+
+              <p className="text-xs text-slate-500 mb-4 leading-relaxed">
+                Thank you, <strong className="text-slate-800">{name || 'Developer'}</strong>! Your payment of <strong className="text-slate-900">{formattedAmount}</strong> (UTR: <code className="font-mono text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded font-bold">{utrNumber}</code>) has been submitted.
+              </p>
+
+              {/* Order Credential Box */}
+              <div className="w-full p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-left mb-3.5 space-y-1.5 text-xs">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500 font-mono text-[10px]">Reference #</span>
+                  <span className="font-mono font-bold text-slate-900 text-xs">{currentOrder?.orderNumber || 'APX-CONFIRMED'}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500 font-mono text-[10px]">Plan</span>
+                  <span className="font-semibold text-slate-900 text-xs">{tier?.name}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500 font-mono text-[10px]">Email</span>
+                  <span className="font-mono text-slate-800 text-[11px] truncate max-w-[170px]">{email}</span>
+                </div>
+              </div>
+
+              <div className="p-2.5 rounded-lg bg-blue-50 border border-blue-200 text-[11px] text-blue-900 text-left mb-4 leading-relaxed">
+                <strong>Where to log in?</strong> You will receive your <strong>Commercial License Key</strong>, <strong>Official Invoice</strong>, and a <strong>1-Click Instant Login Link</strong> via email once verified.
+              </div>
+
+              <div className="w-full space-y-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    sound.playSuccess();
+                    handleCloseDirect();
+                    window.location.hash = '#portal';
+                  }}
+                  className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
+                >
+                  <User className="w-4 h-4" />
+                  <span>Go to Member Login →</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleCloseDirect}
+                  className="w-full py-2.5 px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-xs font-semibold transition-all cursor-pointer"
+                >
+                  Return to Website
+                </button>
+              </div>
             </div>
           )}
         </div>
