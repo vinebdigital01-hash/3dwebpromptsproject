@@ -27,6 +27,7 @@ import {
   getAdAttribution,
   LeadOrder,
 } from '../lib/leadTracker';
+import { getAdminSettings, AdminSettings } from '../lib/adminSettings';
 import { sanitizeInput, validateEmail, validateIndianPhone } from '../lib/security';
 import {
   RazorpayLogo,
@@ -54,18 +55,31 @@ interface CheckoutModalProps {
 
 type CheckoutView = 'options' | 'contact_edit' | 'success';
 
-// Merchant settings matching user slice QR
-const MERCHANT_UPI_ID = 's5305704393562990@slc';
-const MERCHANT_NAME = 'Vine B Digital Marketing Agency';
-const SUPPORT_EMAIL = 'support@vinebdigital.store';
-const SLICE_TXN_NOTE = 'Payment to slice merchant QR';
-
 export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   isOpen,
   tier,
   currency,
   onClose,
 }) => {
+  const [settings, setSettings] = useState<AdminSettings>(() => getAdminSettings());
+
+  useEffect(() => {
+    const handleSettingsUpdate = (e: any) => {
+      if (e.detail) {
+        setSettings(e.detail);
+      } else {
+        setSettings(getAdminSettings());
+      }
+    };
+    window.addEventListener('apex_settings_updated', handleSettingsUpdate);
+    return () => window.removeEventListener('apex_settings_updated', handleSettingsUpdate);
+  }, []);
+
+  const merchantUpi = settings.merchantUpi;
+  const merchantName = settings.merchantName;
+  const supportEmail = settings.supportEmail;
+  const sliceTxnNote = settings.transactionNote;
+
   const [mounted, setMounted] = useState<boolean>(false);
   const [view, setView] = useState<CheckoutView>('contact_edit');
   const [showExitConfirm, setShowExitConfirm] = useState(false);
@@ -354,15 +368,16 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     sound.playClick();
     setHasLaunchedUpiApp(true);
     const amount = tier?.priceINR || 49;
-    let targetUri = `upi://pay?tn=Payment%20to%20slice%20merchant%20QR&pa=${MERCHANT_UPI_ID}&am=${amount}&cu=INR`;
+    const encodedNote = encodeURIComponent(sliceTxnNote);
+    let targetUri = `upi://pay?tn=${encodedNote}&pa=${merchantUpi}&am=${amount}&cu=INR`;
     if (appName === 'PhonePe') {
-      targetUri = `phonepe://pay?tn=Payment%20to%20slice%20merchant%20QR&pa=${MERCHANT_UPI_ID}&am=${amount}&cu=INR`;
+      targetUri = `phonepe://pay?tn=${encodedNote}&pa=${merchantUpi}&am=${amount}&cu=INR`;
     } else if (appName === 'Paytm') {
-      targetUri = `paytmmp://pay?tn=Payment%20to%20slice%20merchant%20QR&pa=${MERCHANT_UPI_ID}&am=${amount}&cu=INR`;
+      targetUri = `paytmmp://pay?tn=${encodedNote}&pa=${merchantUpi}&am=${amount}&cu=INR`;
     } else if (appName === 'Google Pay') {
-      targetUri = `tez://upi/pay?tn=Payment%20to%20slice%20merchant%20QR&pa=${MERCHANT_UPI_ID}&am=${amount}&cu=INR`;
+      targetUri = `tez://upi/pay?tn=${encodedNote}&pa=${merchantUpi}&am=${amount}&cu=INR`;
     } else if (appName === 'CRED') {
-      targetUri = `cred://upi/pay?tn=Payment%20to%20slice%20merchant%20QR&pa=${MERCHANT_UPI_ID}&am=${amount}&cu=INR`;
+      targetUri = `cred://upi/pay?tn=${encodedNote}&pa=${merchantUpi}&am=${amount}&cu=INR`;
     }
 
     const start = Date.now();
@@ -427,8 +442,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const seconds = timerSeconds % 60;
   const formattedTimer = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
-  // Slice Merchant UPI deep link with prefilled dynamic tier price
-  const upiPayload = `upi://pay?tn=Payment%20to%20slice%20merchant%20QR&pa=${MERCHANT_UPI_ID}&am=${totalAmount}&cu=INR`;
+  // Dynamic Merchant UPI deep link with prefilled tier price
+  const encodedNote = encodeURIComponent(sliceTxnNote);
+  const upiPayload = `upi://pay?tn=${encodedNote}&pa=${merchantUpi}&am=${totalAmount}&cu=INR`;
 
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=4&data=${encodeURIComponent(
     upiPayload
@@ -486,7 +502,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
               <div className="min-w-0 flex-1">
                 <h2 className="text-xs font-bold text-white tracking-tight leading-snug line-clamp-2">
-                  {MERCHANT_NAME}
+                  {merchantName}
                 </h2>
               </div>
             </div>
@@ -549,7 +565,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               <RazorpayLogo className="h-3.5 text-white inline-block" />
             </div>
             <div className="text-[10px] text-white/40 pt-1 truncate">
-              Support: <a href={`mailto:${SUPPORT_EMAIL}`} className="hover:text-white underline">{SUPPORT_EMAIL}</a>
+              Support: <a href={`mailto:${supportEmail}`} className="hover:text-white underline">{supportEmail}</a>
             </div>
           </div>
         </div>
@@ -865,7 +881,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               VB
             </div>
             <div className="min-w-0">
-              <div className="font-bold text-xs sm:text-sm text-white truncate">{MERCHANT_NAME}</div>
+              <div className="font-bold text-xs sm:text-sm text-white truncate">{merchantName}</div>
               <div className="text-[10px] text-slate-400">Verified Razorpay Merchant</div>
             </div>
           </div>
@@ -1106,8 +1122,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             <Lock className="w-3 h-3 text-slate-400" />
             <span>256-bit SSL</span>
           </span>
-          <a href={`mailto:${SUPPORT_EMAIL}`} className="text-slate-500 hover:text-slate-800 underline truncate max-w-[190px]">
-            {SUPPORT_EMAIL}
+          <a href={`mailto:${supportEmail}`} className="text-slate-500 hover:text-slate-800 underline truncate max-w-[190px]">
+            {supportEmail}
           </a>
         </div>
       </div>
@@ -1141,13 +1157,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             </h3>
 
             <p className="text-xs sm:text-sm text-slate-500 mb-2 font-sans">
-              Did you complete the payment of <strong>{formattedAmount}</strong> to {MERCHANT_NAME}? Enter your 12-digit UTR number from your UPI app receipt to confirm your order.
+              Did you complete the payment of <strong>{formattedAmount}</strong> to {merchantName}? Enter your 12-digit UTR number from your UPI app receipt to confirm your order.
             </p>
 
             <p className="text-[11px] text-slate-400 mb-4">
               Need assistance? Email{' '}
-              <a href={`mailto:${SUPPORT_EMAIL}`} className="text-blue-600 hover:underline font-medium">
-                {SUPPORT_EMAIL}
+              <a href={`mailto:${supportEmail}`} className="text-blue-600 hover:underline font-medium">
+                {supportEmail}
               </a>
             </p>
 
@@ -1254,13 +1270,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             </h3>
 
             <p className="text-xs sm:text-sm text-slate-500 mb-2 font-sans">
-              You will be taken back to {MERCHANT_NAME} website
+              You will be taken back to {merchantName} website
             </p>
 
             <p className="text-[11px] text-slate-400 mb-5 font-sans">
               Questions? Contact{' '}
-              <a href={`mailto:${SUPPORT_EMAIL}`} className="text-blue-600 hover:underline font-medium">
-                {SUPPORT_EMAIL}
+              <a href={`mailto:${supportEmail}`} className="text-blue-600 hover:underline font-medium">
+                {supportEmail}
               </a>
             </p>
 

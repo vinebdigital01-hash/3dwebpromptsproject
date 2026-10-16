@@ -44,7 +44,8 @@ import {
   incrementDailyCopyUsage,
   getExpiryDetails,
 } from '../lib/leadTracker';
-import { VAULT_CATALOG, VaultItem } from '../data/vaultCatalog';
+import { VaultItem } from '../data/vaultCatalog';
+import { getAllVaultPrompts } from '../lib/promptCatalogStore';
 import { sound } from '../lib/audioEngine';
 import { InvoiceModal } from './InvoiceModal';
 import { LicenseModal } from './LicenseModal';
@@ -83,8 +84,27 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedModel, setSelectedModel] = useState<string>('All');
 
+  // Dynamic Prompts Store from CMS
+  const [vaultPrompts, setVaultPrompts] = useState<VaultItem[]>(() => getAllVaultPrompts());
+
+  useEffect(() => {
+    const handlePromptsUpdate = () => {
+      const updated = getAllVaultPrompts();
+      setVaultPrompts(updated);
+      setSpotlightPrompt((prev) => {
+        const stillExists = updated.find((p) => p.id === prev.id);
+        return stillExists || updated[0] || prev;
+      });
+    };
+    window.addEventListener('apex_prompts_updated', handlePromptsUpdate);
+    return () => window.removeEventListener('apex_prompts_updated', handlePromptsUpdate);
+  }, []);
+
   // Active Featured / Selected Blueprint (for Master Theater Spotlight)
-  const [spotlightPrompt, setSpotlightPrompt] = useState<VaultItem>(VAULT_CATALOG[1] || VAULT_CATALOG[0]);
+  const [spotlightPrompt, setSpotlightPrompt] = useState<VaultItem>(() => {
+    const all = getAllVaultPrompts();
+    return all[1] || all[0];
+  });
   const [isSpotlightPlaying, setIsSpotlightPlaying] = useState(true);
   const spotlightVideoRef = useRef<HTMLVideoElement>(null);
 
@@ -248,7 +268,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
   const remainingCopies = maxDaily === -1 ? 'Unlimited' : Math.max(0, maxDaily - dailyUsage);
 
   // Filter Prompts
-  const filteredPrompts = VAULT_CATALOG.filter((item) => {
+  const filteredPrompts = vaultPrompts.filter((item) => {
     const matchesSearch =
       item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.subtitle.toLowerCase().includes(searchQuery.toLowerCase()) ||

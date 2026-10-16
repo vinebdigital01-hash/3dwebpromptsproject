@@ -29,6 +29,14 @@ import {
   Zap,
   Eye,
   MousePointerClick,
+  Database,
+  Cloud,
+  CloudOff,
+  Key,
+  Code,
+  Layers,
+  RotateCcw,
+  Settings2,
 } from 'lucide-react';
 import {
   getAllOrders,
@@ -44,8 +52,25 @@ import {
   getAllMarketingDispatches,
   MarketingCampaign,
 } from '../lib/marketingAutomation';
+import {
+  getAdminSettings,
+  saveAdminSettings,
+  AdminSettings,
+} from '../lib/adminSettings';
+import {
+  getAllVaultPrompts,
+  addVaultPrompt,
+  deleteVaultPrompt,
+  resetToDefaultPrompts,
+} from '../lib/promptCatalogStore';
+import {
+  testCloudConnection,
+  performFullCloudSync,
+  generateSupabaseSqlSchema,
+  CloudSyncResult,
+} from '../lib/cloudSync';
 import { sound } from '../lib/audioEngine';
-import { VAULT_CATALOG, VaultItem } from '../data/vaultCatalog';
+import { VaultItem } from '../data/vaultCatalog';
 import { InvoiceModal } from './InvoiceModal';
 import { LicenseModal } from './LicenseModal';
 
@@ -68,25 +93,41 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
   const [emailPreviewOrder, setEmailPreviewOrder] = useState<LeadOrder | null>(null);
   const [marketingHistory, setMarketingHistory] = useState<MarketingCampaign[]>([]);
 
-  // Prompt CMS State
-  const [promptsList, setPromptsList] = useState<VaultItem[]>(VAULT_CATALOG);
+  // Prompt CMS State (Persistent via promptCatalogStore)
+  const [promptsList, setPromptsList] = useState<VaultItem[]>(() => getAllVaultPrompts());
   const [isAddPromptOpen, setIsAddPromptOpen] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newSubtitle, setNewSubtitle] = useState('');
-  const [newCategory, setNewCategory] = useState('Spatial & WebGL');
+  const [newCategory, setNewCategory] = useState<VaultItem['filterGroup']>('Spatial & WebGL');
   const [newClientValue, setNewClientValue] = useState('$25,000 Client SOW');
   const [newVideoUrl, setNewVideoUrl] = useState('');
   const [newSyntax, setNewSyntax] = useState('');
 
-  // Settings State
-  const [merchantName, setMerchantName] = useState('Vine B Digital Marketing Agency');
-  const [merchantUpi, setMerchantUpi] = useState('s5305704393562990@slc');
-  const [supportEmail, setSupportEmail] = useState('support@vinebdigital.store');
-  const [whatsappNumber, setWhatsappNumber] = useState('918860090791');
+  // Settings State (Persistent via adminSettings)
+  const [settings, setSettings] = useState<AdminSettings>(() => getAdminSettings());
+  const [merchantName, setMerchantName] = useState(settings.merchantName);
+  const [merchantUpi, setMerchantUpi] = useState(settings.merchantUpi);
+  const [supportEmail, setSupportEmail] = useState(settings.supportEmail);
+  const [whatsappNumber, setWhatsappNumber] = useState(settings.whatsappNumber);
+  const [priceDay1, setPriceDay1] = useState(settings.pricing.day_1);
+  const [priceMonth1, setPriceMonth1] = useState(settings.pricing.month_1);
+  const [priceMonth6, setPriceMonth6] = useState(settings.pricing.month_6);
+  const [priceLifetime, setPriceLifetime] = useState(settings.pricing.lifetime);
+
+  // Supabase Cloud State
+  const [supabaseUrl, setSupabaseUrl] = useState(settings.supabaseUrl);
+  const [supabaseAnonKey, setSupabaseAnonKey] = useState(settings.supabaseAnonKey);
+  const [cloudSyncEnabled, setCloudSyncEnabled] = useState(settings.cloudSyncEnabled);
+  const [isTestingCloud, setIsTestingCloud] = useState(false);
+  const [cloudTestResult, setCloudTestResult] = useState<CloudSyncResult | null>(null);
+  const [isSyncingCloud, setIsSyncingCloud] = useState(false);
+  const [isSqlModalOpen, setIsSqlModalOpen] = useState(false);
+  const [copiedSql, setCopiedSql] = useState(false);
 
   const loadData = () => {
     setOrders(getAllOrders());
     setMarketingHistory(getAllMarketingDispatches());
+    setPromptsList(getAllVaultPrompts());
   };
 
   useEffect(() => {
@@ -99,11 +140,16 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
     const handleMarketingUpdate = () => {
       setMarketingHistory(getAllMarketingDispatches());
     };
+    const handlePromptsUpdate = () => {
+      setPromptsList(getAllVaultPrompts());
+    };
     window.addEventListener('apex_order_updated', handleOrderUpdate);
     window.addEventListener('apex_marketing_dispatched', handleMarketingUpdate);
+    window.addEventListener('apex_prompts_updated', handlePromptsUpdate);
     return () => {
       window.removeEventListener('apex_order_updated', handleOrderUpdate);
       window.removeEventListener('apex_marketing_dispatched', handleMarketingUpdate);
+      window.removeEventListener('apex_prompts_updated', handlePromptsUpdate);
     };
   }, []);
 
@@ -118,7 +164,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
     const approved = approveOrder(order.id);
     if (approved) {
       loadData();
-      showToast(`✅ Order ${approved.orderNumber} Approved! License ${approved.licenseKey} & Invoice generated.`);
+      showToast(`Order ${approved.orderNumber} Approved! License ${approved.licenseKey} & Invoice generated.`);
     }
   };
 
@@ -133,7 +179,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
     const rejected = rejectOrder(rejectionModalOrder.id, rejectionReason);
     if (rejected) {
       loadData();
-      showToast(`❌ Order ${rejected.orderNumber} marked as Rejected.`);
+      showToast(`Order ${rejected.orderNumber} marked as Rejected.`);
     }
     setRejectionModalOrder(null);
   };
@@ -151,16 +197,16 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
 
     sound.playSuccess();
     const newPromptItem: VaultItem = {
-      id: `prompt-${Date.now()}`,
+      id: `custom-prompt-${Date.now()}`,
       title: newTitle.trim(),
       subtitle: newSubtitle.trim() || 'Production WebGL interactive architecture prompt.',
       category: 'Spatial OS',
-      filterGroup: (newCategory as VaultItem['filterGroup']) || 'Spatial & WebGL',
+      filterGroup: newCategory || 'Spatial & WebGL',
       clientValue: newClientValue.trim() || '$18,000 SOW',
       tokens: 2600,
       highlightStat: '10x Agency ROI',
       description: newSubtitle.trim() || 'Enterprise 3D WebGL prompt blueprint with high-performance production code.',
-      tags: ['WebGL', 'Three.js', 'Production-Ready'],
+      tags: ['WebGL', 'Custom CMS', 'Production-Ready'],
       testedModels: ['Claude 3.7 Sonnet', 'Cursor Agent', 'GPT-4o'],
       keyFeatures: [
         'Dynamic GLSL Shader Topology',
@@ -173,12 +219,82 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
       promptArchitecture: newSyntax.trim(),
     };
 
-    setPromptsList([newPromptItem, ...promptsList]);
+    const updated = addVaultPrompt(newPromptItem);
+    setPromptsList(updated);
     setIsAddPromptOpen(false);
     setNewTitle('');
     setNewSubtitle('');
     setNewSyntax('');
-    showToast(`🚀 New Prompt Blueprint "${newPromptItem.title}" Added to Vault!`);
+    showToast(`New Prompt Blueprint "${newPromptItem.title}" Added to Vault & Live for Clients!`);
+  };
+
+  const handleDeletePrompt = (id: string, title: string) => {
+    sound.playClick();
+    const updated = deleteVaultPrompt(id);
+    setPromptsList(updated);
+    showToast(`Deleted "${title}" from Vault.`);
+  };
+
+  const handleResetPrompts = () => {
+    sound.playClick();
+    const defaults = resetToDefaultPrompts();
+    setPromptsList(defaults);
+    showToast('Vault prompts reset to pristine master catalog.');
+  };
+
+  const handleSaveSettings = () => {
+    sound.playSuccess();
+    const updated = saveAdminSettings({
+      merchantName: merchantName.trim(),
+      merchantUpi: merchantUpi.trim(),
+      supportEmail: supportEmail.trim(),
+      whatsappNumber: whatsappNumber.trim(),
+      pricing: {
+        day_1: Number(priceDay1) || 49,
+        month_1: Number(priceMonth1) || 299,
+        month_6: Number(priceMonth6) || 699,
+        lifetime: Number(priceLifetime) || 2999,
+      },
+      supabaseUrl: supabaseUrl.trim(),
+      supabaseAnonKey: supabaseAnonKey.trim(),
+      cloudSyncEnabled,
+    });
+    setSettings(updated);
+    showToast('Store settings & payment configuration saved live!');
+  };
+
+  const handleTestCloud = async () => {
+    sound.playClick();
+    setIsTestingCloud(true);
+    setCloudTestResult(null);
+    try {
+      const res = await testCloudConnection(supabaseUrl, supabaseAnonKey);
+      setCloudTestResult(res);
+      if (res.success) {
+        sound.playSuccess();
+      }
+    } finally {
+      setIsTestingCloud(false);
+    }
+  };
+
+  const handleSyncCloud = async () => {
+    sound.playClick();
+    setIsSyncingCloud(true);
+    try {
+      const res = await performFullCloudSync();
+      if (res.success) {
+        sound.playSuccess();
+        loadData();
+        const updated = getAdminSettings();
+        setSettings(updated);
+        showToast(`Cloud Sync Complete: ${res.message}`);
+      } else {
+        showToast(`Cloud Sync: ${res.message}`);
+      }
+    } finally {
+      setIsSyncingCloud(false);
+    }
   };
 
   // Filtered lists
@@ -1019,16 +1135,28 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                 </p>
               </div>
 
-              <button
-                onClick={() => {
-                  sound.playClick();
-                  setIsAddPromptOpen(!isAddPromptOpen);
-                }}
-                className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-2 shadow-md shadow-blue-600/30"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Add New Prompt Blueprint</span>
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleResetPrompts}
+                  className="px-3.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-xs font-mono flex items-center gap-1.5 transition-colors border border-white/10"
+                  title="Reset vault prompts back to pristine defaults"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Reset Defaults</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    sound.playClick();
+                    setIsAddPromptOpen(!isAddPromptOpen);
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-2 shadow-md shadow-blue-600/30"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add New Prompt Blueprint</span>
+                </button>
+              </div>
             </div>
 
             {/* Add New Prompt Blueprint Form */}
@@ -1059,7 +1187,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                     <label className="block text-xs font-semibold text-white/70 mb-1">Category *</label>
                     <select
                       value={newCategory}
-                      onChange={(e) => setNewCategory(e.target.value)}
+                      onChange={(e) => setNewCategory(e.target.value as VaultItem['filterGroup'])}
                       className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-xs text-white focus:outline-none focus:border-blue-500"
                     >
                       <option value="Luxury Brands">Luxury Brands</option>
@@ -1143,9 +1271,14 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
               {promptsList.map((item, idx) => (
                 <div key={item.id} className="p-4 sm:p-5 flex items-center justify-between gap-4">
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs font-mono text-white/30">{String(idx + 1).padStart(2, '0')}</span>
                       <h4 className="text-sm font-bold text-white">{item.title}</h4>
+                      {item.id.startsWith('custom-prompt') && (
+                        <span className="text-[9px] font-mono font-semibold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                          CMS CUSTOM
+                        </span>
+                      )}
                       <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/60">
                         {item.category}
                       </span>
@@ -1156,11 +1289,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                   <div className="flex items-center gap-3 shrink-0">
                     <span className="text-xs font-mono font-bold text-amber-400">{item.clientValue}</span>
                     <button
-                      onClick={() => {
-                        sound.playClick();
-                        setPromptsList(promptsList.filter((p) => p.id !== item.id));
-                        showToast(`Deleted ${item.title}`);
-                      }}
+                      onClick={() => handleDeletePrompt(item.id, item.title)}
                       className="p-1.5 rounded-lg hover:bg-red-500/20 text-white/40 hover:text-red-400 transition-colors"
                       title="Delete prompt"
                     >
@@ -1177,33 +1306,43 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
             TAB 5: SETTINGS
            ------------------------------------------ */}
         {tab === 'settings' && (
-          <div className="max-w-2xl">
-            <div className="mb-6">
-              <h2 className="text-base font-bold text-white">Payment & Store Configuration</h2>
+          <div className="max-w-3xl space-y-6">
+            <div>
+              <h2 className="text-base font-bold text-white flex items-center gap-2">
+                <Settings2 className="w-5 h-5 text-blue-400" />
+                <span>Store, Pricing & Cloud Sync Configuration</span>
+              </h2>
               <p className="text-xs text-white/50">
-                Update your receiving UPI ID and WhatsApp support number without touching code.
+                Manage receiving UPI, plan prices, and connect Supabase for cross-device cloud persistence.
               </p>
             </div>
 
+            {/* Section 1: Merchant & Payment Identity */}
             <div className="p-6 rounded-2xl bg-[#090914] border border-white/10 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-white/70 mb-1">Merchant Business Name</label>
-                <input
-                  type="text"
-                  value={merchantName}
-                  onChange={(e) => setMerchantName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-xs font-sans text-white focus:outline-none focus:border-blue-500"
-                />
-              </div>
+              <h3 className="text-xs font-mono uppercase tracking-wider text-blue-400 font-bold flex items-center gap-2">
+                <span>01. Merchant Identity & Payment Details</span>
+              </h3>
 
-              <div>
-                <label className="block text-xs font-semibold text-white/70 mb-1">Support Email Address</label>
-                <input
-                  type="email"
-                  value={supportEmail}
-                  onChange={(e) => setSupportEmail(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-xs font-mono text-white focus:outline-none focus:border-blue-500"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-white/70 mb-1">Merchant Business Name</label>
+                  <input
+                    type="text"
+                    value={merchantName}
+                    onChange={(e) => setMerchantName(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-xs font-sans text-white focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-white/70 mb-1">Support Email Address</label>
+                  <input
+                    type="email"
+                    value={supportEmail}
+                    onChange={(e) => setSupportEmail(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-xs font-mono text-white focus:outline-none focus:border-blue-500"
+                  />
+                </div>
               </div>
 
               <div>
@@ -1212,10 +1351,10 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                   type="text"
                   value={merchantUpi}
                   onChange={(e) => setMerchantUpi(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-xs font-mono text-white focus:outline-none focus:border-blue-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-xs font-mono text-emerald-400 focus:outline-none focus:border-emerald-500"
                 />
                 <span className="text-[10px] text-white/40 mt-1 block">
-                  This UPI ID generates the QR code and deep links in the Razorpay checkout modal.
+                  Generating dynamic Slice QR and mobile UPI intent links for {merchantUpi}.
                 </span>
               </div>
 
@@ -1227,19 +1366,190 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                   onChange={(e) => setWhatsappNumber(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-xs font-mono text-white focus:outline-none focus:border-blue-500"
                 />
+                <span className="text-[10px] text-white/40 mt-1 block">
+                  Format: 91XXXXXXXXXX (e.g. 918860090791) for direct recovery chat links.
+                </span>
+              </div>
+            </div>
+
+            {/* Section 2: Vault Plan Pricing Matrix */}
+            <div className="p-6 rounded-2xl bg-[#090914] border border-white/10 space-y-4">
+              <h3 className="text-xs font-mono uppercase tracking-wider text-amber-400 font-bold flex items-center gap-2">
+                <span>02. Vault Plan Pricing Matrix (INR)</span>
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-white/70 mb-1">1-Day Sprint Pass Price (₹)</label>
+                  <input
+                    type="number"
+                    value={priceDay1}
+                    onChange={(e) => setPriceDay1(Number(e.target.value))}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-xs font-mono text-white focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-white/70 mb-1">1-Month Pro Access Price (₹)</label>
+                  <input
+                    type="number"
+                    value={priceMonth1}
+                    onChange={(e) => setPriceMonth1(Number(e.target.value))}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-xs font-mono text-white focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-white/70 mb-1">6-Month Studio Growth Price (₹)</label>
+                  <input
+                    type="number"
+                    value={priceMonth6}
+                    onChange={(e) => setPriceMonth6(Number(e.target.value))}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-xs font-mono text-white focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-white/70 mb-1">Lifetime VIP Pass Price (₹)</label>
+                  <input
+                    type="number"
+                    value={priceLifetime}
+                    onChange={(e) => setPriceLifetime(Number(e.target.value))}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-xs font-mono text-white focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Section 3: Supabase Cloud Database & Multi-Device Live Sync */}
+            <div className="p-6 rounded-2xl bg-[#090914] border border-white/10 space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <h3 className="text-xs font-mono uppercase tracking-wider text-purple-400 font-bold flex items-center gap-2">
+                  <Database className="w-4 h-4" />
+                  <span>03. Supabase Cloud Database (Phase 6 Live Sync)</span>
+                </h3>
+
+                {settings.supabaseUrl && settings.cloudSyncEnabled ? (
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                    <Cloud className="w-3 h-3" />
+                    <span>Cloud Active</span>
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                    <CloudOff className="w-3 h-3" />
+                    <span>Local Storage Only</span>
+                  </span>
+                )}
               </div>
 
-              <div className="pt-2">
+              <p className="text-xs text-white/60">
+                Connect your free Supabase Postgres project to approve orders, view ghost leads, and access telemetry from your mobile phone or any other device in real-time.
+              </p>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-semibold text-white/70 mb-1">Supabase Project URL</label>
+                  <input
+                    type="url"
+                    value={supabaseUrl}
+                    onChange={(e) => setSupabaseUrl(e.target.value)}
+                    placeholder="https://xyzabcdefg.supabase.co"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-xs font-mono text-purple-300 placeholder-white/20 focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-white/70 mb-1">Supabase Anon Public API Key</label>
+                  <input
+                    type="password"
+                    value={supabaseAnonKey}
+                    onChange={(e) => setSupabaseAnonKey(e.target.value)}
+                    placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-xs font-mono text-purple-300 placeholder-white/20 focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <input
+                    type="checkbox"
+                    id="enableCloudSync"
+                    checked={cloudSyncEnabled}
+                    onChange={(e) => setCloudSyncEnabled(e.target.checked)}
+                    className="rounded bg-black/40 border-white/20 text-purple-600 focus:ring-purple-500"
+                  />
+                  <label htmlFor="enableCloudSync" className="text-xs text-white/80 cursor-pointer select-none">
+                    Enable automatic background cloud sync for orders and UTR submissions
+                  </label>
+                </div>
+              </div>
+
+              {/* Cloud Test & Action Buttons */}
+              <div className="pt-2 flex items-center gap-3 flex-wrap">
                 <button
-                  onClick={() => {
-                    sound.playSuccess();
-                    showToast('Settings saved successfully!');
-                  }}
-                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold"
+                  type="button"
+                  disabled={isTestingCloud}
+                  onClick={handleTestCloud}
+                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white text-xs font-mono flex items-center gap-1.5 transition-all border border-white/10 disabled:opacity-50"
                 >
-                  Save Settings
+                  <RefreshCw className={`w-3.5 h-3.5 ${isTestingCloud ? 'animate-spin' : ''}`} />
+                  <span>{isTestingCloud ? 'Testing...' : 'Test Connection'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={isSyncingCloud}
+                  onClick={handleSyncCloud}
+                  className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-md shadow-purple-600/30 disabled:opacity-50"
+                >
+                  <Cloud className={`w-3.5 h-3.5 ${isSyncingCloud ? 'animate-spin' : ''}`} />
+                  <span>{isSyncingCloud ? 'Syncing...' : 'Sync Cloud Now'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    sound.playClick();
+                    setIsSqlModalOpen(true);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-purple-300 text-xs font-mono flex items-center gap-1.5 transition-all border border-purple-500/20"
+                >
+                  <Code className="w-3.5 h-3.5" />
+                  <span>1-Click SQL Schema</span>
                 </button>
               </div>
+
+              {cloudTestResult && (
+                <div
+                  className={`p-3 rounded-xl text-xs font-mono flex items-center gap-2 ${
+                    cloudTestResult.success
+                      ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300'
+                      : 'bg-red-500/10 border border-red-500/30 text-red-300'
+                  }`}
+                >
+                  <Sparkles className="w-4 h-4 shrink-0" />
+                  <span>{cloudTestResult.message}</span>
+                </div>
+              )}
+
+              {settings.lastCloudSyncAt && (
+                <div className="text-[10px] text-white/40 font-mono pt-1">
+                  Last Cloud Reconcile: {new Date(settings.lastCloudSyncAt).toLocaleString()}
+                </div>
+              )}
+            </div>
+
+            {/* Master Save Button */}
+            <div className="pt-2 flex items-center justify-between">
+              <span className="text-xs text-white/40 font-mono">
+                Changes apply instantly across landing page, checkout, and client vault.
+              </span>
+              <button
+                onClick={handleSaveSettings}
+                className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-blue-600/30 transition-all active:scale-95"
+              >
+                <Check className="w-4 h-4" />
+                <span>Save All Store & Cloud Settings</span>
+              </button>
             </div>
           </div>
         )}
@@ -1404,6 +1714,86 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
           </div>
         );
       })()}
+
+      {/* Supabase 1-Click SQL Schema Modal */}
+      {isSqlModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-role-fade-in">
+          <div className="relative w-full max-w-2xl rounded-2xl bg-[#090914] border border-purple-500/30 text-white shadow-2xl p-6 sm:p-7 flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between pb-4 border-b border-white/10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-400">
+                  <Database className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white tracking-wide">
+                    Supabase Cloud Database Setup (1-Click SQL)
+                  </h3>
+                  <p className="text-[11px] text-white/50 font-mono">
+                    Creates "apex_orders" table with RLS and public anon read/write permissions
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setIsSqlModalOpen(false)}
+                className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="py-4 space-y-3 overflow-y-auto flex-1 no-scrollbar">
+              <div className="p-3 rounded-xl bg-purple-950/30 border border-purple-500/20 text-xs text-purple-200 space-y-1">
+                <div className="font-bold flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                  <span>30-Second Setup Instructions:</span>
+                </div>
+                <ol className="list-decimal list-inside space-y-1 text-white/70 text-[11px] pl-1 font-mono">
+                  <li>Log in to your free account on <strong className="text-white">supabase.com</strong> and create a project.</li>
+                  <li>Click <strong className="text-white">SQL Editor</strong> on the left navigation bar.</li>
+                  <li>Click <strong className="text-white">New Query</strong>, paste the script below, and click <strong className="text-emerald-400">Run</strong>.</li>
+                  <li>Copy your Project URL & Anon Key from Settings &rarr; API and paste them into the Admin Settings tab!</li>
+                </ol>
+              </div>
+
+              <div className="relative">
+                <pre className="p-4 rounded-xl bg-black/60 border border-white/10 text-[11px] font-mono text-purple-200 overflow-x-auto max-h-64 leading-relaxed select-text">
+                  {generateSupabaseSqlSchema()}
+                </pre>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-white/10 flex items-center justify-between">
+              <span className="text-[11px] text-white/40 font-mono">
+                PostgreSQL · Row Level Security (RLS) · Instant Cloud Sync
+              </span>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsSqlModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 text-xs font-mono"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    sound.playSuccess();
+                    navigator.clipboard.writeText(generateSupabaseSqlSchema());
+                    setCopiedSql(true);
+                    setTimeout(() => setCopiedSql(false), 2000);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-mono font-bold flex items-center gap-1.5 shadow-lg shadow-purple-600/30"
+                >
+                  {copiedSql ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedSql ? 'Copied to Clipboard!' : 'Copy SQL Script'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
