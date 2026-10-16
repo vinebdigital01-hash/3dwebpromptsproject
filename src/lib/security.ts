@@ -14,27 +14,160 @@ export function sanitizeInput(input: string): string {
     .trim();
 }
 
+// Comprehensive set of known disposable and temporary email domains
+const DISPOSABLE_EMAIL_DOMAINS = new Set([
+  '10minutemail.com',
+  '10minutemail.net',
+  '10minutemail.org',
+  '10minutemail.co.uk',
+  '20minutemail.it',
+  'tempmail.com',
+  'tempmail.net',
+  'temp-mail.org',
+  'temp-mail.io',
+  'temp-mail.ru',
+  'tempail.com',
+  'tempail.org',
+  'guerrillamail.com',
+  'guerrillamail.net',
+  'guerrillamail.biz',
+  'guerrillamail.org',
+  'guerrillamailblock.com',
+  'sharklasers.com',
+  'grr.la',
+  'trashmail.com',
+  'trashmail.net',
+  'trashmail.me',
+  'trashmail.org',
+  'yopmail.com',
+  'yopmail.net',
+  'yopmail.fr',
+  'mailinator.com',
+  'mailinator2.com',
+  'mailin8r.com',
+  'dispostable.com',
+  'throwawaymail.com',
+  'getairmail.com',
+  'burnermail.io',
+  'burnermail.com',
+  'mohmal.com',
+  'mohmal.im',
+  'crazymailing.com',
+  'fakemailgenerator.com',
+  'fakemail.net',
+  'generator.email',
+  'inboxkitten.com',
+  'emailondeck.com',
+  'mytemp.email',
+  'minutemail.com',
+  'pokemail.net',
+  'spam4.me',
+  'armyspy.com',
+  'cuvox.de',
+  'dayrep.com',
+  'fleckens.hu',
+  'gustr.com',
+  'jourrapide.com',
+  'rhyta.com',
+  'superrito.com',
+  'teleworm.us',
+  'einrot.com',
+  'nada.ltd',
+  'nada.email',
+  'dropmail.me',
+  'maildrop.cc',
+  'getnada.com',
+  'fakeinbox.com',
+  'tempinbox.com',
+  'throwawayemailaddress.com',
+  'safetymail.info',
+  'deadaddress.com',
+  'emailfake.com',
+  'crazymail.com',
+  'tempr.email',
+  'discard.email',
+  'spambog.com',
+  'spambog.de',
+  'mytempemail.com',
+  'incognitotool.com',
+  'tempmailaddress.com',
+  'nowmymail.com',
+  'zoemail.org',
+  'tmail.ws',
+  'bupmail.com',
+  'crazyinbox.com',
+  'spamevader.com',
+  'tempemail.co',
+  'tempmailo.com',
+  'moakt.com',
+  'moakt.ws',
+  'tmail.link',
+  'clipmail.eu',
+  'quickinbox.com',
+  'zillamail.com',
+  'mailpoof.com',
+  'mailpoof.org',
+  'tmpmail.net',
+  'tmpmail.org',
+  'internxt.com',
+  'inboxbear.com',
+  'disposablemail.com',
+  'guerrillamail.de',
+  'harakirimail.com',
+  'wegwerfmail.de',
+  'wegwerfmail.net',
+  'trashymail.com',
+  'emailtemporal.org',
+  'correo-temporal.com',
+  'jetable.org',
+  'kasmail.com',
+  'spambox.us',
+  'anonaddy.me',
+  'mailcatch.com',
+  'mytrashmail.com',
+  'no-spam.ws',
+  'mailnull.com',
+  'mintemail.com',
+  'meltmail.com',
+  'guerrillamail.info',
+  'shortmail.com',
+]);
+
+const DISPOSABLE_REGEX = /(temp|trash|fake|burner|disposable|throwaway|10minute|minutemail|guerrilla|mohmal|yopmail|mailinator|sharklaser|maildrop|dispostable|fakeinbox)/i;
+
+/**
+ * Detects whether an email domain belongs to a disposable/temporary burner provider
+ */
+export function isDisposableEmail(email: string): boolean {
+  if (!email || !email.includes('@')) return false;
+  const parts = email.trim().toLowerCase().split('@');
+  if (parts.length < 2) return false;
+  const domain = parts[1];
+  if (DISPOSABLE_EMAIL_DOMAINS.has(domain)) return true;
+  return DISPOSABLE_REGEX.test(domain);
+}
+
+/**
+ * Returns human-readable validation error, specifically calling out blocked temp mails
+ */
+export function getEmailValidationError(email: string): string | null {
+  const sanitized = email.trim().toLowerCase();
+  if (!sanitized) return 'Please enter an email address.';
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  if (!emailRegex.test(sanitized)) {
+    return 'Please enter a valid email address (e.g. rahul@example.com).';
+  }
+  if (isDisposableEmail(sanitized)) {
+    return '⛔ Temporary / disposable email addresses (e.g. temp-mail, 10minutemail, mailinator) are strictly blocked. Please provide your permanent Google, Microsoft, Yahoo, Apple, or company email to secure your commercial license and invoice.';
+  }
+  return null;
+}
+
 /**
  * Validates strict RFC standard email format & blocks disposable/temporary email domains
  */
 export function validateEmail(email: string): boolean {
-  const sanitized = email.trim().toLowerCase();
-  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-  if (!emailRegex.test(sanitized)) return false;
-
-  // Block common disposable / trash email services often used by spammers
-  const disposableDomains = [
-    'mailinator.com',
-    'tempmail.com',
-    '10minutemail.com',
-    'guerrillamail.com',
-    'sharklasers.com',
-    'trashmail.com',
-    'yopmail.com',
-  ];
-
-  const domain = sanitized.split('@')[1];
-  return !disposableDomains.includes(domain);
+  return getEmailValidationError(email) === null;
 }
 
 /**

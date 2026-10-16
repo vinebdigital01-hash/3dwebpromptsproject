@@ -29,7 +29,7 @@ import {
 } from '../lib/leadTracker';
 import { sendInstantLeadMagnetOrAbandonedEmail } from '../lib/resendEmail';
 import { getAdminSettings, AdminSettings } from '../lib/adminSettings';
-import { sanitizeInput, validateEmail, validateIndianPhone } from '../lib/security';
+import { sanitizeInput, validateEmail, validateIndianPhone, getEmailValidationError, isDisposableEmail } from '../lib/security';
 import {
   RazorpayLogo,
   RazorpayBagsIllustration,
@@ -299,7 +299,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     if (!tier) return;
     const rawEmail = (emailOverride !== undefined ? emailOverride : email).trim();
     if (!rawEmail || !rawEmail.includes('@') || !rawEmail.includes('.')) return;
-    if (rawEmail.includes('pending@') || rawEmail.includes('example.com')) return;
+    if (rawEmail.includes('pending@') || rawEmail.includes('example.com') || isDisposableEmail(rawEmail)) return;
     const rawPhone = phoneOverride !== undefined ? phoneOverride : phone;
     const rawName = nameOverride !== undefined ? nameOverride : name;
 
@@ -360,8 +360,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       sound.playClick();
       return;
     }
-    if (!email.trim() || !validateEmail(email)) {
-      setContactError('Please enter a valid email address.');
+    const emailErr = getEmailValidationError(email);
+    if (emailErr) {
+      setContactError(emailErr);
       sound.playClick();
       return;
     }

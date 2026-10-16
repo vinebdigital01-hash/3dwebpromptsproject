@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, Copy, User, Mail, Phone, Briefcase, GraduationCap, Building2, Check, ArrowRight, AlertCircle, Sparkles } from 'lucide-react';
 import { sound } from '../lib/audioEngine';
 import { saveGhostKeystrokeLead } from '../lib/leadTracker';
+import { getEmailValidationError, isDisposableEmail } from '../lib/security';
 
 export type UserRole = 'Student' | 'Freelancer' | 'Agency Owner';
 
@@ -44,7 +45,7 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
     const rawPhone = (overrides?.phone ?? phoneInputRef.current?.value ?? phone ?? '').trim();
 
     if (!rawEmail || !rawEmail.includes('@') || !rawEmail.includes('.')) return;
-    if (rawEmail.includes('pending@') || rawEmail.includes('example.com')) return;
+    if (rawEmail.includes('pending@') || rawEmail.includes('example.com') || isDisposableEmail(rawEmail)) return;
 
     if (rawEmail !== email) setEmail(rawEmail);
     if (rawName && rawName !== name) setName(rawName);
@@ -110,10 +111,6 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
     return digitsOnly.length >= 7;
   };
 
-  const validateEmail = (e: string) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -125,8 +122,9 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
       return;
     }
 
-    if (!email.trim() || !validateEmail(email)) {
-      setError('Please enter a valid email address.');
+    const emailErr = getEmailValidationError(email);
+    if (emailErr) {
+      setError(emailErr);
       sound.playClick();
       return;
     }

@@ -20,6 +20,7 @@ import {
 import { sound } from '../lib/audioEngine';
 import { saveGhostKeystrokeLead, LeadOrder } from '../lib/leadTracker';
 import { sendInstantLeadMagnetOrAbandonedEmail } from '../lib/resendEmail';
+import { getEmailValidationError, isDisposableEmail } from '../lib/security';
 
 export type UserRole = 'Student' | 'Freelancer' | 'Agency Owner';
 
@@ -271,6 +272,9 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
     const leadName = rawName.trim() || 'Visitor (Lead Magnet)';
     const cleanEmail = rawEmail.toLowerCase();
 
+    // Block saving or sending emails to temporary burner inboxes
+    if (isDisposableEmail(cleanEmail)) return;
+
     const leadData = {
       name: leadName,
       phone: cleanPhone,
@@ -340,8 +344,9 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
       return;
     }
 
-    if (!email.trim() || !validateEmail(email)) {
-      setError('Please provide a valid email address.');
+    const emailErr = getEmailValidationError(email);
+    if (emailErr) {
+      setError(emailErr);
       sound.playClick();
       return;
     }

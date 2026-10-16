@@ -60,6 +60,8 @@ import {
 import { VaultItem } from '../data/vaultCatalog';
 import { getAllVaultPrompts } from '../lib/promptCatalogStore';
 import { sound } from '../lib/audioEngine';
+import { verifyAndBindLicenseAccess } from '../lib/deviceSecurity';
+import { getEmailValidationError, isDisposableEmail } from '../lib/security';
 import { InvoiceModal } from './InvoiceModal';
 import { LicenseModal } from './LicenseModal';
 import { UpgradeShowcaseModal } from './UpgradeShowcaseModal';
@@ -244,9 +246,17 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
           saveOrder(order);
         }
         if (order) {
-          setActiveOrder(order);
-          sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(order));
-          setDailyUsage(getDailyCopyUsage(order.licenseKey || ''));
+          verifyAndBindLicenseAccess(order).then((check) => {
+            if (check.allowed) {
+              const finalOrder = check.order || order;
+              setActiveOrder(finalOrder);
+              sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(finalOrder));
+              setDailyUsage(getDailyCopyUsage(finalOrder.licenseKey || ''));
+            } else {
+              setLoginError(check.message || 'License is locked to a different IP or location.');
+              setAuthError(check.message || 'License is locked to a different IP or location.');
+            }
+          });
         }
       }
 
@@ -397,9 +407,17 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
       setAuthError('Please fill in both email and password.');
       return;
     }
-    if (authMode === 'signup' && authPassword.length < 6) {
-      setAuthError('Password must be at least 6 characters.');
-      return;
+    if (authMode === 'signup') {
+      const emailErr = getEmailValidationError(authEmail);
+      if (emailErr) {
+        sound.playError();
+        setAuthError(emailErr);
+        return;
+      }
+      if (authPassword.length < 6) {
+        setAuthError('Password must be at least 6 characters.');
+        return;
+      }
     }
     setIsAuthLoading(true);
     setAuthError(null);
@@ -463,7 +481,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
     }
   };
 
-  const handleLinkLicenseSubmit = (e: React.FormEvent) => {
+  const handleLinkLicenseSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLinkLicenseError(null);
     const order = findApprovedOrder(linkLicenseInput);
@@ -472,20 +490,30 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
       setLinkLicenseError('License Key or Order Reference could not be verified.');
       return;
     }
-    sound.playSuccess();
-    if (firebaseUser?.email && order.email !== firebaseUser.email) {
-      order.email = firebaseUser.email;
-      saveOrder(order);
+
+    // 🔒 Enforce Single-IP & Single-Location Binding Security
+    const bindCheck = await verifyAndBindLicenseAccess(order);
+    if (!bindCheck.allowed) {
+      sound.playError();
+      setLinkLicenseError(bindCheck.message || 'License is locked to a different IP address or location.');
+      return;
     }
-    setActiveOrder(order);
-    sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(order));
-    setDailyUsage(getDailyCopyUsage(order.licenseKey || ''));
+
+    sound.playSuccess();
+    const finalOrder = bindCheck.order || order;
+    if (firebaseUser?.email && finalOrder.email !== firebaseUser.email) {
+      finalOrder.email = firebaseUser.email;
+      saveOrder(finalOrder);
+    }
+    setActiveOrder(finalOrder);
+    sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(finalOrder));
+    setDailyUsage(getDailyCopyUsage(finalOrder.licenseKey || ''));
     setIsLinkLicenseModalOpen(false);
     setLinkLicenseInput('');
-    showToast(`Commercial License Linked // ${order.tierName}`);
+    showToast(`Commercial License Linked // ${finalOrder.tierName}`);
   };
 
-  const handleLogin = (e?: React.FormEvent) => {
+  const handleLogin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setLoginError(null);
 
@@ -498,10 +526,22 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
       return;
     }
 
+    // 🔒 Enforce Single-IP & Single-Location Binding Security
+    const bindCheck = await verifyAndBindLicenseAccess(order);
+    if (!bindCheck.allowed) {
+      sound.playError();
+      setLoginError(bindCheck.message || 'License is locked to a different IP address or location.');
+      return;
+    }
+
     sound.playSuccess();
-    setActiveOrder(order);
-    sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(order));
-    setDailyUsage(getDailyCopyUsage(order.licenseKey || ''));
+    const finalOrder = bindCheck.order || order;
+    setActiveOrder(finalOrder);
+    sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(finalOrder));
+    setDailyUsage(getDailyCopyUsage(finalOrder.licenseKey || ''));
+    if (bindCheck.boundIp) {
+      showToast(`Device Bound // IP: ${bindCheck.boundIp} (${bindCheck.boundLocation || 'Studio'})`);
+    }
   };
 
 
@@ -813,8 +853,8 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                 </button>
               </div>
               {loginError && (
-                <div className="text-[10px] text-red-400 font-mono flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3 shrink-0" />
+                <div className="p-3 rounded-xl bg-red-950/50 border border-red-500/40 text-red-200 text-xs font-mono flex items-start gap-2.5 animate-role-fade-in text-left leading-relaxed whitespace-pre-line shadow-lg">
+                  <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
                   <span>{loginError}</span>
                 </div>
               )}

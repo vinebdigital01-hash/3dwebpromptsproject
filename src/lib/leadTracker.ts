@@ -58,6 +58,15 @@ export interface LeadOrder {
   followupStage?: number; // 0 = none sent, 1 = Day 1 (24h) sent, 2 = Day 2 (48h) sent
   lastFollowupAt?: string;
   source?: 'browser_autofill' | 'keystroke' | 'checkout_submit' | 'lead_magnet' | 'prompt_copy' | string;
+  boundIp?: string;
+  boundLocation?: string;
+  boundCity?: string;
+  boundCountry?: string;
+  boundDeviceFingerprint?: string;
+  boundAt?: string;
+  lastAccessIp?: string;
+  lastAccessLocation?: string;
+  lastAccessAt?: string;
   utm?: {
     source?: string;
     campaign?: string;

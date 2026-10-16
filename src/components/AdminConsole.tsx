@@ -76,6 +76,7 @@ import {
   purgeAllDummyData,
   clearAllOrders,
 } from '../lib/leadTracker';
+import { resetOrderIpLock } from '../lib/deviceSecurity';
 import {
   generateRetargetingEmail,
   generateRetargetingWhatsAppUrl,
@@ -1798,12 +1799,40 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                         </span>
                       </div>
 
-                      <div className="mt-2 text-[11px] font-mono text-white/40 flex items-center gap-2">
+                      <div className="mt-2 text-[11px] font-mono text-white/40 flex flex-wrap items-center gap-3">
                         <span>License Hash: <strong className="text-slate-300">{order.licenseKey || 'N/A'}</strong></span>
+                        {order.boundIp ? (
+                          <span className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-semibold text-[10px]">
+                            <Lock className="w-3 h-3 text-emerald-400" />
+                            <span>1-IP Locked: {order.boundIp} ({order.boundLocation || 'Location Bound'})</span>
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-zinc-800/80 border border-zinc-700 text-zinc-400 text-[10px]">
+                            <span>🔓 IP Lock: Unbound (Awaiting 1st Login)</span>
+                          </span>
+                        )}
                       </div>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 shrink-0">
+                      {order.boundIp && (
+                        <button
+                          onClick={() => {
+                            sound.playClick();
+                            const res = resetOrderIpLock(order.id);
+                            if (res.success) {
+                              showToast(res.message);
+                              loadData();
+                            }
+                          }}
+                          className="px-3 py-2 rounded-xl bg-red-950/40 hover:bg-red-900/60 text-red-300 hover:text-white border border-red-500/30 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                          title="Reset IP lock if customer changed Wi-Fi or device"
+                        >
+                          <Lock className="w-3.5 h-3.5" />
+                          <span>Reset IP Lock</span>
+                        </button>
+                      )}
+
                       {order.phone && (
                         <a
                           href={`https://wa.me/91${order.phone.replace(/\D/g, '')}?text=${encodeURIComponent(
