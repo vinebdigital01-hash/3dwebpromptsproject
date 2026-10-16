@@ -1340,15 +1340,25 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                       </button>
 
                       <button
-                        onClick={() => {
+                        onClick={async () => {
                           sound.playClick();
-                          showToast(`📧 Credentials email re-dispatched via Resend to ${order.email}!`);
+                          showToast(`⏳ Dispatching credentials & Tax Invoice email to ${order.email}...`);
+                          try {
+                            const res = await sendOrderApprovalEmail(order);
+                            if (res.success) {
+                              showToast(`📧 Credentials & Tax Invoice dispatched to ${order.email}!`);
+                            } else {
+                              showToast(`Email error: ${res.message}`);
+                            }
+                          } catch (err: any) {
+                            showToast(`Failed: ${err.message || 'Error sending email'}`);
+                          }
                         }}
                         className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-xs font-semibold flex items-center gap-1.5 border border-white/10 transition-colors"
-                        title="Resend email with access credentials"
+                        title="Resend email with access credentials and tax invoice"
                       >
                         <Send className="w-3.5 h-3.5 text-blue-400" />
-                        <span>Resend Email</span>
+                        <span>Resend Invoice &amp; Pass</span>
                       </button>
                     </div>
                   </div>

@@ -119,12 +119,36 @@ export async function sendEmailViaResend(options: {
 }
 
 /**
- * Generate Branded Approval HTML Email (Paid & Verified)
+ * Generate Branded Approval HTML Email (Paid & Verified + Full Luxury B&W Tax Invoice)
  */
 export function buildApprovalEmailHtml(order: LeadOrder, videoShowcaseMode: ShowcaseMode = 'most_copies'): string {
   const portalUrl = typeof window !== 'undefined'
     ? `${window.location.origin}/#portal?orderId=${encodeURIComponent(order.id)}`
     : `${BASE_PORTAL_URL}/#portal?orderId=${encodeURIComponent(order.id)}`;
+
+  const invoiceNo = order.invoiceNumber || `INV-2026-${order.orderNumber.replace(/\D/g, '').slice(-4) || '8941'}`;
+  const licenseKey = order.licenseKey || 'LIC-VIP-ACCESS-ACTIVE';
+
+  const d = order.approvedAt ? new Date(order.approvedAt) : new Date(order.createdAt || Date.now());
+  const issueDate = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  const issueTime = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }) + ' IST';
+  const issueFull = `${issueDate}, ${issueTime}`;
+
+  const baseAmount = Math.round((order.amountINR / 1.18) * 100) / 100;
+  const gstAmount = Math.round((order.amountINR - baseAmount) * 100) / 100;
+
+  const numberToWords = (amt: number): string => {
+    const map: Record<number, string> = {
+      49: 'Forty-Nine Indian Rupees Only',
+      250: 'Two Hundred Fifty Indian Rupees Only',
+      299: 'Two Hundred Ninety-Nine Indian Rupees Only',
+      650: 'Six Hundred Fifty Indian Rupees Only',
+      699: 'Six Hundred Ninety-Nine Indian Rupees Only',
+      2950: 'Two Thousand Nine Hundred Fifty Indian Rupees Only',
+      2999: 'Two Thousand Nine Hundred Ninety-Nine Indian Rupees Only',
+    };
+    return map[amt] || `${amt.toFixed(2)} Indian Rupees Only`;
+  };
 
   const accentBar = generateEmailAccentBarHtml();
   const videoBlockHtml = generateEmailVideoBlockHtml(videoShowcaseMode, order.orderNumber);
@@ -137,13 +161,18 @@ export function buildApprovalEmailHtml(order: LeadOrder, videoShowcaseMode: Show
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Your 3D Vault Pass is Active</title>
+  <title>Your 3D Vault Pass &amp; Tax Invoice [${order.orderNumber}]</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #06060c; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #ffffff; -webkit-font-smoothing: antialiased;">
+  <!-- Preheader text -->
+  <div style="display: none; font-size: 1px; color: #06060c; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden;">
+    Your payment of ₹${order.amountINR} is verified. Official Tax Invoice ${invoiceNo} and License Key inside.
+  </div>
+
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #06060c; padding: 36px 12px;">
     <tr>
       <td align="center">
-        <table role="presentation" width="100%" style="max-width: 600px; background-color: #0c0c16; border: 1px solid #242436; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 50px rgba(0,0,0,0.75);">
+        <table role="presentation" width="100%" style="max-width: 620px; background-color: #0c0c16; border: 1px solid #242436; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 50px rgba(0,0,0,0.75);">
           <!-- Top Accent Line -->
           <tr>
             <td>${accentBar}</td>
@@ -167,7 +196,7 @@ export function buildApprovalEmailHtml(order: LeadOrder, videoShowcaseMode: Show
                 </tr>
               </table>
               <h1 style="margin: 14px 0 0 0; font-size: 24px; font-weight: 800; letter-spacing: -0.02em; color: #ffffff; line-height: 1.25;">
-                Access Granted. Your Pass is Active.
+                Access Granted. Your Pass &amp; Tax Invoice are Active.
               </h1>
             </td>
           </tr>
@@ -176,24 +205,24 @@ export function buildApprovalEmailHtml(order: LeadOrder, videoShowcaseMode: Show
           <tr>
             <td style="padding: 24px 32px 16px 32px; font-size: 14px; line-height: 1.65; color: #9ca3af;">
               Hey <strong style="color: #ffffff;">${order.name}</strong>,<br><br>
-              Your payment of <strong style="color: #ffffff;">₹${order.amountINR}</strong> via UPI (UTR: <span style="font-family: 'SF Mono', monospace; color: #93c5fd;">${order.utrNumber || 'VERIFIED'}</span>) has been reconciled. Your developer pass to the <strong>500+ Calibrated WebGL &amp; Three.js 3D Prompts Vault</strong> has been unlocked.
+              Your payment of <strong style="color: #ffffff;">₹${order.amountINR}</strong> via Slice Merchant UPI (Bank UTR: <span style="font-family: 'SF Mono', monospace; color: #34d399; font-weight: bold;">${order.utrNumber || 'VERIFIED'}</span>) has been reconciled. Your developer pass and official Tax Invoice have been generated below.
             </td>
           </tr>
 
-          <!-- License Key Box -->
+          <!-- License Key & Access Box -->
           <tr>
             <td style="padding: 0 32px 24px 32px;">
               <table role="presentation" width="100%" style="background-color: #080812; border: 1px solid rgba(59, 130, 246, 0.35); border-left: 3px solid #10b981; border-radius: 12px; padding: 18px;">
                 <tr>
                   <td>
                     <div style="font-size: 10px; font-family: 'SF Mono', monospace; color: #60a5fa; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 6px;">
-                      OFFICIAL LICENSE CERTIFICATE
+                      OFFICIAL COMMERCIAL LICENSE CERTIFICATE
                     </div>
                     <div style="font-size: 20px; font-family: 'SF Mono', Consolas, monospace; font-weight: 800; color: #ffffff; letter-spacing: 0.08em; -webkit-user-select: all; user-select: all;">
-                      ${order.licenseKey || 'LIC-PRO-ACCESS-ACTIVE'}
+                      ${licenseKey}
                     </div>
                     <div style="font-size: 11px; color: #64748b; margin-top: 8px;">
-                      Plan: <strong style="color: #e2e8f0;">${order.tierName}</strong> &bull; Valid Until: <strong style="color: #e2e8f0;">${order.expiresAt ? new Date(order.expiresAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Lifetime VIP (No Expiry)'}</strong>
+                      Plan: <strong style="color: #e2e8f0;">${order.tierName}</strong> &bull; Valid Until: <strong style="color: #e2e8f0;">${order.expiresAt ? new Date(order.expiresAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Lifetime VIP (Perpetual / No Expiry)'}</strong>
                     </div>
                   </td>
                 </tr>
@@ -201,13 +230,223 @@ export function buildApprovalEmailHtml(order: LeadOrder, videoShowcaseMode: Show
             </td>
           </tr>
 
-          <!-- Primary CTA Button -->
+          <!-- Primary CTA Button (One-Click Login Pass) -->
           <tr>
             <td style="padding: 0 32px 28px 32px;" align="center">
               ${buttonHtml}
               <div style="font-size: 11px; color: #6b7280; margin-top: 10px; font-family: 'SF Mono', monospace;">
-                One-click instant login &bull; No password required
+                One-click instant login &bull; Session auto-authenticated &bull; No password required
               </div>
+            </td>
+          </tr>
+
+          <!-- FULL LUXURY BLACK & WHITE TAX INVOICE SHEET (EMBEDDED) -->
+          <tr>
+            <td style="padding: 0 32px 28px 32px;">
+              <div style="font-family: 'SF Mono', Consolas, monospace; font-size: 10px; font-weight: 700; color: #34d399; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 8px;">
+                &#9889; OFFICIAL TAX INVOICE RECORD:
+              </div>
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" bgcolor="#ffffff" style="background-color: #ffffff; color: #18181b; border: 1px solid #d4d4d8; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+                <!-- Invoice Header Bar -->
+                <tr>
+                  <td style="padding: 20px 20px 16px 20px; border-bottom: 2px solid #000000;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <!-- Logo & Brand Details -->
+                        <td align="left" valign="top">
+                          <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                            <tr>
+                              <td valign="top" style="padding-right: 12px;">
+                                <img src="https://3dwebprompts-vineb.vercel.app/vineb-logo.png" width="48" height="48" alt="Vine B Digital" style="display: block; border: 1px solid #e4e4e7; border-radius: 6px; padding: 2px;" />
+                              </td>
+                              <td valign="top">
+                                <div style="font-family: 'SF Mono', Consolas, monospace; font-size: 14px; font-weight: 900; color: #000000; letter-spacing: -0.01em; text-transform: uppercase;">
+                                  VINE B DIGITAL
+                                </div>
+                                <div style="font-family: 'SF Mono', Consolas, monospace; font-size: 9px; color: #52525b; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 2px;">
+                                  MARKETING AGENCY &bull; 3D SYSTEMS
+                                </div>
+                                <div style="font-family: 'SF Mono', Consolas, monospace; font-size: 9px; color: #71717a; margin-top: 4px; line-height: 1.4;">
+                                  UPI VPA: <strong style="color: #000000;">s5305704393562990@slc</strong><br>
+                                  Support: support@vinebdigital.store
+                                </div>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+
+                        <!-- Invoice Badge, No, Date & Exact Time -->
+                        <td align="right" valign="top">
+                          <span style="display: inline-block; padding: 3px 8px; background-color: #000000; color: #ffffff; font-family: 'SF Mono', monospace; font-size: 9px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 4px;">
+                            TAX INVOICE
+                          </span>
+                          <div style="font-family: 'SF Mono', monospace; font-size: 12px; font-weight: bold; color: #000000;">
+                            ${invoiceNo}
+                          </div>
+                          <div style="font-family: 'SF Mono', monospace; font-size: 10px; color: #52525b; margin-top: 2px;">
+                            Ref: <strong>${order.orderNumber}</strong>
+                          </div>
+                          <div style="font-family: 'SF Mono', monospace; font-size: 10px; color: #52525b; margin-top: 2px;">
+                            Date: <strong style="color: #000000;">${issueDate}</strong>
+                          </div>
+                          <div style="font-family: 'SF Mono', monospace; font-size: 10px; color: #000000; font-weight: bold; margin-top: 2px; background: #f4f4f5; display: inline-block; padding: 1px 4px; border-radius: 3px;">
+                            Time: ${issueTime}
+                          </div>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- 3-Box Meta Details (Billed To, Payment Mode & References, Audit) -->
+                <tr>
+                  <td style="padding: 14px 20px; background-color: #fafafa; border-bottom: 1px solid #e4e4e7;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <!-- Box 1: Billed To -->
+                        <td width="33%" valign="top" style="padding-right: 10px;">
+                          <div style="font-family: 'SF Mono', monospace; font-size: 9px; font-weight: bold; color: #71717a; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px;">
+                            BILLED TO
+                          </div>
+                          <div style="font-size: 12px; font-weight: bold; color: #000000;">
+                            ${order.name}
+                          </div>
+                          <div style="font-family: 'SF Mono', monospace; font-size: 10px; color: #52525b; word-break: break-all; margin-top: 2px;">
+                            ${order.email}
+                          </div>
+                          <div style="font-family: 'SF Mono', monospace; font-size: 10px; color: #71717a; margin-top: 2px;">
+                            ${order.phone || 'Phone: N/A'}
+                          </div>
+                        </td>
+
+                        <!-- Box 2: Payment Mode & Bank Ref UTR -->
+                        <td width="34%" valign="top" style="padding: 0 10px; border-left: 1px solid #e4e4e7; border-right: 1px solid #e4e4e7;">
+                          <div style="font-family: 'SF Mono', monospace; font-size: 9px; font-weight: bold; color: #71717a; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px;">
+                            PAYMENT MODE &amp; REF
+                          </div>
+                          <div style="font-family: 'SF Mono', monospace; font-size: 10px; color: #52525b; line-height: 1.5;">
+                            Mode: <strong style="color: #000000;">Slice Merchant UPI</strong><br>
+                            Channel: Direct App / QR<br>
+                            Bank UTR: <span style="background: #000000; color: #ffffff; padding: 1px 4px; border-radius: 2px; font-weight: bold;">${order.utrNumber || 'VERIFIED'}</span><br>
+                            Txn ID: TXN-${(order.id || 'ORDER').slice(-8).toUpperCase()}
+                          </div>
+                        </td>
+
+                        <!-- Box 3: Audit & Status -->
+                        <td width="33%" valign="top" style="padding-left: 10px;">
+                          <div style="font-family: 'SF Mono', monospace; font-size: 9px; font-weight: bold; color: #71717a; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px;">
+                            AUDIT &amp; STATUS
+                          </div>
+                          <div style="font-family: 'SF Mono', monospace; font-size: 10px; color: #52525b; line-height: 1.5;">
+                            Reconciled: <strong style="color: #000000;">${issueTime}</strong><br>
+                            Terms: Immediate Settled<br>
+                            <span style="display: inline-block; margin-top: 4px; padding: 2px 6px; background-color: #18181b; color: #34d399; font-weight: bold; font-size: 9px; border-radius: 3px;">
+                              &#10003; PAID &amp; RECONCILED
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Line Items Table -->
+                <tr>
+                  <td style="padding: 16px 20px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border: 1px solid #e4e4e7; border-collapse: collapse;">
+                      <thead>
+                        <tr bgcolor="#f4f4f5" style="border-bottom: 1px solid #d4d4d8;">
+                          <th align="left" style="padding: 8px 10px; font-family: 'SF Mono', monospace; font-size: 9px; color: #3f3f46; text-transform: uppercase;">Item Description</th>
+                          <th align="center" style="padding: 8px 6px; font-family: 'SF Mono', monospace; font-size: 9px; color: #3f3f46; text-transform: uppercase;">SAC</th>
+                          <th align="center" style="padding: 8px 6px; font-family: 'SF Mono', monospace; font-size: 9px; color: #3f3f46; text-transform: uppercase;">Qty</th>
+                          <th align="right" style="padding: 8px 10px; font-family: 'SF Mono', monospace; font-size: 9px; color: #3f3f46; text-transform: uppercase;">Unit Price</th>
+                          <th align="right" style="padding: 8px 10px; font-family: 'SF Mono', monospace; font-size: 9px; color: #3f3f46; text-transform: uppercase;">Amount (INR)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr style="border-bottom: 1px solid #e4e4e7;">
+                          <td style="padding: 10px; font-size: 11px;">
+                            <strong style="color: #000000; font-size: 12px;">${order.tierName}</strong><br>
+                            <span style="color: #52525b; font-size: 10px;">500+ Calibrated WebGL Architecture Prompts, Three.js Kits, Claude 3.7 &amp; Cursor AI Blueprints</span><br>
+                            <span style="font-family: 'SF Mono', monospace; font-size: 9px; color: #71717a;">License Key: ${licenseKey}</span>
+                          </td>
+                          <td align="center" style="padding: 10px 6px; font-family: 'SF Mono', monospace; font-size: 10px; color: #52525b;">998313</td>
+                          <td align="center" style="padding: 10px 6px; font-family: 'SF Mono', monospace; font-size: 10px; color: #52525b;">1</td>
+                          <td align="right" style="padding: 10px; font-family: 'SF Mono', monospace; font-size: 10px; color: #52525b;">₹${baseAmount.toFixed(2)}</td>
+                          <td align="right" style="padding: 10px; font-family: 'SF Mono', monospace; font-size: 11px; font-weight: bold; color: #000000;">₹${baseAmount.toFixed(2)}</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #e4e4e7; background-color: #fafafa;">
+                          <td colspan="4" align="right" style="padding: 6px 10px; font-family: 'SF Mono', monospace; font-size: 10px; color: #71717a;">
+                            Taxable Subtotal Value:
+                          </td>
+                          <td align="right" style="padding: 6px 10px; font-family: 'SF Mono', monospace; font-size: 10px; color: #000000;">
+                            ₹${baseAmount.toFixed(2)}
+                          </td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #e4e4e7; background-color: #fafafa;">
+                          <td colspan="4" align="right" style="padding: 6px 10px; font-family: 'SF Mono', monospace; font-size: 10px; color: #71717a;">
+                            Integrated GST (18.00% IGST &bull; SAC 998313):
+                          </td>
+                          <td align="right" style="padding: 6px 10px; font-family: 'SF Mono', monospace; font-size: 10px; color: #000000;">
+                            ₹${gstAmount.toFixed(2)}
+                          </td>
+                        </tr>
+                        <tr bgcolor="#f4f4f5" style="border-top: 2px solid #000000;">
+                          <td colspan="4" align="right" style="padding: 8px 10px; font-family: 'SF Mono', monospace; font-size: 11px; font-weight: bold; color: #000000; text-transform: uppercase;">
+                            Total Amount Paid:
+                          </td>
+                          <td align="right" style="padding: 8px 10px; font-family: 'SF Mono', monospace; font-size: 13px; font-weight: 900; color: #000000;">
+                            ₹${order.amountINR.toFixed(2)}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Amount in Words & Portal Print Link -->
+                <tr>
+                  <td style="padding: 0 20px 14px 20px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #fafafa; border: 1px solid #e4e4e7; border-radius: 6px; padding: 8px 12px;">
+                      <tr>
+                        <td align="left">
+                          <span style="font-family: 'SF Mono', monospace; font-size: 9px; color: #71717a; text-transform: uppercase;">Total in Words:</span>
+                          <strong style="font-size: 11px; color: #000000; font-family: sans-serif;">${numberToWords(order.amountINR)}</strong>
+                        </td>
+                        <td align="right">
+                          <a href="${portalUrl}" target="_blank" style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 10px; font-weight: bold; color: #2563eb; text-decoration: underline;">
+                            &#128424; View &amp; Print High-Res PDF on Portal &rarr;
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Verification Stamp & Legal Declaration -->
+                <tr>
+                  <td style="padding: 12px 20px; border-top: 1px solid #e4e4e7; background-color: #fafafa;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td align="left" style="font-family: 'SF Mono', monospace; font-size: 9px; color: #71717a; line-height: 1.4;">
+                          <strong>DECLARATION:</strong> Computer-generated electronic tax invoice issued under Section 31 of CGST Act 2017 &amp; IT Act 2000.<br>
+                          No physical signature required. Reconciled with Slice Merchant UPI Banking.
+                        </td>
+                        <td align="right" style="padding-left: 12px;">
+                          <div style="border: 1px solid #000000; padding: 4px 8px; border-radius: 4px; text-align: center; display: inline-block;">
+                            <div style="font-family: 'SF Mono', monospace; font-size: 8px; font-weight: bold; color: #000000; letter-spacing: 0.1em; text-transform: uppercase;">
+                              &#10003; VINE B DIGITAL
+                            </div>
+                            <div style="font-family: 'SF Mono', monospace; font-size: 7px; color: #52525b; text-transform: uppercase;">
+                              VERIFIED TAX RECEIPT
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
 
@@ -225,38 +464,6 @@ export function buildApprovalEmailHtml(order: LeadOrder, videoShowcaseMode: Show
           <tr>
             <td style="padding: 0 32px;">
               ${videoBlockHtml}
-            </td>
-          </tr>
-
-          <!-- Order Summary Details -->
-          <tr>
-            <td style="padding: 20px 32px; background-color: rgba(255, 255, 255, 0.02); border-top: 1px solid rgba(255, 255, 255, 0.06); font-size: 12px; color: #9ca3af;">
-              <table role="presentation" width="100%">
-                <tr>
-                  <td style="padding-bottom: 6px;">Order Number:</td>
-                  <td align="right" style="color: #ffffff; font-family: 'SF Mono', monospace;">${order.orderNumber}</td>
-                </tr>
-                <tr>
-                  <td style="padding-bottom: 6px;">Tax Invoice:</td>
-                  <td align="right" style="color: #ffffff; font-family: 'SF Mono', monospace;">${order.invoiceNumber || 'INV-2026-TAX'}</td>
-                </tr>
-                <tr>
-                  <td style="padding-bottom: 6px;">Payment Mode:</td>
-                  <td align="right" style="color: #ffffff;">Slice Merchant UPI (Direct App Transfer / QR)</td>
-                </tr>
-                <tr>
-                  <td style="padding-bottom: 6px;">Bank Ref (UTR):</td>
-                  <td align="right" style="color: #34d399; font-family: 'SF Mono', monospace; font-weight: bold;">${order.utrNumber || 'VERIFIED-UPI-UTR'}</td>
-                </tr>
-                <tr>
-                  <td style="padding-bottom: 6px;">Transaction Time:</td>
-                  <td align="right" style="color: #ffffff; font-family: 'SF Mono', monospace;">${order.approvedAt ? new Date(order.approvedAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }) + ' IST' : new Date().toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }) + ' IST'}</td>
-                </tr>
-                <tr>
-                  <td>Issuing Entity:</td>
-                  <td align="right" style="color: #ffffff;">Vine B Digital Marketing Agency</td>
-                </tr>
-              </table>
             </td>
           </tr>
 
