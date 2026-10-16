@@ -152,6 +152,26 @@ const SEED_ORDERS: LeadOrder[] = [
     utm: { source: 'meta_retargeting', campaign: 'cart_abandoners_v1' },
   },
   {
+    id: 'ORD-1DAY-4901',
+    orderNumber: 'APX-104921',
+    name: 'Kabir Verma (Sprint Pass)',
+    email: 'kabir.sprint@gmail.com',
+    phone: '9876500049',
+    tierId: 'day_pass',
+    tierName: '1-Day Sprint Pass',
+    amountINR: 49,
+    status: 'approved',
+    utrNumber: '429108471920',
+    upiId: 'kabir@oksbi',
+    invoiceNumber: 'INV-2026-4901',
+    licenseKey: 'LIC-PRO-1DAY-99X2',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+    approvedAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+    expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 22).toISOString(), // 22 Hours Remaining
+    utm: { source: 'instagram_reels', campaign: 'shader_vault_49' },
+  },
+  {
     id: 'ORD-310492',
     orderNumber: 'APX-310492',
     name: 'Priya Nambiar',
@@ -185,7 +205,27 @@ export function getAllOrders(): LeadOrder[] {
       return SEED_ORDERS;
     }
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : SEED_ORDERS;
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      const sprintOrderIndex = parsed.findIndex((o) => o.id === 'ORD-1DAY-4901' || (o.tierId === 'day_pass' && o.status === 'approved'));
+      const sprintSeed = SEED_ORDERS.find((o) => o.id === 'ORD-1DAY-4901');
+
+      if (sprintOrderIndex === -1 && sprintSeed) {
+        parsed.unshift({
+          ...sprintSeed,
+          expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 22).toISOString(),
+        });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+      } else if (sprintOrderIndex >= 0 && parsed[sprintOrderIndex].expiresAt) {
+        // If expired or close to expiring, give fresh 22h session for simulation
+        const expTime = new Date(parsed[sprintOrderIndex].expiresAt!).getTime();
+        if (expTime < Date.now()) {
+          parsed[sprintOrderIndex].expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 22).toISOString();
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+        }
+      }
+      return parsed;
+    }
+    return SEED_ORDERS;
   } catch (err) {
     console.error('Failed to read orders database:', err);
     return SEED_ORDERS;

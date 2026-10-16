@@ -38,6 +38,7 @@ import {
   LeadOrder,
   getAllOrders,
   findApprovedOrder,
+  saveOrder,
   getMaxDailyCopies,
   getDailyCopyUsage,
   incrementDailyCopyUsage,
@@ -150,6 +151,52 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
       setDailyUsage(getDailyCopyUsage(vip.licenseKey || ''));
       showToast('Enclave Session Loaded // VIP Lifetime License');
     }
+  };
+
+  const handleDemo1DayLogin = () => {
+    sound.playSuccess();
+    const orders = getAllOrders();
+    let sprintOrder =
+      orders.find((o) => o.tierId === 'day_pass' && o.status === 'approved') ||
+      orders.find((o) => o.id === 'ORD-1DAY-4901');
+
+    if (!sprintOrder) {
+      sprintOrder = {
+        id: 'ORD-1DAY-4901',
+        orderNumber: 'APX-104921',
+        name: 'Kabir Verma (Sprint Pass)',
+        email: 'kabir.sprint@gmail.com',
+        phone: '9876500049',
+        tierId: 'day_pass',
+        tierName: '1-Day Sprint Pass',
+        amountINR: 49,
+        status: 'approved',
+        utrNumber: '429108471920',
+        upiId: 'kabir@oksbi',
+        invoiceNumber: 'INV-2026-4901',
+        licenseKey: 'LIC-PRO-1DAY-99X2',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        approvedAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 22).toISOString(),
+        utm: { source: 'instagram_reels', campaign: 'shader_vault_49' },
+      };
+      saveOrder(sprintOrder);
+    } else {
+      const expTime = sprintOrder.expiresAt ? new Date(sprintOrder.expiresAt).getTime() : 0;
+      if (expTime < Date.now()) {
+        sprintOrder = {
+          ...sprintOrder,
+          expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 22).toISOString(),
+        };
+        saveOrder(sprintOrder);
+      }
+    }
+
+    setActiveOrder(sprintOrder);
+    sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(sprintOrder));
+    setDailyUsage(getDailyCopyUsage(sprintOrder.licenseKey || ''));
+    showToast('1-Day Sprint Pass Loaded // 1 Copy/Day Quota Active');
   };
 
   const handleLogout = () => {
@@ -299,24 +346,51 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
               </button>
             </form>
 
-            {/* Quick Demo Option & Direct Support */}
-            <div className="mt-6 pt-6 border-t border-white/[0.08] space-y-3">
+            {/* Quick Demo Options */}
+            <div className="mt-6 pt-6 border-t border-white/[0.08] space-y-2.5">
+              <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest text-center mb-1">
+                INSTANT SIMULATION ENCLAVES
+              </div>
+
+              {/* 1-Day Sprint Test Button */}
               <button
-                onClick={handleDemoVipLogin}
-                className="w-full py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-amber-300 text-xs font-mono flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                type="button"
+                onClick={handleDemo1DayLogin}
+                className="w-full py-2.5 px-4 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-300 text-xs font-mono flex items-center justify-between transition-all active:scale-[0.98]"
               >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Simulate VIP Lifetime Session</span>
+                <div className="flex items-center gap-2">
+                  <Clock className="w-3.5 h-3.5 text-purple-400" />
+                  <span className="font-bold">Test 1-Day Sprint Pass (₹49)</span>
+                </div>
+                <span className="text-[10px] text-purple-400/80">1 Copy / 24h</span>
               </button>
 
-              <div className="text-center">
+              {/* VIP Lifetime Test Button */}
+              <button
+                type="button"
+                onClick={handleDemoVipLogin}
+                className="w-full py-2.5 px-4 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-mono flex items-center justify-between transition-all active:scale-[0.98]"
+              >
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="font-bold">Test VIP Lifetime Pass (₹2,999)</span>
+                </div>
+                <span className="text-[10px] text-amber-400/80">Unlimited</span>
+              </button>
+
+              <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06] text-[10px] font-mono text-zinc-500 space-y-1">
+                <div>🔑 1-Day Key: <strong className="text-zinc-300">LIC-PRO-1DAY-99X2</strong> (Order: APX-104921)</div>
+                <div>👑 VIP Key: <strong className="text-zinc-300">LIC-VIP-84K2-91Q7</strong> (Order: APX-310492)</div>
+              </div>
+
+              <div className="text-center pt-1">
                 <a
                   href="https://wa.me/918860090791?text=Hello%20APEX3D%20Support,%20I%20need%20help%20accessing%20my%20client%20portal"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[11px] font-mono text-zinc-500 hover:text-zinc-300 transition-colors"
                 >
-                  Need credential lookup? WhatsApp Support →
+                  Need customer support? WhatsApp Team →
                 </a>
               </div>
             </div>
