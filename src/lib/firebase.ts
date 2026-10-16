@@ -21,6 +21,8 @@ import {
 } from 'firebase/auth';
 import { getAnalytics, isSupported, Analytics } from 'firebase/analytics';
 
+import { getFirestore, Firestore, doc, setDoc } from 'firebase/firestore';
+
 export const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyA8S97ReZY0nXczM-JMlW-BbcVyc5N9iEY",
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "dprompts-4c800.firebaseapp.com",
@@ -36,6 +38,45 @@ export const app: FirebaseApp = getApps().length > 0 ? getApp() : initializeApp(
 
 // Initialize Firebase Auth
 export const auth: Auth = getAuth(app);
+
+// Initialize Firestore
+export const db: Firestore = getFirestore(app);
+
+/**
+ * Real-time Ghost Lead Cloud Sync
+ * Saves unsubmitted leads to Firestore collection 'ghost_leads' for automated 24h & 48h followups
+ */
+export async function syncGhostLeadToCloud(lead: {
+  id: string;
+  orderNumber: string;
+  name: string;
+  email: string;
+  phone: string;
+  tierId: string;
+  tierName: string;
+  amountINR: number;
+  status: string;
+  createdAt: string;
+  followupStage?: number;
+}): Promise<void> {
+  if (typeof window === 'undefined' || !lead.email) return;
+  try {
+    const cleanEmail = lead.email.replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
+    const docId = lead.id || `GHOST-${cleanEmail}-${lead.tierId}`;
+    const leadRef = doc(db, 'ghost_leads', docId);
+    await setDoc(
+      leadRef,
+      {
+        ...lead,
+        followupStage: lead.followupStage ?? 0,
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true }
+    );
+  } catch (err) {
+    console.debug('Ghost lead cloud sync deferred:', err);
+  }
+}
 
 // Initialize Analytics conditionally
 let analyticsInstance: Analytics | null = null;

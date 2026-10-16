@@ -3,6 +3,8 @@
 // Drop-off protection, ghost keystrokes, UTR verification, expiry calculations
 // ==========================================
 
+import { syncGhostLeadToCloud } from './firebase';
+
 export type OrderStatus =
   | 'unsubmitted_keystroke' // User typed email/phone but never hit proceed
   | 'abandoned_at_qr'      // User proceeded to QR code but closed without entering UTR
@@ -48,6 +50,8 @@ export interface LeadOrder {
   approvedAt?: string;
   expiresAt?: string | null;
   upgradeTelemetry?: UpgradeTelemetry;
+  followupStage?: number; // 0 = none sent, 1 = Day 1 (24h) sent, 2 = Day 2 (48h) sent
+  lastFollowupAt?: string;
   utm?: {
     source?: string;
     campaign?: string;
@@ -333,12 +337,93 @@ export function saveGhostKeystrokeLead(data: {
     tierName: data.tierName,
     amountINR: data.amountINR,
     status: 'unsubmitted_keystroke',
+    followupStage: 0,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     utm: getAdAttribution(),
   };
 
   saveOrder(ghostOrder);
+  syncGhostLeadToCloud(ghostOrder);
+}
+
+/**
+ * ⚡ Automated Drip Follow-up Heartbeat:
+ * Evaluates pending ghost leads and calls /api/cron-followup for automated Day 1 & Day 2 emails via Resend
+ */
+export async function triggerDripFollowupHeartbeat(force = false): Promise<{
+  success: boolean;
+  day1Count: number;
+  day2Count: number;
+}> {
+  if (typeof window === 'undefined') return { success: false, day1Count: 0, day2Count: 0 };
+
+  const lastRun = localStorage.getItem('apex_last_drip_cron_run');
+  const now = Date.now();
+  // Don't spam unless forced or at least 2 hours have passed
+  if (!force && lastRun && now - parseInt(lastRun, 10) < 1000 * 60 * 60 * 2) {
+    return { success: true, day1Count: 0, day2Count: 0 };
+  }
+
+  const allOrders = getAllOrders();
+  const ghostLeads = allOrders.filter(
+    (o) =>
+      (o.status === 'unsubmitted_keystroke' || o.status === 'abandoned_at_qr') &&
+      o.email &&
+      o.email.includes('@')
+  );
+
+  if (ghostLeads.length === 0) {
+    localStorage.setItem('apex_last_drip_cron_run', now.toString());
+    return { success: true, day1Count: 0, day2Count: 0 };
+  }
+
+  try {
+    const res = await fetch('/api/cron-followup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ leads: ghostLeads }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      localStorage.setItem('apex_last_drip_cron_run', now.toString());
+
+      let updatedAny = false;
+      if (data.day1Recipients && data.day1Recipients.length > 0) {
+        ghostLeads.forEach((l) => {
+          if (data.day1Recipients.includes(l.email)) {
+            l.followupStage = 1;
+            l.lastFollowupAt = new Date().toISOString();
+            updatedAny = true;
+          }
+        });
+      }
+      if (data.day2Recipients && data.day2Recipients.length > 0) {
+        ghostLeads.forEach((l) => {
+          if (data.day2Recipients.includes(l.email)) {
+            l.followupStage = 2;
+            l.lastFollowupAt = new Date().toISOString();
+            updatedAny = true;
+          }
+        });
+      }
+
+      if (updatedAny) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(allOrders));
+      }
+
+      return {
+        success: true,
+        day1Count: data.day1DispatchedCount || 0,
+        day2Count: data.day2DispatchedCount || 0,
+      };
+    }
+  } catch (e) {
+    console.debug('Follow-up heartbeat deferred:', e);
+  }
+
+  return { success: false, day1Count: 0, day2Count: 0 };
 }
 
 /**

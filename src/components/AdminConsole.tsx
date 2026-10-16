@@ -45,6 +45,7 @@ import {
   rejectOrder,
   LeadOrder,
   calculateTierExpiry,
+  triggerDripFollowupHeartbeat,
 } from '../lib/leadTracker';
 import {
   generateRetargetingEmail,
@@ -138,6 +139,10 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
   const [isSendingTestEmail, setIsSendingTestEmail] = useState(false);
   const [testEmailResult, setTestEmailResult] = useState<EmailDispatchResult | null>(null);
 
+  // Automated Resend Drip Follow-ups State
+  const [isDripRunning, setIsDripRunning] = useState(false);
+  const [dripResult, setDripResult] = useState<{ day1: number; day2: number; timestamp: string } | null>(null);
+
   const loadData = () => {
     setOrders(getAllOrders());
     setMarketingHistory(getAllMarketingDispatches());
@@ -146,6 +151,8 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
 
   useEffect(() => {
     loadData();
+    // Background self-healing check: check if any Day 1 / Day 2 follow-ups are due
+    triggerDripFollowupHeartbeat(false).catch(() => {});
 
     // Listen for real-time order and marketing updates
     const handleOrderUpdate = () => {
@@ -1011,6 +1018,99 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
               )}
             </div>
 
+            {/* 100% Free Automated Resend Drip Follow-up Engine Banner */}
+            <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-blue-950/40 via-purple-950/20 to-black/60 border border-blue-500/25 shadow-xl">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+                    </span>
+                    <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-emerald-400 font-bold">
+                      100% AUTOMATED RESEND DRIP ENGINE · ACTIVE
+                    </span>
+                  </div>
+                  <h3 className="text-sm sm:text-base font-bold text-white tracking-tight">
+                    Automatic 24h & 48h Follow-up Sequences
+                  </h3>
+                  <p className="text-xs text-zinc-400 mt-1 max-w-2xl leading-relaxed">
+                    Unsubmitted & abandoned leads automatically receive high-converting emails via Resend API.
+                    Runs daily via Vercel Cron (<code className="text-blue-300 font-mono">0 9 * * *</code>) and on background visits.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={async () => {
+                      setIsDripRunning(true);
+                      sound.playClick();
+                      try {
+                        const res = await triggerDripFollowupHeartbeat(true);
+                        setDripResult({
+                          day1: res.day1Count,
+                          day2: res.day2Count,
+                          timestamp: new Date().toLocaleTimeString(),
+                        });
+                        loadData();
+                        if (res.day1Count > 0 || res.day2Count > 0) {
+                          sound.playSuccess();
+                          showToast(`⚡ Dispatched: ${res.day1Count} Day-1 & ${res.day2Count} Day-2 emails!`);
+                        } else {
+                          showToast('✓ All ghost leads are up-to-date. No follow-ups due right now.');
+                        }
+                      } catch {
+                        showToast('Error executing drip sequence.');
+                      } finally {
+                        setIsDripRunning(false);
+                      }
+                    }}
+                    disabled={isDripRunning}
+                    className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-mono font-bold flex items-center gap-2 shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
+                  >
+                    <Zap className={`w-3.5 h-3.5 text-amber-300 ${isDripRunning ? 'animate-spin' : ''}`} />
+                    <span>{isDripRunning ? 'Evaluating Drip Queue...' : 'Run Drip Engine Now'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Drip Sequence Specs */}
+              <div className="mt-4 pt-3 border-t border-white/[0.08] grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-mono">
+                <div className="p-3 rounded-xl bg-black/40 border border-white/[0.06] flex items-start gap-2.5">
+                  <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-bold shrink-0 text-[10px]">
+                    DAY 1 (24h)
+                  </span>
+                  <div>
+                    <div className="text-white font-sans font-semibold text-xs">Proof & Case Study Email</div>
+                    <div className="text-[11px] text-zinc-400 mt-0.5">
+                      Subject: <span className="text-zinc-300">"💰 How agencies charge ₹45,000+ for 3D websites"</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-black/40 border border-white/[0.06] flex items-start gap-2.5">
+                  <span className="px-2 py-0.5 rounded bg-red-500/20 text-red-300 font-bold shrink-0 text-[10px]">
+                    DAY 2 (48h)
+                  </span>
+                  <div>
+                    <div className="text-white font-sans font-semibold text-xs">Urgency & Price Increase Warning</div>
+                    <div className="text-[11px] text-zinc-400 mt-0.5">
+                      Subject: <span className="text-zinc-300">"⚠️ Final Notice: Your ₹49 Sprint Pass reservation expires tonight"</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {dripResult && (
+                <div className="mt-3 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-mono flex items-center gap-2">
+                  <Check className="w-3.5 h-3.5 shrink-0" />
+                  <span>
+                    Last Execution ({dripResult.timestamp}): Sent {dripResult.day1} Day-1 and {dripResult.day2} Day-2 emails via Resend.
+                  </span>
+                </div>
+              )}
+            </div>
+
             {ghostLeads.length === 0 ? (
               <div className="py-20 text-center rounded-2xl bg-[#090914] border border-white/5 text-white/40">
                 <User className="w-10 h-10 text-purple-400 mx-auto mb-2 opacity-50" />
@@ -1028,6 +1128,15 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                         <span className="text-xs font-semibold text-white">{lead.name || 'Anonymous Visitor'}</span>
                         <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
                           {lead.status === 'unsubmitted_keystroke' ? 'Typed (Unsubmitted)' : 'Abandoned at QR'}
+                        </span>
+                        <span className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
+                          lead.followupStage === 2
+                            ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+                            : lead.followupStage === 1
+                            ? 'bg-blue-500/10 text-blue-300 border-blue-500/30'
+                            : 'bg-zinc-800 text-zinc-400 border-zinc-700'
+                        }`}>
+                          {lead.followupStage === 2 ? 'Drip: Day 2 Sent' : lead.followupStage === 1 ? 'Drip: Day 1 Sent' : 'Drip: Pending'}
                         </span>
                         <span className="text-xs font-bold text-blue-400 font-mono">
                           {lead.tierName} (₹{lead.amountINR})
