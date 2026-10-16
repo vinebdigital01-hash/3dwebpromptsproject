@@ -111,9 +111,9 @@ export async function sendEmailViaResend(options: {
 export function buildApprovalEmailHtml(order: LeadOrder, videoShowcaseMode: ShowcaseMode = 'random'): string {
   const portalUrl = typeof window !== 'undefined'
     ? `${window.location.origin}/#portal`
-    : 'https://vinebdigital.store/#portal';
+    : 'https://3dwebprompts-vineb.vercel.app/#portal';
   const loginUrl = `${portalUrl}?orderId=${encodeURIComponent(order.id)}`;
-  const videoBlockHtml = generateEmailVideoBlockHtml(videoShowcaseMode);
+  const videoBlockHtml = generateEmailVideoBlockHtml(videoShowcaseMode, order.orderNumber);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -236,7 +236,7 @@ export function buildApprovalEmailHtml(order: LeadOrder, videoShowcaseMode: Show
           <tr>
             <td style="padding: 24px 32px; border-top: 1px solid rgba(255, 255, 255, 0.06); text-align: center; font-size: 11px; color: #6b7280;">
               Need support or want custom shader engineering? Reply directly to this email or write to <a href="mailto:support@vinebdigital.store" style="color: #60a5fa; text-decoration: underline;">support@vinebdigital.store</a>.<br><br>
-              &copy; 2026 Vine B Digital Marketing Agency · <a href="https://vinebdigital.store" style="color: #6b7280; text-decoration: underline;">vinebdigital.store</a>
+              &copy; 2026 Vine B Digital Marketing Agency &bull; <a href="https://3dwebprompts-vineb.vercel.app" style="color: #6b7280; text-decoration: underline;">3dwebprompts-vineb.vercel.app</a>
             </td>
           </tr>
         </table>
@@ -251,7 +251,7 @@ export function buildApprovalEmailHtml(order: LeadOrder, videoShowcaseMode: Show
  * Generate Branded Rejection Notice HTML Email
  */
 export function buildRejectionEmailHtml(order: LeadOrder, reason: string): string {
-  const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://vinebdigital.store';
+  const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://3dwebprompts-vineb.vercel.app';
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -314,7 +314,7 @@ export async function sendOrderApprovalEmail(order: LeadOrder): Promise<EmailDis
     to: order.email,
     subject,
     html,
-    text: `Hey ${order.name}, your payment for ${order.tierName} (₹${order.amountINR}) has been approved! License: ${order.licenseKey || 'ACTIVE'}. Log in at https://vinebdigital.store/#portal?orderId=${order.id}`,
+    text: `Hey ${order.name}, your payment for ${order.tierName} (₹${order.amountINR}) has been approved! License: ${order.licenseKey || 'ACTIVE'}. Log in at https://3dwebprompts-vineb.vercel.app/#portal?orderId=${order.id}`,
   });
 }
 

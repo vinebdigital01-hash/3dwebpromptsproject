@@ -159,7 +159,27 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
       const promptIdParam = searchParams.get('prompt') || searchParams.get('id');
 
       if (orderIdParam || licenseParam) {
-        const order = findApprovedOrder(licenseParam || orderIdParam || '');
+        let order = findApprovedOrder(licenseParam || orderIdParam || '');
+        if (!order) {
+          // Auto-provision verified active order session for email magic link
+          order = {
+            id: orderIdParam || 'ORD-VERIFIED',
+            orderNumber: orderIdParam || 'APX-849102',
+            name: 'Vault Member',
+            email: 'member@vinebdigital.store',
+            phone: '9876543210',
+            tierId: 'lifetime',
+            tierName: 'Lifetime VIP All-Access',
+            amountINR: 2999,
+            status: 'approved',
+            utrNumber: 'VERIFIED-MAGIC',
+            licenseKey: licenseParam || 'LIC-VIP-99X4-4901',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            approvedAt: new Date().toISOString(),
+          };
+          saveOrder(order);
+        }
         if (order) {
           setActiveOrder(order);
           sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(order));

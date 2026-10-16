@@ -65,7 +65,7 @@ TECHNICAL CORE REQUIREMENTS:
     tokens: 3120,
     highlightStat: '4.9/5 Client Rating',
     videoUrl: 'https://images.refero.design/styles/refero.design/video/a3ee62c8-c674-48a3-84a9-e8269eefd621.mp4',
-    poster: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=1400&auto=format&fit=crop&q=80',
+    poster: 'https://images.unsplash.com/photo-1524805444758-089113d48a6d?w=1400&auto=format&fit=crop&q=80',
     fpsBadge: 'PBR TITANIUM 60FPS',
     description: 'Precision horology showcase featuring anisotropic brushed titanium textures, sapphire crystal refraction, ticking complication gear movements, and smooth camera angle switching.',
     tags: ['PBR Materials', 'Sapphire Glass', 'Ray-Traced Reflections'],
