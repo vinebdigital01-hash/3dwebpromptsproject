@@ -40,9 +40,9 @@ Merchant VPA    : s5305704393562990@slc
 
 
 WHILE YOU WAIT: PREVIEW 60 FPS WEBGL SHADERS
-Experience the caliber of shaders included in the vault:
--> Watch Reel:
-https://vinebdigital.store/watch/v01-hero-reel
+Prompt: Hazmat Cybersecurity Master 3D ($14,500 Valuation)
+-> Watch 60 FPS Video on Website:
+https://3dwebprompts-vineb.vercel.app/#portal?prompt=hazmat-cyber&orderId={{order_number}}
 
 
 ------------------------------------------------------------------------

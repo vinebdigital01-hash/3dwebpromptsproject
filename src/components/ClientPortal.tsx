@@ -140,6 +140,46 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
     }
   }, [activeOrder]);
 
+  // Deep-link URL listener for instant order authentication & prompt spotlight
+  useEffect(() => {
+    try {
+      const fullUrl = window.location.href;
+      const cleanUrl = fullUrl.replace('/#', '/');
+      const urlObj = new URL(cleanUrl);
+      const searchParams = new URLSearchParams(window.location.search || urlObj.search);
+
+      if (window.location.hash.includes('?')) {
+        const hashQuery = window.location.hash.split('?')[1];
+        const hashParams = new URLSearchParams(hashQuery);
+        hashParams.forEach((val, key) => searchParams.set(key, val));
+      }
+
+      const orderIdParam = searchParams.get('orderId') || searchParams.get('order');
+      const licenseParam = searchParams.get('license') || searchParams.get('licenseKey');
+      const promptIdParam = searchParams.get('prompt') || searchParams.get('id');
+
+      if (orderIdParam || licenseParam) {
+        const order = findApprovedOrder(licenseParam || orderIdParam || '');
+        if (order) {
+          setActiveOrder(order);
+          sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(order));
+          setDailyUsage(getDailyCopyUsage(order.licenseKey || ''));
+        }
+      }
+
+      if (promptIdParam) {
+        const all = getAllVaultPrompts();
+        const target = all.find((p) => p.id === promptIdParam);
+        if (target) {
+          setSpotlightPrompt(target);
+          setInspectingPrompt(target);
+        }
+      }
+    } catch {
+      // ignore URL parsing error
+    }
+  }, []);
+
   const showToast = (msg: string) => {
     setPortalToast(msg);
     setTimeout(() => setPortalToast(null), 3200);
