@@ -39,7 +39,31 @@ import {
   Settings2,
   MailCheck,
   Loader2,
+  Lock,
+  LogOut,
+  Users,
+  UserPlus,
+  Ban,
+  ShieldAlert,
+  Shield,
 } from 'lucide-react';
+import {
+  SUPER_ADMIN_EMAIL,
+  MASTER_EMERGENCY_PIN,
+  AdminUser,
+  AdminSession,
+  getAllAdmins,
+  getCurrentAdminSession,
+  logoutAdminSession,
+  inviteAdminUser,
+  resendAdminInvitation,
+  revokeAdminAccess,
+  deleteAdminPermanently,
+  sendAdminLoginOtp,
+  verifyAdminOtpCode,
+  verifyAdminInviteToken,
+  isSuperAdminEmail,
+} from '../lib/adminAuthStore';
 import {
   getAllOrders,
   approveOrder,
@@ -90,10 +114,33 @@ interface AdminConsoleProps {
   onBackToSite: () => void;
 }
 
-type AdminTab = 'approvals' | 'retargeting' | 'ghosts' | 'orders' | 'cms' | 'settings';
+type AdminTab = 'approvals' | 'retargeting' | 'ghosts' | 'orders' | 'cms' | 'team' | 'settings';
 
 export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
   const [tab, setTab] = useState<AdminTab>('approvals');
+
+  // RBAC & Authentication State
+  const [session, setSession] = useState<AdminSession | null>(() => getCurrentAdminSession());
+  const [teamList, setTeamList] = useState<AdminUser[]>(() => getAllAdmins());
+  const isSuperAdmin = session?.role === 'super_admin' || isSuperAdminEmail(session?.email);
+
+  // Team Invite Modal State
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [inviteName, setInviteName] = useState('');
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [isInviting, setIsInviting] = useState(false);
+  const [resendingAdminId, setResendingAdminId] = useState<string | null>(null);
+
+  // Admin Login Shield State
+  const [loginEmail, setLoginEmail] = useState('');
+  const [otpInput, setOtpInput] = useState('');
+  const [isOtpSent, setIsOtpSent] = useState(false);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [showEmergencyPin, setShowEmergencyPin] = useState(false);
+  const [emergencyPin, setEmergencyPin] = useState('');
+
   const [orders, setOrders] = useState<LeadOrder[]>([]);
   const [copiedUtr, setCopiedUtr] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -152,6 +199,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
     setOrders(getAllOrders());
     setMarketingHistory(getAllMarketingDispatches());
     setPromptsList(getAllVaultPrompts());
+    setTeamList(getAllAdmins());
   };
 
   useEffect(() => {
@@ -159,29 +207,181 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
     // Background self-healing check: check if any Day 1 / Day 2 follow-ups are due
     triggerDripFollowupHeartbeat(false).catch(() => {});
 
-    // Listen for real-time order and marketing updates
-    const handleOrderUpdate = () => {
-      loadData();
-    };
-    const handleMarketingUpdate = () => {
-      setMarketingHistory(getAllMarketingDispatches());
-    };
-    const handlePromptsUpdate = () => {
-      setPromptsList(getAllVaultPrompts());
-    };
+    // Check for inviteToken & email in URL hash or search
+    try {
+      const hash = window.location.hash || '';
+      const search = window.location.search || '';
+      const hashQuery = hash.includes('?') ? hash.split('?')[1] : '';
+      const urlParams = new URLSearchParams(hashQuery || search);
+      const inviteToken = urlParams.get('inviteToken');
+      const inviteEmail = urlParams.get('email');
+
+      if (inviteToken && inviteEmail) {
+        const res = verifyAdminInviteToken(inviteToken, inviteEmail);
+        if (res.success && res.session) {
+          setSession(res.session);
+          setTeamList(getAllAdmins());
+          showToast(res.message);
+          window.history.replaceState(null, '', window.location.pathname + '#admin');
+        } else {
+          setAuthError(res.message);
+        }
+      }
+    } catch (err) {
+      console.error('Error verifying invite token:', err);
+    }
+
+    // Listen for real-time updates
+    const handleOrderUpdate = () => loadData();
+    const handleMarketingUpdate = () => setMarketingHistory(getAllMarketingDispatches());
+    const handlePromptsUpdate = () => setPromptsList(getAllVaultPrompts());
+    const handleAuthChange = (e: any) => setSession(e.detail || null);
+    const handleTeamChange = (e: any) => setTeamList(e.detail || getAllAdmins());
+
     window.addEventListener('apex_order_updated', handleOrderUpdate);
     window.addEventListener('apex_marketing_dispatched', handleMarketingUpdate);
     window.addEventListener('apex_prompts_updated', handlePromptsUpdate);
+    window.addEventListener('apex_admin_auth_changed', handleAuthChange);
+    window.addEventListener('apex_admins_updated', handleTeamChange);
+
     return () => {
       window.removeEventListener('apex_order_updated', handleOrderUpdate);
       window.removeEventListener('apex_marketing_dispatched', handleMarketingUpdate);
       window.removeEventListener('apex_prompts_updated', handlePromptsUpdate);
+      window.removeEventListener('apex_admin_auth_changed', handleAuthChange);
+      window.removeEventListener('apex_admins_updated', handleTeamChange);
     };
   }, []);
 
   const showToast = (msg: string) => {
     setStatusNotification(msg);
     setTimeout(() => setStatusNotification(null), 3500);
+  };
+
+  // Auth Handlers
+  const handleSendOtp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!loginEmail.trim() || !loginEmail.includes('@')) {
+      setAuthError('Please enter a valid administrator work email address.');
+      return;
+    }
+    setAuthError(null);
+    setIsSendingOtp(true);
+    try {
+      const res = await sendAdminLoginOtp(loginEmail);
+      if (res.success) {
+        setIsOtpSent(true);
+        showToast(res.message);
+      } else {
+        setAuthError(res.message);
+      }
+    } catch (err: any) {
+      setAuthError(err.message || 'Error generating access code');
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!otpInput.trim()) {
+      setAuthError('Please enter the 6-digit access code.');
+      return;
+    }
+    setAuthError(null);
+    setIsVerifyingOtp(true);
+    try {
+      const res = verifyAdminOtpCode(loginEmail, otpInput);
+      if (res.success && res.session) {
+        setSession(res.session);
+        showToast(`Welcome, ${res.session.name}!`);
+      } else {
+        setAuthError(res.message);
+      }
+    } catch (err: any) {
+      setAuthError(err.message || 'Verification error');
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
+
+  const handleEmergencyPinLogin = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!loginEmail.trim() || loginEmail.trim().toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase()) {
+      setAuthError(`Emergency Master PIN is only valid for Master Super Admin (${SUPER_ADMIN_EMAIL}).`);
+      return;
+    }
+    if (emergencyPin.trim() !== MASTER_EMERGENCY_PIN) {
+      setAuthError('Invalid Emergency Master PIN.');
+      return;
+    }
+    const res = verifyAdminOtpCode(SUPER_ADMIN_EMAIL, MASTER_EMERGENCY_PIN);
+    if (res.success && res.session) {
+      setSession(res.session);
+      showToast('Master Super Admin Emergency Access granted!');
+    }
+  };
+
+  // Team RBAC Handlers
+  const handleInviteSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inviteName.trim() || !inviteEmail.trim()) {
+      showToast('Please provide both full name and email.');
+      return;
+    }
+    setIsInviting(true);
+    try {
+      const res = await inviteAdminUser({
+        name: inviteName.trim(),
+        email: inviteEmail.trim(),
+      });
+      if (res.success) {
+        setTeamList(getAllAdmins());
+        setIsInviteModalOpen(false);
+        setInviteName('');
+        setInviteEmail('');
+        showToast(res.message);
+      } else {
+        showToast(`Error: ${res.message}`);
+      }
+    } catch (err: any) {
+      showToast(`Failed: ${err.message || 'Error sending invite'}`);
+    } finally {
+      setIsInviting(false);
+    }
+  };
+
+  const handleResendInvite = async (admin: AdminUser) => {
+    sound.playClick();
+    setResendingAdminId(admin.id);
+    showToast(`⏳ Dispatching duty briefing & invite email to ${admin.email}...`);
+    try {
+      const res = await resendAdminInvitation(admin.id);
+      showToast(res.message);
+      setTeamList(getAllAdmins());
+    } catch (err: any) {
+      showToast(`Failed: ${err.message || 'Error resending invite'}`);
+    } finally {
+      setResendingAdminId(null);
+    }
+  };
+
+  const handleRevoke = (admin: AdminUser) => {
+    sound.playClick();
+    if (window.confirm(`Are you sure you want to revoke access for ${admin.name} (${admin.email})?`)) {
+      const res = revokeAdminAccess(admin.id);
+      showToast(res.message);
+      setTeamList(getAllAdmins());
+    }
+  };
+
+  const handleDeleteAdmin = (admin: AdminUser) => {
+    sound.playClick();
+    if (window.confirm(`Permanently remove ${admin.name} (${admin.email}) from admin roster?`)) {
+      const res = deleteAdminPermanently(admin.id);
+      showToast(res.message);
+      setTeamList(getAllAdmins());
+    }
   };
 
   // Actions
@@ -421,6 +621,226 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
   // Stats
   const totalRevenue = approvedOrders.reduce((sum, o) => sum + (o.amountINR || 0), 0);
 
+  // -------------------------------------------------------------
+  // AUTHENTICATION SHIELD GATE (If user is not logged in as Admin)
+  // -------------------------------------------------------------
+  if (!session) {
+    return (
+      <div className="min-h-screen bg-[#05050a] text-white flex flex-col justify-center items-center p-4 relative overflow-hidden font-sans select-none">
+        {/* Ambient background blur */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-600/10 rounded-full blur-[140px] pointer-events-none" />
+        <div className="absolute bottom-1/4 left-1/2 -translate-x-1/2 translate-y-1/2 w-96 h-96 bg-amber-500/10 rounded-full blur-[140px] pointer-events-none" />
+
+        {/* Status Notification Toast */}
+        {statusNotification && (
+          <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 rounded-full bg-blue-600 text-white text-xs font-semibold shadow-xl shadow-blue-600/40 animate-role-fade-in flex items-center gap-2">
+            <Sparkles className="w-4 h-4" />
+            <span>{statusNotification}</span>
+          </div>
+        )}
+
+        {/* Top return link */}
+        <div className="w-full max-w-md flex items-center justify-between mb-4 z-10">
+          <button
+            onClick={() => {
+              sound.playClick();
+              onBackToSite();
+            }}
+            className="flex items-center gap-1.5 text-xs font-mono text-zinc-400 hover:text-white transition-colors cursor-pointer px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span>Return to Store</span>
+          </button>
+
+          <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider flex items-center gap-1">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+            <span>RBAC Protected</span>
+          </div>
+        </div>
+
+        {/* Shield Card */}
+        <div className="w-full max-w-md bg-[#0a0a14] border border-white/10 rounded-2xl shadow-2xl p-6 sm:p-8 relative z-10">
+          {/* Logo & Header */}
+          <div className="text-center mb-6">
+            <img
+              src="/vineb-logo.png"
+              alt="Vine B Digital"
+              className="w-14 h-14 object-contain rounded-xl border border-white/10 p-1 bg-white mx-auto mb-3 shadow-lg"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = '/vineb-logo.webp';
+              }}
+            />
+            <div className="text-[10px] font-mono text-blue-400 uppercase tracking-widest font-bold">
+              VINE B DIGITAL // APEX3D VAULT
+            </div>
+            <h1 className="text-xl font-black text-white tracking-tight mt-1">
+              Administrator Verification Gate
+            </h1>
+            <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+              Restricted console. Authenticate using your authorized administrator work email.
+            </p>
+          </div>
+
+          {/* Auth Error Banner */}
+          {authError && (
+            <div className="p-3 mb-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-start gap-2 animate-role-fade-in">
+              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
+              <div className="leading-relaxed">{authError}</div>
+            </div>
+          )}
+
+          {/* Step 1: Request Access Code via Email */}
+          {!isOtpSent ? (
+            <form onSubmit={handleSendOtp} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+                  Authorized Administrator Email
+                </label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="email"
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    placeholder="kumarrneeraj791@gmail.com"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-black/50 border border-white/15 text-xs font-mono text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
+                    required
+                    autoFocus
+                  />
+                </div>
+                <div className="text-[10px] text-zinc-500 mt-1.5 flex items-center justify-between font-mono">
+                  <span>Super Admin: {SUPER_ADMIN_EMAIL}</span>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSendingOtp}
+                className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-blue-600/30 disabled:opacity-50"
+              >
+                {isSendingOtp ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Dispatching Access Code...</span>
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    <span>Send 6-Digit Login Code &rarr;</span>
+                  </>
+                )}
+              </button>
+
+              {/* Super Admin Emergency Bypass Option */}
+              <div className="pt-3 border-t border-white/10 text-center">
+                <button
+                  type="button"
+                  onClick={() => setShowEmergencyPin(!showEmergencyPin)}
+                  className="text-[11px] font-mono text-zinc-400 hover:text-amber-400 transition-colors flex items-center justify-center gap-1 mx-auto cursor-pointer"
+                >
+                  <Key className="w-3 h-3 text-amber-400" />
+                  <span>Super Admin Emergency Master PIN</span>
+                </button>
+
+                {showEmergencyPin && (
+                  <div className="mt-3 p-3 rounded-xl bg-black/40 border border-amber-500/30 text-left animate-role-fade-in space-y-2">
+                    <label className="block text-[10px] font-mono text-amber-300 uppercase tracking-wider font-bold">
+                      Enter Emergency Master Key
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="password"
+                        placeholder="PIN (6 digits)"
+                        value={emergencyPin}
+                        onChange={(e) => setEmergencyPin(e.target.value)}
+                        className="w-full px-3 py-1.5 rounded-lg bg-black border border-white/15 text-xs font-mono text-white focus:outline-none focus:border-amber-400"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleEmergencyPinLogin}
+                        className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold shrink-0 cursor-pointer"
+                      >
+                        Enter &rarr;
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </form>
+          ) : (
+            /* Step 2: Enter 6-digit Code */
+            <form onSubmit={handleVerifyOtp} className="space-y-4 animate-role-fade-in">
+              <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-300">
+                A 6-digit access code has been dispatched to <strong className="text-white font-mono">{loginEmail}</strong>.
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-zinc-300 mb-1.5 text-center">
+                  Enter 6-Digit Access Code
+                </label>
+                <input
+                  type="text"
+                  maxLength={6}
+                  value={otpInput}
+                  onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ''))}
+                  placeholder="000000"
+                  className="w-full py-3 text-center text-2xl font-mono font-black tracking-[0.4em] rounded-xl bg-black/60 border border-blue-500/40 text-white placeholder-zinc-700 focus:outline-none focus:border-blue-400"
+                  required
+                  autoFocus
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isVerifyingOtp}
+                className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-600/30 disabled:opacity-50"
+              >
+                {isVerifyingOtp ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Authenticating Session...</span>
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>Verify &amp; Enter Console &rarr;</span>
+                  </>
+                )}
+              </button>
+
+              <div className="flex items-center justify-between text-[11px] font-mono text-zinc-400 pt-2">
+                <button
+                  type="button"
+                  onClick={handleSendOtp}
+                  disabled={isSendingOtp}
+                  className="hover:text-white transition-colors cursor-pointer underline"
+                >
+                  Resend Code
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsOtpSent(false);
+                    setOtpInput('');
+                    setAuthError(null);
+                  }}
+                  className="hover:text-white transition-colors cursor-pointer underline"
+                >
+                  Use Different Email
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Footer note */}
+          <div className="mt-6 pt-4 border-t border-white/10 text-center text-[10px] text-zinc-500 font-mono">
+            Protected by Vine B Digital Multi-Role Security &bull; MSME UDYAM-UP-29-0208780
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#05050a] text-white font-sans select-none">
       {/* Top Banner Toast Notification */}
@@ -467,17 +887,52 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Identity Badge */}
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs">
+              <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center font-bold text-[10px] text-white">
+                {session?.name ? session.name.charAt(0).toUpperCase() : 'A'}
+              </div>
+              <div className="text-left font-mono">
+                <div className="text-[11px] font-bold text-white flex items-center gap-1.5">
+                  <span>{session?.name || session?.email}</span>
+                  {isSuperAdmin ? (
+                    <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[9px] font-bold">
+                      👑 SUPER ADMIN
+                    </span>
+                  ) : (
+                    <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[9px] font-bold">
+                      🛡️ MODERATOR
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
             <button
               onClick={() => {
                 sound.playClick();
                 loadData();
                 showToast('Database refreshed.');
               }}
-              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all text-xs font-mono flex items-center gap-1.5"
+              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all text-xs font-mono flex items-center gap-1.5 cursor-pointer"
               title="Refresh Data"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Refresh</span>
+            </button>
+
+            <button
+              onClick={() => {
+                sound.playClick();
+                logoutAdminSession();
+                setSession(null);
+                showToast('Signed out of Admin Console.');
+              }}
+              className="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 transition-all text-xs font-mono flex items-center gap-1.5 cursor-pointer"
+              title="Sign Out"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Sign Out</span>
             </button>
           </div>
         </div>
@@ -616,6 +1071,24 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
             <span>Prompt CMS ({promptsList.length})</span>
           </button>
 
+          {/* Team Management Tab (Super Admin Only) */}
+          {isSuperAdmin && (
+            <button
+              onClick={() => {
+                sound.playClick();
+                setTab('team');
+              }}
+              className={`px-4 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 shrink-0 ${
+                tab === 'team'
+                  ? 'bg-amber-500 text-black font-bold shadow-md shadow-amber-500/30'
+                  : 'text-white/60 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              <span>Team &amp; Admins ({teamList.length})</span>
+            </button>
+          )}
+
           <button
             onClick={() => {
               sound.playClick();
@@ -627,7 +1100,14 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                 : 'text-white/60 hover:text-white hover:bg-white/5'
             }`}
           >
-            <span>⚙️ Settings</span>
+            {isSuperAdmin ? (
+              <span>⚙️ Settings</span>
+            ) : (
+              <span className="flex items-center gap-1.5 text-zinc-400">
+                <Lock className="w-3.5 h-3.5 text-zinc-500" />
+                <span>Settings (Locked)</span>
+              </span>
+            )}
           </button>
         </div>
 
@@ -1549,19 +2029,270 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
         )}
 
         {/* ------------------------------------------
-            TAB 5: SETTINGS
+            TAB 6: TEAM & ROLE PERMISSIONS (Super Admin Only)
+           ------------------------------------------ */}
+        {tab === 'team' && isSuperAdmin && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <div className="text-[10px] font-mono text-amber-400 uppercase tracking-widest font-bold mb-1">
+                  SECURITY &bull; ROLE-BASED ACCESS CONTROL (RBAC)
+                </div>
+                <h2 className="text-base font-bold text-white flex items-center gap-2">
+                  <Users className="w-5 h-5 text-amber-400" />
+                  <span>Administrative Staff &amp; Operations Roster</span>
+                </h2>
+                <p className="text-xs text-white/50">
+                  Appoint operations moderators to verify UPI payments and fulfill customer passes. Invited admins cannot modify store settings, pricing, or UPI VPAs.
+                </p>
+              </div>
+
+              <button
+                onClick={() => {
+                  sound.playClick();
+                  setIsInviteModalOpen(true);
+                }}
+                className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold font-mono uppercase tracking-wider flex items-center gap-1.5 transition-colors shadow-lg shadow-amber-500/20 shrink-0 cursor-pointer"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>+ Appoint Operations Admin</span>
+              </button>
+            </div>
+
+            {/* Team Metrics */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="p-4 rounded-xl bg-[#090914] border border-amber-500/20">
+                <div className="text-[10px] font-mono text-white/40 uppercase tracking-wider mb-1">MASTER ROOT ADMIN</div>
+                <div className="text-xl font-bold text-white font-mono">1</div>
+                <div className="text-[10px] text-amber-400 mt-1 font-mono">{SUPER_ADMIN_EMAIL}</div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-[#090914] border border-white/10">
+                <div className="text-[10px] font-mono text-white/40 uppercase tracking-wider mb-1">ACTIVE MODERATORS</div>
+                <div className="text-xl font-bold text-emerald-400 font-mono">
+                  {teamList.filter((a) => a.role === 'moderator' && a.status === 'active').length}
+                </div>
+                <div className="text-[10px] text-emerald-400/80 mt-1 font-mono">Authorized for approvals</div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-[#090914] border border-white/10">
+                <div className="text-[10px] font-mono text-white/40 uppercase tracking-wider mb-1">PENDING INVITATIONS</div>
+                <div className="text-xl font-bold text-blue-400 font-mono">
+                  {teamList.filter((a) => a.status === 'invited').length}
+                </div>
+                <div className="text-[10px] text-blue-400/80 mt-1 font-mono">Awaiting first login pass</div>
+              </div>
+            </div>
+
+            {/* Master Super Admin Card */}
+            <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-[#121008] to-[#0a0905] border-2 border-amber-500/40 relative overflow-hidden">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center font-bold text-xl text-amber-400 shrink-0">
+                    👑
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-base font-bold text-white">Neeraj Kumar</h3>
+                      <span className="px-2 py-0.5 rounded-full bg-amber-500 text-black text-[10px] font-mono font-black uppercase tracking-wider">
+                        Master Super Admin
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-mono font-bold">
+                        ROOT PROTECTED
+                      </span>
+                    </div>
+                    <div className="font-mono text-xs text-amber-200/90 mt-1 flex items-center gap-1.5">
+                      <Mail className="w-3.5 h-3.5 text-amber-400" />
+                      <span>{SUPER_ADMIN_EMAIL}</span>
+                    </div>
+                    <div className="text-[11px] text-white/50 mt-2 leading-relaxed">
+                      Holds absolute administrative ownership. Exclusively authorized to modify Merchant UPI VPAs (<strong className="text-white">s5305704393562990@slc</strong>), adjust plan pricing, manage API keys, and appoint or revoke operations staff.
+                    </div>
+                  </div>
+                </div>
+
+                <div className="sm:text-right shrink-0">
+                  <div className="text-[10px] font-mono text-white/40 uppercase">AUTHORITY STATUS</div>
+                  <div className="text-xs font-mono font-bold text-amber-400 mt-0.5">PERMANENT / UNREVOCABLE</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Staff Moderator Roster */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-mono uppercase tracking-wider text-white/70 font-bold">
+                  Operations Moderators &amp; Staff ({teamList.filter((a) => a.role === 'moderator').length})
+                </h3>
+              </div>
+
+              {teamList.filter((a) => a.role === 'moderator').length === 0 ? (
+                <div className="p-8 rounded-2xl bg-[#090914] border border-white/5 text-center text-white/40">
+                  <Users className="w-8 h-8 mx-auto mb-2 text-white/20" />
+                  <p className="text-xs font-medium">No additional operations administrators appointed yet.</p>
+                  <p className="text-[11px] text-white/30 mt-1">
+                    Click &ldquo;+ Appoint Operations Admin&rdquo; to send a duty briefing email and access pass to your staff.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {teamList
+                    .filter((a) => a.role === 'moderator')
+                    .map((admin) => (
+                      <div
+                        key={admin.id}
+                        className="p-5 rounded-xl bg-[#090914] border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-white/20 transition-all"
+                      >
+                        <div className="flex items-start gap-3.5">
+                          <div className="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center font-bold text-sm text-blue-400 shrink-0">
+                            {admin.name.slice(0, 1).toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-white text-sm">{admin.name}</span>
+                              <span className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-300 border border-blue-500/20 text-[10px] font-mono">
+                                Operations Moderator
+                              </span>
+                              {admin.status === 'active' && (
+                                <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-mono font-bold">
+                                  ACTIVE
+                                </span>
+                              )}
+                              {admin.status === 'invited' && (
+                                <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 text-[10px] font-mono font-bold">
+                                  INVITED (PENDING LOGIN)
+                                </span>
+                              )}
+                              {admin.status === 'revoked' && (
+                                <span className="px-2 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20 text-[10px] font-mono font-bold">
+                                  REVOKED
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="font-mono text-xs text-white/70 mt-1">{admin.email}</div>
+
+                            <div className="text-[10px] text-white/40 font-mono mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1">
+                              <span>Appointed: {new Date(admin.invitedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                              <span>Last Active: {admin.lastLoginAt ? new Date(admin.lastLoginAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Never'}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Action buttons */}
+                        <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                          <button
+                            onClick={() => handleResendInvite(admin)}
+                            disabled={resendingAdminId === admin.id}
+                            className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/80 hover:text-white text-xs font-mono flex items-center gap-1.5 border border-white/10 transition-colors cursor-pointer disabled:opacity-50"
+                            title="Resend duty briefing & magic link email"
+                          >
+                            {resendingAdminId === admin.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-400" />
+                            ) : (
+                              <Send className="w-3.5 h-3.5 text-blue-400" />
+                            )}
+                            <span>Resend Invite</span>
+                          </button>
+
+                          {admin.status !== 'revoked' ? (
+                            <button
+                              onClick={() => handleRevoke(admin)}
+                              className="px-3 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 text-xs font-mono flex items-center gap-1.5 border border-rose-500/20 transition-colors cursor-pointer"
+                              title="Revoke admin access immediately"
+                            >
+                              <Ban className="w-3.5 h-3.5" />
+                              <span>Revoke</span>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                sound.playClick();
+                                admin.status = 'active';
+                                setTeamList([...teamList]);
+                                showToast(`Restored access for ${admin.name}.`);
+                              }}
+                              className="px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-xs font-mono flex items-center gap-1.5 border border-emerald-500/20 transition-colors cursor-pointer"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                              <span>Restore</span>
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => handleDeleteAdmin(admin)}
+                            className="p-1.5 rounded-lg text-white/40 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                            title="Delete administrator record"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ------------------------------------------
+            TAB 7: SETTINGS
            ------------------------------------------ */}
         {tab === 'settings' && (
-          <div className="max-w-3xl space-y-6">
-            <div>
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <Settings2 className="w-5 h-5 text-blue-400" />
-                <span>Store, Pricing & Cloud Sync Configuration</span>
-              </h2>
-              <p className="text-xs text-white/50">
-                Manage receiving UPI, plan prices, and connect Supabase for cross-device cloud persistence.
+          !isSuperAdmin ? (
+            <div className="max-w-2xl mx-auto py-16 px-6 rounded-2xl bg-[#090914] border border-amber-500/30 text-center animate-role-fade-in">
+              <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto mb-4">
+                <Lock className="w-8 h-8" />
+              </div>
+              <div className="inline-block px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 font-mono text-[10px] font-bold tracking-wider uppercase mb-3">
+                Restricted Section &bull; Super Admin Only
+              </div>
+              <h2 className="text-xl font-bold text-white mb-2">Store Configuration Locked</h2>
+              <p className="text-xs text-white/60 max-w-lg mx-auto mb-6 leading-relaxed">
+                Platform financial settings, Merchant UPI VPAs, Plan Pricing, Resend API Keys, and Supabase credentials are restricted to Master Super Admin (<span className="text-amber-400 font-mono font-semibold">{SUPER_ADMIN_EMAIL}</span>).
               </p>
+
+              <div className="p-4 rounded-xl bg-black/50 border border-white/10 text-left font-mono text-xs space-y-2.5 mb-6 max-w-md mx-auto">
+                <div className="text-[10px] text-white/40 uppercase tracking-widest font-bold">Your Authorized Scope:</div>
+                <div className="text-emerald-400 flex items-center gap-2">
+                  <span>✓</span>
+                  <span>Order Approvals &amp; Bank UTR Verification</span>
+                </div>
+                <div className="text-emerald-400 flex items-center gap-2">
+                  <span>✓</span>
+                  <span>Ghost Leads &amp; Checkout Abandonment Monitoring</span>
+                </div>
+                <div className="text-emerald-400 flex items-center gap-2">
+                  <span>✓</span>
+                  <span>Commercial Invoice &amp; License Dispatching</span>
+                </div>
+                <div className="text-rose-400 flex items-center gap-2">
+                  <span>✕</span>
+                  <span>Modifying Store Settings &amp; Financial Credentials (Locked)</span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  sound.playClick();
+                  setTab('approvals');
+                }}
+                className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-colors cursor-pointer"
+              >
+                Go to Pending Approvals &rarr;
+              </button>
             </div>
+          ) : (
+            <div className="max-w-3xl space-y-6">
+              <div>
+                <h2 className="text-base font-bold text-white flex items-center gap-2">
+                  <Settings2 className="w-5 h-5 text-blue-400" />
+                  <span>Store, Pricing & Cloud Sync Configuration</span>
+                </h2>
+                <p className="text-xs text-white/50">
+                  Manage receiving UPI, plan prices, and connect Supabase for cross-device cloud persistence.
+                </p>
+              </div>
 
             {/* Section 1: Merchant & Payment Identity */}
             <div className="p-6 rounded-2xl bg-[#090914] border border-white/10 space-y-4">
@@ -1883,7 +2614,8 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
               </button>
             </div>
           </div>
-        )}
+        )
+      )}
       </main>
 
       {/* Reject Order Modal */}
@@ -2122,6 +2854,116 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Appoint Operations Admin Modal (Super Admin Only) */}
+      {isInviteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-role-fade-in">
+          <div className="relative w-full max-w-lg bg-[#0c0c16] border border-white/15 rounded-2xl p-6 sm:p-7 shadow-2xl text-white">
+            <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-5">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                  <UserPlus className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white font-mono uppercase tracking-wide">
+                    Appoint Operations Administrator
+                  </h3>
+                  <p className="text-[10px] text-white/50 font-mono">
+                    Dispatches official duty briefing &amp; 1-click login pass
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  sound.playClick();
+                  setIsInviteModalOpen(false);
+                }}
+                className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleInviteSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-white/80 mb-1">
+                  Administrator Full Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Rahul Sharma"
+                  value={inviteName}
+                  onChange={(e) => setInviteName(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/15 text-xs text-white placeholder-white/30 focus:outline-none focus:border-amber-400 font-sans"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-white/80 mb-1">
+                  Work Email Address
+                </label>
+                <input
+                  type="email"
+                  placeholder="e.g. rahul@vinebdigital.store or personal@gmail.com"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/15 text-xs font-mono text-white placeholder-white/30 focus:outline-none focus:border-amber-400"
+                  required
+                />
+              </div>
+
+              {/* Duty Briefing & Security Restriction Box */}
+              <div className="p-4 rounded-xl bg-black/40 border border-white/10 space-y-2.5 text-xs font-mono">
+                <div className="text-[10px] text-amber-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>Automated Duty Briefing &amp; Permissions:</span>
+                </div>
+                <div className="text-white/70 text-[11px] leading-relaxed">
+                  Upon dispatch, the appointee will receive an executive email outlining their operational duties:
+                </div>
+                <ul className="text-[11px] text-emerald-400 space-y-1 pl-4 list-disc">
+                  <li>Bank UTR reference verification against Slice Merchant UPI</li>
+                  <li>1-click approval &amp; customer license provisioning</li>
+                  <li>Commercial invoice issuance (MSME: UDYAM-UP-29-0208780)</li>
+                  <li>Ghost lead drop-off and retargeting observation</li>
+                </ul>
+                <div className="pt-2 border-t border-white/10 text-[10px] text-rose-300 font-semibold flex items-center gap-1.5">
+                  <Lock className="w-3 h-3 text-rose-400 shrink-0" />
+                  <span>Restricted: Sub-admins CANNOT modify store settings, pricing, UPI VPAs, or API keys.</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsInviteModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-white/70 hover:text-white transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isInviting}
+                  className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold font-mono uppercase tracking-wider flex items-center gap-2 transition-colors cursor-pointer shadow-lg shadow-amber-500/20 disabled:opacity-50"
+                >
+                  {isInviting ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Dispatching Email...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-3.5 h-3.5" />
+                      <span>Dispatch Appointment Email &rarr;</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
