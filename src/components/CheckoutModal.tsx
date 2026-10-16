@@ -125,6 +125,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [timerSeconds, setTimerSeconds] = useState(704); // 11:44 in seconds
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Autofill detection input refs
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const emailInputRef = useRef<HTMLInputElement>(null);
+  const phoneInputRef = useRef<HTMLInputElement>(null);
+
   // Active Order Tracking
   const [currentOrder, setCurrentOrder] = useState<LeadOrder | null>(null);
 
@@ -169,7 +174,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     };
   }, [isOpen, tier, view, showPaymentDonePopup]);
 
-  // Reset state on open: always ask for user details first
+  // Reset state on open & detect browser autofill in real time
   useEffect(() => {
     if (isOpen && tier) {
       setView('contact_edit');
@@ -184,25 +189,42 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       setUtrNumber('');
       setSenderUpiId('');
 
-      // Auto-save lead in database
-      const cleanPhone = phone.replace(/\D/g, '');
-      const orderId = `ORD-${Date.now().toString().slice(-6)}`;
-      const initialOrder: LeadOrder = {
-        id: orderId,
-        orderNumber: generateOrderNumber(),
-        name: name.trim() || 'New Lead',
-        email: email.trim().toLowerCase() || 'pending@vinebdigital.store',
-        phone: cleanPhone || '',
-        tierId: tier.id,
-        tierName: tier.name,
-        amountINR: tier.priceINR,
-        status: 'abandoned_at_qr',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        utm: getAdAttribution(),
+      // Real-time Browser Autofill Detection
+      const triggerAutofillCheck = () => {
+        const domEmail = emailInputRef.current?.value || '';
+        const domName = nameInputRef.current?.value || '';
+        const domPhone = phoneInputRef.current?.value || '';
+
+        const effectiveEmail = (domEmail || email || '').trim().toLowerCase();
+        const effectiveName = (domName || name || '').trim();
+        const effectivePhone = (domPhone || phone || '').trim();
+
+        if (
+          effectiveEmail &&
+          effectiveEmail.includes('@') &&
+          effectiveEmail.includes('.') &&
+          !effectiveEmail.includes('pending@') &&
+          !effectiveEmail.includes('example.com')
+        ) {
+          if (domEmail && domEmail !== email) setEmail(domEmail);
+          if (domName && domName !== name) setName(domName);
+          if (domPhone && domPhone !== phone) setPhone(domPhone);
+          handleGhostAutoSave(effectiveEmail, effectiveName, effectivePhone, 'browser_autofill');
+        }
       };
-      saveOrder(initialOrder);
-      setCurrentOrder(initialOrder);
+
+      triggerAutofillCheck();
+      const t1 = setTimeout(triggerAutofillCheck, 150);
+      const t2 = setTimeout(triggerAutofillCheck, 400);
+      const t3 = setTimeout(triggerAutofillCheck, 900);
+      const t4 = setTimeout(triggerAutofillCheck, 2000);
+
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+        clearTimeout(t3);
+        clearTimeout(t4);
+      };
     }
   }, [isOpen, tier]);
 
@@ -267,11 +289,17 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     };
   }, [isOpen, view]);
 
-  // Ghost lead auto-capture on keystroke or blur
-  const handleGhostAutoSave = (emailOverride?: string, nameOverride?: string, phoneOverride?: string) => {
+  // Ghost lead auto-capture on keystroke, blur, or browser autofill
+  const handleGhostAutoSave = (
+    emailOverride?: string,
+    nameOverride?: string,
+    phoneOverride?: string,
+    source: 'browser_autofill' | 'keystroke' | string = 'keystroke'
+  ) => {
     if (!tier) return;
     const rawEmail = (emailOverride !== undefined ? emailOverride : email).trim();
     if (!rawEmail || !rawEmail.includes('@') || !rawEmail.includes('.')) return;
+    if (rawEmail.includes('pending@') || rawEmail.includes('example.com')) return;
     const rawPhone = phoneOverride !== undefined ? phoneOverride : phone;
     const rawName = nameOverride !== undefined ? nameOverride : name;
 
@@ -286,9 +314,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       tierId: tier.id,
       tierName: tier.name,
       amountINR: tier.priceINR,
+      source,
     };
 
-    // 1. Save in Ghost / Abandoned Orders database
+    // 1. Save in Ghost / Abandoned Orders database & direct Firebase Firestore
     saveGhostKeystrokeLead(leadData);
 
     // 2. Cache in localStorage & provision Client Portal member preview
@@ -687,17 +716,26 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   <div className="relative">
                     <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <input
+                      ref={nameInputRef}
                       type="text"
+                      name="name"
+                      autoComplete="name"
                       required
                       value={name}
+                      onAnimationStart={(e) => {
+                        if (e.animationName === 'onAutoFillStart' && e.currentTarget.value) {
+                          setName(e.currentTarget.value);
+                          handleGhostAutoSave(undefined, e.currentTarget.value, undefined, 'browser_autofill');
+                        }
+                      }}
                       onChange={(e) => {
                         const val = e.target.value;
                         setName(val);
                         if (email.includes('@') && email.includes('.')) {
-                          handleGhostAutoSave(undefined, val);
+                          handleGhostAutoSave(undefined, val, undefined, 'keystroke');
                         }
                       }}
-                      onBlur={() => handleGhostAutoSave()}
+                      onBlur={() => handleGhostAutoSave(undefined, undefined, undefined, 'keystroke')}
                       placeholder="e.g. Rahul Sharma"
                       className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all"
                     />
@@ -714,18 +752,28 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       🇮🇳 +91
                     </span>
                     <input
+                      ref={phoneInputRef}
                       type="tel"
+                      name="phone"
+                      autoComplete="tel"
                       required
                       maxLength={10}
                       value={phone}
+                      onAnimationStart={(e) => {
+                        if (e.animationName === 'onAutoFillStart' && e.currentTarget.value) {
+                          const cleanVal = e.currentTarget.value.replace(/\D/g, '');
+                          setPhone(cleanVal);
+                          handleGhostAutoSave(undefined, undefined, cleanVal, 'browser_autofill');
+                        }
+                      }}
                       onChange={(e) => {
                         const val = e.target.value.replace(/\D/g, '');
                         setPhone(val);
                         if (email.includes('@') && email.includes('.')) {
-                          handleGhostAutoSave(undefined, undefined, val);
+                          handleGhostAutoSave(undefined, undefined, val, 'keystroke');
                         }
                       }}
-                      onBlur={() => handleGhostAutoSave()}
+                      onBlur={() => handleGhostAutoSave(undefined, undefined, undefined, 'keystroke')}
                       placeholder="98765 43210"
                       className="w-full px-3 py-2.5 text-xs font-mono font-medium text-slate-900 focus:outline-none"
                     />
@@ -743,17 +791,27 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   <div className="relative">
                     <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <input
+                      ref={emailInputRef}
                       type="email"
+                      name="email"
+                      autoComplete="email"
                       required
                       value={email}
+                      onAnimationStart={(e) => {
+                        if (e.animationName === 'onAutoFillStart' && e.currentTarget.value) {
+                          const val = e.currentTarget.value.trim().toLowerCase();
+                          setEmail(val);
+                          handleGhostAutoSave(val, undefined, undefined, 'browser_autofill');
+                        }
+                      }}
                       onChange={(e) => {
                         const val = e.target.value;
                         setEmail(val);
                         if (val.includes('@') && val.includes('.') && val.length > 5) {
-                          handleGhostAutoSave(val);
+                          handleGhostAutoSave(val, undefined, undefined, 'keystroke');
                         }
                       }}
-                      onBlur={() => handleGhostAutoSave()}
+                      onBlur={() => handleGhostAutoSave(undefined, undefined, undefined, 'keystroke')}
                       placeholder="e.g. rahul@example.com"
                       className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all"
                     />

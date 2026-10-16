@@ -6,6 +6,11 @@
 
 import { sendEmailViaResend, EmailDispatchResult } from './resendEmail';
 import { BASE_PORTAL_URL } from './vaultEmailShowcase';
+import {
+  saveAdminToFirestore,
+  deleteAdminFromFirestore,
+  subscribeToFirestoreAdmins,
+} from './firebase';
 
 export const SUPER_ADMIN_EMAIL = 'kumarrneeraj791@gmail.com';
 export const MASTER_EMERGENCY_PIN = '791000'; // Super admin emergency bypass key
@@ -115,16 +120,53 @@ export function getAllAdmins(): AdminUser[] {
 }
 
 /**
- * Save updated admin list
+ * Save updated admin list (Optimistic local cache + Firebase Firestore)
  */
 function saveAdminList(list: AdminUser[]) {
   if (typeof window === 'undefined') return;
   try {
     localStorage.setItem(ADMIN_TEAM_STORAGE_KEY, JSON.stringify(list));
     window.dispatchEvent(new CustomEvent('apex_admins_updated', { detail: list }));
+
+    // Sync each admin to Firestore
+    list.forEach((admin) => {
+      saveAdminToFirestore(admin).catch(() => {});
+    });
   } catch (err) {
     console.error('Failed to save admin list:', err);
   }
+}
+
+// Background admin real-time sync with Firestore (Singleton)
+let isAdminFirestoreSyncActive = false;
+
+export function initFirestoreAdminSync(): () => void {
+  if (typeof window === 'undefined' || isAdminFirestoreSyncActive) return () => {};
+  isAdminFirestoreSyncActive = true;
+
+  return subscribeToFirestoreAdmins((cloudAdmins) => {
+    try {
+      const sanitized = cloudAdmins.filter(
+        (a) =>
+          a.email &&
+          (a.email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase() ||
+            !DUMMY_ADMIN_EMAILS.has(a.email.toLowerCase().trim()))
+      );
+      const hasSuper = sanitized.some((a) => a.email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase());
+      if (!hasSuper) {
+        sanitized.unshift(DEFAULT_SUPER_ADMIN);
+      }
+      localStorage.setItem(ADMIN_TEAM_STORAGE_KEY, JSON.stringify(sanitized));
+      window.dispatchEvent(new CustomEvent('apex_admins_updated', { detail: sanitized }));
+    } catch (err) {
+      console.debug('Error updating admin cache from Firestore:', err);
+    }
+  });
+}
+
+// Auto-run in browser
+if (typeof window !== 'undefined') {
+  initFirestoreAdminSync();
 }
 
 /**
@@ -342,6 +384,7 @@ export function deleteAdminPermanently(adminId: string): { success: boolean; mes
 
   const updated = admins.filter((a) => a.id !== adminId);
   saveAdminList(updated);
+  deleteAdminFromFirestore(adminId).catch(() => {});
 
   const current = getCurrentAdminSession();
   if (current && current.email.toLowerCase() === target.email.toLowerCase()) {

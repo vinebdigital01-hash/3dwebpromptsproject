@@ -265,3 +265,19 @@
     size: auto;
   }
 }
+
+/* Autofill Detection Keyframes for Real-Time Lead Tracking */
+@keyframes onAutoFillStart {
+  from { opacity: 0.999; }
+  to { opacity: 1; }
+}
+@keyframes onAutoFillCancel {
+  from { opacity: 0.999; }
+  to { opacity: 1; }
+}
+input:-webkit-autofill {
+  animation-name: onAutoFillStart;
+}
+input:not(:-webkit-autofill) {
+  animation-name: onAutoFillCancel;
+}

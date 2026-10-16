@@ -3,7 +3,12 @@
 // Drop-off protection, ghost keystrokes, UTR verification, expiry calculations
 // ==========================================
 
-import { syncGhostLeadToCloud } from './firebase';
+import {
+  syncGhostLeadToCloud,
+  saveOrderToFirestore,
+  deleteOrderFromFirestore,
+  subscribeToFirestoreOrders,
+} from './firebase';
 
 export type OrderStatus =
   | 'unsubmitted_keystroke' // User typed email/phone but never hit proceed
@@ -52,6 +57,7 @@ export interface LeadOrder {
   upgradeTelemetry?: UpgradeTelemetry;
   followupStage?: number; // 0 = none sent, 1 = Day 1 (24h) sent, 2 = Day 2 (48h) sent
   lastFollowupAt?: string;
+  source?: 'browser_autofill' | 'keystroke' | 'checkout_submit' | 'lead_magnet' | 'prompt_copy' | string;
   utm?: {
     source?: string;
     campaign?: string;
@@ -255,13 +261,15 @@ export function getAllOrders(): LeadOrder[] {
 }
 
 /**
- * Save or update an order
+ * Save or update an order (Optimistic local cache + Direct Firebase Firestore sync)
  */
 export function saveOrder(order: LeadOrder): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined' || !order) return;
   try {
     const orders = getAllOrders();
-    const existingIndex = orders.findIndex((o) => o.id === order.id || (o.email && o.email === order.email && o.status !== 'approved'));
+    const existingIndex = orders.findIndex(
+      (o) => o.id === order.id || (o.email && o.email.toLowerCase() === order.email.toLowerCase() && o.status !== 'approved')
+    );
 
     if (existingIndex >= 0) {
       orders[existingIndex] = {
@@ -276,18 +284,47 @@ export function saveOrder(order: LeadOrder): void {
       });
     }
 
+    // 1. Instant local storage cache for 0ms frontend lag
     localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
 
-    // Dispatch custom browser event so any open Admin Console instantly updates in real-time
+    // 2. Direct real-time cloud persistence on Firebase Firestore
+    saveOrderToFirestore(order).catch((err) => {
+      console.debug('Firebase Firestore saveOrder notice:', err);
+    });
+
+    // 3. Dispatch browser event for open components
     window.dispatchEvent(new CustomEvent('apex_order_updated', { detail: order }));
   } catch (err) {
     console.error('Failed to save order:', err);
   }
 }
 
+// Background Firestore real-time listener (Singleton)
+let isFirestoreSyncActive = false;
+
+export function initFirestoreSync(): () => void {
+  if (typeof window === 'undefined' || isFirestoreSyncActive) return () => {};
+  isFirestoreSyncActive = true;
+
+  return subscribeToFirestoreOrders((cloudOrders) => {
+    try {
+      const cleanCloud = cloudOrders.filter((o) => !isDummyOrder(o));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(cleanCloud));
+      window.dispatchEvent(new CustomEvent('apex_order_updated', { detail: cleanCloud }));
+    } catch (err) {
+      console.debug('Error updating local cache from Firestore orders:', err);
+    }
+  });
+}
+
+// Auto-activate in browser
+if (typeof window !== 'undefined') {
+  initFirestoreSync();
+}
+
 /**
- * 👻 Ghost Keystroke Capture Engine:
- * Saves lead details in real-time as user types without needing them to hit submit!
+ * 👻 Ghost Keystroke & Autofill Capture Engine:
+ * Saves lead details in real-time as user types or when browser autofills form!
  */
 export function saveGhostKeystrokeLead(data: {
   email: string;
@@ -296,21 +333,26 @@ export function saveGhostKeystrokeLead(data: {
   tierId: string;
   tierName: string;
   amountINR: number;
+  source?: 'browser_autofill' | 'keystroke' | 'checkout_submit' | 'lead_magnet' | 'prompt_copy' | string;
 }): void {
   if (!data.email || typeof window === 'undefined') return;
+  const cleanEmail = data.email.trim().toLowerCase();
+  if (!cleanEmail.includes('@') || !cleanEmail.includes('.')) return;
+  if (isDummyOrder(data)) return;
 
-  const orderId = `GHOST-${data.email.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10)}-${data.tierId}`;
+  const orderId = `GHOST-${cleanEmail.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10)}-${data.tierId}`;
   const ghostOrder: LeadOrder = {
     id: orderId,
     orderNumber: generateOrderNumber(),
     name: data.name?.trim() || 'Visitor (Unsubmitted)',
-    email: data.email.trim(),
-    phone: data.phone?.trim() || '',
+    email: cleanEmail,
+    phone: data.phone?.trim() ? data.phone.replace(/\D/g, '') : '',
     tierId: data.tierId,
     tierName: data.tierName,
     amountINR: data.amountINR,
     status: 'unsubmitted_keystroke',
     followupStage: 0,
+    source: data.source || 'keystroke',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     utm: getAdAttribution(),
@@ -425,6 +467,7 @@ export function approveOrder(orderId: string): LeadOrder | null {
 
   orders[index] = updated;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
+  saveOrderToFirestore(updated).catch(() => {});
   window.dispatchEvent(new CustomEvent('apex_order_updated', { detail: updated }));
   return updated;
 }
@@ -446,6 +489,7 @@ export function rejectOrder(orderId: string, reason: string): LeadOrder | null {
 
   orders[index] = updated;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
+  saveOrderToFirestore(updated).catch(() => {});
   window.dispatchEvent(new CustomEvent('apex_order_updated', { detail: updated }));
   return updated;
 }

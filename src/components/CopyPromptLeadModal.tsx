@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Copy, User, Mail, Phone, Briefcase, GraduationCap, Building2, Check, ArrowRight, AlertCircle, Sparkles } from 'lucide-react';
 import { sound } from '../lib/audioEngine';
+import { saveGhostKeystrokeLead } from '../lib/leadTracker';
 
 export type UserRole = 'Student' | 'Freelancer' | 'Agency Owner';
 
@@ -29,9 +30,55 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
   const [isCopiedSuccess, setIsCopiedSuccess] = useState(false);
   const [mounted, setMounted] = useState(false);
 
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const emailInputRef = useRef<HTMLInputElement>(null);
+  const phoneInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const captureGhost = (source: 'browser_autofill' | 'keystroke' = 'keystroke', overrides?: { email?: string; name?: string; phone?: string }) => {
+    const rawEmail = (overrides?.email ?? emailInputRef.current?.value ?? email ?? '').trim().toLowerCase();
+    const rawName = (overrides?.name ?? nameInputRef.current?.value ?? name ?? '').trim();
+    const rawPhone = (overrides?.phone ?? phoneInputRef.current?.value ?? phone ?? '').trim();
+
+    if (!rawEmail || !rawEmail.includes('@') || !rawEmail.includes('.')) return;
+    if (rawEmail.includes('pending@') || rawEmail.includes('example.com')) return;
+
+    if (rawEmail !== email) setEmail(rawEmail);
+    if (rawName && rawName !== name) setName(rawName);
+    if (rawPhone && rawPhone !== phone) setPhone(rawPhone);
+
+    saveGhostKeystrokeLead({
+      email: rawEmail,
+      name: rawName || 'Visitor (Prompt Copy Lead)',
+      phone: rawPhone.replace(/\D/g, ''),
+      tierId: 'prompt_copy',
+      tierName: clientTitle ? `Prompt: ${clientTitle}` : 'Prompt Copy Lead',
+      amountINR: 0,
+      source,
+    });
+  };
+
+  // Browser Autofill Detection on modal open
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const checkAutofill = () => captureGhost('browser_autofill');
+    checkAutofill();
+    const t1 = setTimeout(checkAutofill, 150);
+    const t2 = setTimeout(checkAutofill, 400);
+    const t3 = setTimeout(checkAutofill, 900);
+    const t4 = setTimeout(checkAutofill, 2000);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      clearTimeout(t4);
+    };
+  }, [isOpen, clientTitle]);
 
   // Lock body scroll and handle Escape key
   useEffect(() => {
@@ -43,6 +90,7 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         sound.playClick();
+        captureGhost('keystroke');
         onClose();
       }
     };
@@ -199,12 +247,24 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
               <input
+                ref={nameInputRef}
                 type="text"
+                name="name"
+                autoComplete="name"
                 required
                 value={name}
+                onAnimationStart={(e) => {
+                  if (e.animationName === 'onAutoFillStart' && e.currentTarget.value) {
+                    setName(e.currentTarget.value);
+                    captureGhost('browser_autofill', { name: e.currentTarget.value });
+                  }
+                }}
                 onChange={(e) => {
                   setName(e.target.value);
                   if (error) setError(null);
+                  if (email.includes('@')) {
+                    captureGhost('keystroke', { name: e.target.value });
+                  }
                 }}
                 placeholder="Alex Vance"
                 className="w-full pl-9 pr-3.5 py-2 rounded-lg bg-zinc-900/60 border border-zinc-800 text-zinc-100 text-xs sm:text-sm placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500/20 transition-all font-sans"
@@ -220,13 +280,28 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
               <input
+                ref={emailInputRef}
                 type="email"
+                name="email"
+                autoComplete="email"
                 required
                 value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  if (error) setError(null);
+                onAnimationStart={(e) => {
+                  if (e.animationName === 'onAutoFillStart' && e.currentTarget.value) {
+                    const clean = e.currentTarget.value.trim().toLowerCase();
+                    setEmail(clean);
+                    captureGhost('browser_autofill', { email: clean });
+                  }
                 }}
+                onChange={(e) => {
+                  const clean = e.target.value.trim().toLowerCase();
+                  setEmail(clean);
+                  if (error) setError(null);
+                  if (clean.includes('@') && clean.includes('.')) {
+                    captureGhost('keystroke', { email: clean });
+                  }
+                }}
+                onBlur={() => captureGhost('keystroke')}
                 placeholder="alex@studio.design"
                 className="w-full pl-9 pr-3.5 py-2 rounded-lg bg-zinc-900/60 border border-zinc-800 text-zinc-100 text-xs sm:text-sm placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500/20 transition-all font-sans"
               />
@@ -243,14 +318,29 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
                 +91
               </span>
               <input
+                ref={phoneInputRef}
                 type="tel"
+                name="phone"
+                autoComplete="tel"
                 required
                 maxLength={10}
                 value={phone}
-                onChange={(e) => {
-                  setPhone(e.target.value.replace(/\D/g, ''));
-                  if (error) setError(null);
+                onAnimationStart={(e) => {
+                  if (e.animationName === 'onAutoFillStart' && e.currentTarget.value) {
+                    const cleanP = e.currentTarget.value.replace(/\D/g, '');
+                    setPhone(cleanP);
+                    captureGhost('browser_autofill', { phone: cleanP });
+                  }
                 }}
+                onChange={(e) => {
+                  const cleanP = e.target.value.replace(/\D/g, '');
+                  setPhone(cleanP);
+                  if (error) setError(null);
+                  if (email.includes('@')) {
+                    captureGhost('keystroke', { phone: cleanP });
+                  }
+                }}
+                onBlur={() => captureGhost('keystroke')}
                 placeholder="98765 43210"
                 className="w-full px-3 py-2 text-xs sm:text-sm font-mono text-zinc-100 placeholder:text-zinc-600 bg-transparent focus:outline-none"
               />

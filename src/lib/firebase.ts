@@ -21,16 +21,28 @@ import {
 } from 'firebase/auth';
 import { getAnalytics, isSupported, Analytics } from 'firebase/analytics';
 
-import { getFirestore, Firestore, doc, setDoc } from 'firebase/firestore';
+import {
+  getFirestore,
+  Firestore,
+  doc,
+  setDoc,
+  getDocs,
+  collection,
+  onSnapshot,
+  deleteDoc,
+  Unsubscribe,
+} from 'firebase/firestore';
+
+const env = typeof import.meta !== 'undefined' && (import.meta as any).env ? (import.meta as any).env : {};
 
 export const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyA8S97ReZY0nXczM-JMlW-BbcVyc5N9iEY",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "dprompts-4c800.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "dprompts-4c800",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "dprompts-4c800.firebasestorage.app",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "74724497042",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:74724497042:web:ff48dc48c11f71ae1cb84b",
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-Y4E20CT89L"
+  apiKey: env.VITE_FIREBASE_API_KEY || "AIzaSyA8S97ReZY0nXczM-JMlW-BbcVyc5N9iEY",
+  authDomain: env.VITE_FIREBASE_AUTH_DOMAIN || "dprompts-4c800.firebaseapp.com",
+  projectId: env.VITE_FIREBASE_PROJECT_ID || "dprompts-4c800",
+  storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET || "dprompts-4c800.firebasestorage.app",
+  messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID || "74724497042",
+  appId: env.VITE_FIREBASE_APP_ID || "1:74724497042:web:ff48dc48c11f71ae1cb84b",
+  measurementId: env.VITE_FIREBASE_MEASUREMENT_ID || "G-Y4E20CT89L"
 };
 
 // Initialize Firebase App (Singleton safe across hot reloads)
@@ -41,6 +53,146 @@ export const auth: Auth = getAuth(app);
 
 // Initialize Firestore
 export const db: Firestore = getFirestore(app);
+
+/**
+ * Save an order to Firestore 'orders' collection
+ */
+export async function saveOrderToFirestore(order: any): Promise<void> {
+  if (typeof window === 'undefined' || !order || !order.id) return;
+  try {
+    const orderRef = doc(db, 'orders', order.id);
+    await setDoc(
+      orderRef,
+      {
+        ...order,
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true }
+    );
+
+    // If it's a ghost lead (unsubmitted or abandoned at qr), also mirror to 'ghost_leads'
+    if (order.status === 'unsubmitted_keystroke' || order.status === 'abandoned_at_qr') {
+      const ghostRef = doc(db, 'ghost_leads', order.id);
+      await setDoc(
+        ghostRef,
+        {
+          ...order,
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true }
+      );
+    }
+  } catch (err) {
+    console.debug('Firestore saveOrder error:', err);
+  }
+}
+
+/**
+ * Delete an order from Firestore
+ */
+export async function deleteOrderFromFirestore(orderId: string): Promise<void> {
+  if (typeof window === 'undefined' || !orderId) return;
+  try {
+    await deleteDoc(doc(db, 'orders', orderId));
+    await deleteDoc(doc(db, 'ghost_leads', orderId)).catch(() => {});
+  } catch (err) {
+    console.debug('Firestore deleteOrder error:', err);
+  }
+}
+
+/**
+ * Subscribe to real-time updates for all orders from Firestore
+ */
+export function subscribeToFirestoreOrders(callback: (orders: any[]) => void): Unsubscribe {
+  try {
+    const ordersCol = collection(db, 'orders');
+    return onSnapshot(
+      ordersCol,
+      (snapshot) => {
+        const list: any[] = [];
+        snapshot.forEach((d) => {
+          list.push(d.data());
+        });
+        // Sort descending by createdAt or updatedAt
+        list.sort((a, b) => {
+          const timeA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+          const timeB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+          return timeB - timeA;
+        });
+        callback(list);
+      },
+      (err) => {
+        console.debug('Firestore onSnapshot orders listener notice:', err);
+      }
+    );
+  } catch (err) {
+    console.debug('Failed to subscribe to Firestore orders:', err);
+    return () => {};
+  }
+}
+
+/**
+ * Fetch all orders from Firestore once
+ */
+export async function fetchFirestoreOrders(): Promise<any[]> {
+  try {
+    const snap = await getDocs(collection(db, 'orders'));
+    const list: any[] = [];
+    snap.forEach((d) => list.push(d.data()));
+    return list;
+  } catch (err) {
+    console.debug('Failed to fetch Firestore orders:', err);
+    return [];
+  }
+}
+
+/**
+ * Save admin member to Firestore 'admin_team'
+ */
+export async function saveAdminToFirestore(admin: any): Promise<void> {
+  if (typeof window === 'undefined' || !admin || !admin.id) return;
+  try {
+    const adminRef = doc(db, 'admin_team', admin.id);
+    await setDoc(adminRef, admin, { merge: true });
+  } catch (err) {
+    console.debug('Firestore saveAdmin error:', err);
+  }
+}
+
+/**
+ * Delete admin member from Firestore
+ */
+export async function deleteAdminFromFirestore(adminId: string): Promise<void> {
+  if (typeof window === 'undefined' || !adminId) return;
+  try {
+    await deleteDoc(doc(db, 'admin_team', adminId));
+  } catch (err) {
+    console.debug('Firestore deleteAdmin error:', err);
+  }
+}
+
+/**
+ * Subscribe to real-time updates for admin team from Firestore
+ */
+export function subscribeToFirestoreAdmins(callback: (admins: any[]) => void): Unsubscribe {
+  try {
+    const teamCol = collection(db, 'admin_team');
+    return onSnapshot(
+      teamCol,
+      (snapshot) => {
+        const list: any[] = [];
+        snapshot.forEach((d) => list.push(d.data()));
+        callback(list);
+      },
+      (err) => {
+        console.debug('Firestore onSnapshot admin_team notice:', err);
+      }
+    );
+  } catch (err) {
+    console.debug('Failed to subscribe to Firestore admin_team:', err);
+    return () => {};
+  }
+}
 
 /**
  * Real-time Ghost Lead Cloud Sync
@@ -58,6 +210,7 @@ export async function syncGhostLeadToCloud(lead: {
   status: string;
   createdAt: string;
   followupStage?: number;
+  source?: string;
 }): Promise<void> {
   if (typeof window === 'undefined' || !lead.email) return;
   try {
@@ -73,6 +226,11 @@ export async function syncGhostLeadToCloud(lead: {
       },
       { merge: true }
     );
+    // Also mirror to orders collection so admin can view in real time
+    await saveOrderToFirestore({
+      ...lead,
+      id: docId,
+    });
   } catch (err) {
     console.debug('Ghost lead cloud sync deferred:', err);
   }

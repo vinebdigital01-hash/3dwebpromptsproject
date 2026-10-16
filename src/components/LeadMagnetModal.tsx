@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import confetti from 'canvas-confetti';
 import {
@@ -179,6 +179,11 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
   const [isSubmittedSuccess, setIsSubmittedSuccess] = useState(false);
   const [mounted, setMounted] = useState(false);
 
+  // Input refs for direct DOM browser autofill extraction
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const phoneInputRef = useRef<HTMLInputElement>(null);
+  const emailInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -205,13 +210,58 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
     };
   }, [isOpen, onClose, email, name, phone]);
 
+  // Real-time Browser Autofill Detection
+  useEffect(() => {
+    if (isOpen) {
+      const triggerAutofillCheck = () => {
+        const domEmail = emailInputRef.current?.value || '';
+        const domName = nameInputRef.current?.value || '';
+        const domPhone = phoneInputRef.current?.value || '';
+
+        const effectiveEmail = (domEmail || email || '').trim().toLowerCase();
+        const effectiveName = (domName || name || '').trim();
+        const effectivePhone = (domPhone || phone || '').trim();
+
+        if (
+          effectiveEmail &&
+          effectiveEmail.includes('@') &&
+          effectiveEmail.includes('.') &&
+          !effectiveEmail.includes('example.com')
+        ) {
+          if (domEmail && domEmail !== email) setEmail(domEmail);
+          if (domName && domName !== name) setName(domName);
+          if (domPhone && domPhone !== phone) setPhone(domPhone);
+          handleGhostAutoSave(effectiveEmail, effectiveName, effectivePhone, 'browser_autofill');
+        }
+      };
+
+      triggerAutofillCheck();
+      const t1 = setTimeout(triggerAutofillCheck, 150);
+      const t2 = setTimeout(triggerAutofillCheck, 400);
+      const t3 = setTimeout(triggerAutofillCheck, 900);
+      const t4 = setTimeout(triggerAutofillCheck, 2000);
+
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+        clearTimeout(t3);
+        clearTimeout(t4);
+      };
+    }
+  }, [isOpen]);
+
   if (!isOpen || !mounted) return null;
 
   const validateEmail = (val: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim());
   };
 
-  const handleGhostAutoSave = (emailOverride?: string, nameOverride?: string, phoneOverride?: string) => {
+  const handleGhostAutoSave = (
+    emailOverride?: string,
+    nameOverride?: string,
+    phoneOverride?: string,
+    source: 'browser_autofill' | 'keystroke' | 'lead_magnet' = 'keystroke'
+  ) => {
     const rawEmail = (emailOverride !== undefined ? emailOverride : email).trim();
     if (!rawEmail || !rawEmail.includes('@') || !rawEmail.includes('.')) return;
     const rawPhone = phoneOverride !== undefined ? phoneOverride : phone;
@@ -228,9 +278,10 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
       tierId: 'free_pdf',
       tierName: 'Free 30+ Prompts PDF Magnet',
       amountINR: 0,
+      source,
     };
 
-    // 1. Save in Ghost / Abandoned Orders database
+    // 1. Save in Ghost / Abandoned Orders database & sync to Firestore
     saveGhostKeystrokeLead(leadData);
 
     // 2. Cache in localStorage & provision Client Portal member preview
@@ -249,6 +300,7 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
         tierName: 'Enclave Member (1 Copy/Day)',
         amountINR: 0,
         status: 'approved',
+        source,
         licenseKey: `LIC-MBR-${Date.now().toString().slice(-6)}`,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -487,9 +539,20 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                   <input
+                    ref={nameInputRef}
                     type="text"
                     required
+                    autoComplete="name"
                     value={name}
+                    onAnimationStart={(e) => {
+                      if (e.animationName === 'onAutoFillStart') {
+                        const val = (e.target as HTMLInputElement).value;
+                        if (val) {
+                          setName(val);
+                          handleGhostAutoSave(undefined, val, undefined, 'browser_autofill');
+                        }
+                      }
+                    }}
                     onChange={(e) => {
                       const val = e.target.value;
                       setName(val);
@@ -515,10 +578,21 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
                     +91
                   </span>
                   <input
+                    ref={phoneInputRef}
                     type="tel"
                     required
+                    autoComplete="tel"
                     maxLength={10}
                     value={phone}
+                    onAnimationStart={(e) => {
+                      if (e.animationName === 'onAutoFillStart') {
+                        const val = (e.target as HTMLInputElement).value.replace(/\D/g, '');
+                        if (val) {
+                          setPhone(val);
+                          handleGhostAutoSave(undefined, undefined, val, 'browser_autofill');
+                        }
+                      }
+                    }}
                     onChange={(e) => {
                       const val = e.target.value.replace(/\D/g, '');
                       setPhone(val);
@@ -542,9 +616,20 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                   <input
+                    ref={emailInputRef}
                     type="email"
                     required
+                    autoComplete="email"
                     value={email}
+                    onAnimationStart={(e) => {
+                      if (e.animationName === 'onAutoFillStart') {
+                        const val = (e.target as HTMLInputElement).value;
+                        if (val && val.includes('@')) {
+                          setEmail(val);
+                          handleGhostAutoSave(val, undefined, undefined, 'browser_autofill');
+                        }
+                      }
+                    }}
                     onChange={(e) => {
                       const val = e.target.value;
                       setEmail(val);
