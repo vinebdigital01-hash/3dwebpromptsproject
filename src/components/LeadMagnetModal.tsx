@@ -213,8 +213,19 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
     sound.playClick();
     setError(null);
     setIsSubmittedSuccess(false);
-    setIsSubmitting(false);
     onClose();
+  };
+
+  const handleGhostAutoSave = () => {
+    if (!email.trim() || !email.includes('@') || !email.includes('.')) return;
+    saveGhostKeystrokeLead({
+      name: name.trim() || 'Visitor (Lead Magnet)',
+      phone: phone.trim() ? phone.replace(/\D/g, '') : '',
+      email: email.trim().toLowerCase(),
+      tierId: 'free_pdf',
+      tierName: 'Free 30+ Prompts PDF Magnet',
+      amountINR: 0,
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -440,6 +451,7 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
                       setName(e.target.value);
                       if (error) setError(null);
                     }}
+                    onBlur={handleGhostAutoSave}
                     placeholder="Rahul Sharma"
                     className="w-full pl-9 pr-3.5 py-2 rounded-lg bg-zinc-900/60 border border-zinc-800 text-zinc-100 text-xs sm:text-sm placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500/20 transition-all font-sans"
                   />
@@ -464,6 +476,7 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
                       setPhone(e.target.value.replace(/\D/g, ''));
                       if (error) setError(null);
                     }}
+                    onBlur={handleGhostAutoSave}
                     placeholder="98765 43210"
                     className="w-full px-3 py-2 text-xs sm:text-sm font-mono text-zinc-100 placeholder:text-zinc-600 bg-transparent focus:outline-none"
                   />
@@ -485,6 +498,7 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
                       setEmail(e.target.value);
                       if (error) setError(null);
                     }}
+                    onBlur={handleGhostAutoSave}
                     placeholder="developer@studio.com"
                     className="w-full pl-9 pr-3.5 py-2 rounded-lg bg-zinc-900/60 border border-zinc-800 text-zinc-100 text-xs sm:text-sm placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500/20 transition-all font-sans"
                   />
