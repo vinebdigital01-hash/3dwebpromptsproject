@@ -1,0 +1,88 @@
+VINE B DIGITAL // 3D VAULT
+------------------------------------------------------------------------
+ORDER: {{order_number}} | STATUS: INR 49 CREDIT LOCKED
+------------------------------------------------------------------------
+
+We've already credited your INR 49, {{first_name}}.
+
+When you unlocked the 1-Day Sprint Pass, you paid INR 49. As promised in
+our upgrade policy, 100% of that payment is immediately credited toward
+your upgrade. You only pay the difference.
+
+
+========================================================================
+CHOOSE YOUR UPGRADE (CREDIT AUTOMATICALLY DEDUCTED)
+========================================================================
+
+OPTION 1: 1-MONTH PRO ACCESS
+- Price       : INR {{upgrade_price_pro}} (regularly INR 299)
+- Duration    : 30 Days Full Vault Access
+- Quota       : 3 Calibrated Prompt Copies / Day
+- Includes    : All 500+ Three.js & GLSL Shader Prompts
+
+-> Upgrade to Pro (INR {{upgrade_price_pro}}):
+{{upgrade_link_pro}}
+
+
+OPTION 2: LIFETIME VIP ALL-ACCESS [RECOMMENDED / STUDIO STANDARD]
+- Price       : INR {{upgrade_price_vip}} (regularly INR 2,999)
+- Duration    : Forever (Lifetime Access & All Future Drops)
+- Quota       : UNLIMITED Copies / Day
+- License     : FULL COMMERCIAL CLIENT LICENSE (VIP Exclusive)
+- Includes    : All 500+ Prompts + Cursor Rules + Claude System Prompts
+
+-> Go Lifetime VIP (INR {{upgrade_price_vip}}):
+{{upgrade_link_vip}}
+
+========================================================================
+
+Looking for our 6-Month Studio Growth Pass?
+Get 180 days with 15 copies/day for INR 650 (regularly INR 699):
+https://vinebdigital.store/#upgrade?tier=studio&order={{order_number}}
+
+
+------------------------------------------------------------------------
+TIER COMPARISON SUMMARY
+------------------------------------------------------------------------
+- Sprint Pass : 1 copy/day (Locked after single use)
+- Pro Access  : 3 copies/day (Ideal for ongoing freelance projects)
+- Lifetime VIP: Unlimited copies + Full Commercial Client Rights
+
+
+------------------------------------------------------------------------
+CREDIT RESERVATION WINDOW
+------------------------------------------------------------------------
+Your INR 49 credit is cryptographically reserved for order {{order_number}}
+until:
+{{credit_expires_at}}
+
+After this deadline, upgrades revert to standard retail pricing.
+
+
+------------------------------------------------------------------------
+EXPERIENCE WHAT YOU'RE UNLOCKING (60 FPS SHADER DEMO)
+------------------------------------------------------------------------
+Watch our 20-second reel of WebGL client work:
+
+-> Watch WebGL Reel:
+https://vinebdigital.store/watch/v01-hero-reel
+
+
+------------------------------------------------------------------------
+QUESTIONS OR CUSTOM INVOICING?
+------------------------------------------------------------------------
+Reach out directly to our priority desk on WhatsApp:
+https://wa.me/918860090791
+
+
+------------------------------------------------------------------------
+Vine B Digital Marketing Agency
+[COMPANY REGISTERED ADDRESS]
+Website: https://vinebdigital.store
+
+Why you're receiving this: You hold an active 1-Day Sprint Pass (order
+{{order_number}}) on vinebdigital.store and opened the tier upgrade portal.
+
+To stop receiving upgrade reminders, unsubscribe below:
+-> Unsubscribe: {{unsubscribe_url}}
+-> Manage Preferences: {{preferences_url}}

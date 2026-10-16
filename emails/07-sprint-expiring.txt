@@ -1,0 +1,77 @@
+VINE B DIGITAL // 3D VAULT
+------------------------------------------------------------------------
+EXPIRATION NOTICE | STATUS: ACCESS ENDS IN 4 HOURS
+------------------------------------------------------------------------
+
+Your 24-hour sprint ends at {{expires_at}}, {{first_name}}.
+
+There are approximately {{hours_remaining}} hours remaining on your
+1-Day Sprint Pass before your member session locks.
+
+
+========================================================================
+CURRENT SPRINT SESSION STATUS
+========================================================================
+Active Plan  : 1-Day Sprint Pass (24 Hours)
+Expires At   : {{expires_at}}
+Quota Status : {{copies_used_today}} of {{copy_limit}} prompt copies used today
+Vault Status : 500+ Three.js & GLSL Shaders accessible until deadline
+========================================================================
+
+
+WHAT HAPPENS AT EXPIRATION:
+When your 24 hours expire:
+1. Member portal prompt copying locks automatically.
+2. Your session history and saved favorites remain stored safely.
+3. Access to future monthly shader releases requires a new pass.
+
+
+------------------------------------------------------------------------
+PLAN UPGRADE COMPARISON (INR 49 CREDIT APPLIED)
+------------------------------------------------------------------------
+Feature               Sprint Pass       1-Month Pro       Lifetime VIP
+------------------------------------------------------------------------
+Validity Period       24 Hours (ends)   30 Days           Forever (Lifetime)
+Daily Copy Limit      1 copy/day        3 copies/day      UNLIMITED
+Commercial License    No                No                YES (VIP Only)
+Price (INR 49 Credit) Paid INR 49       INR {{upgrade_price_pro}}       INR {{upgrade_price_vip}}
+------------------------------------------------------------------------
+
+
+PRIMARY ACTION:
+Preserve uninterrupted access to the vault before the 4-hour lockout:
+
+-> Keep My Access: Upgrade to Pro (INR {{upgrade_price_pro}}):
+{{upgrade_link_pro}}
+
+-> Or Unlock Unlimited Forever with Lifetime VIP (INR {{upgrade_price_vip}}):
+{{upgrade_link_vip}}
+
+
+------------------------------------------------------------------------
+REMINDER: WHAT YOU'RE UNLOCKING (60 FPS CLIENT SHADERS)
+------------------------------------------------------------------------
+Preview the production Three.js shaders running in the vault:
+
+-> Watch WebGL Reel:
+https://vinebdigital.store/watch/v01-hero-reel
+
+
+------------------------------------------------------------------------
+QUESTIONS BEFORE UPGRADING?
+------------------------------------------------------------------------
+Message our engineering desk directly on WhatsApp:
+https://wa.me/918860090791
+
+
+------------------------------------------------------------------------
+Vine B Digital Marketing Agency
+[COMPANY REGISTERED ADDRESS]
+Website: https://vinebdigital.store
+
+Why you're receiving this: You have an active 1-Day Sprint Pass on
+vinebdigital.store expiring at {{expires_at}}.
+
+To stop receiving expiration notices, unsubscribe below:
+-> Unsubscribe: {{unsubscribe_url}}
+-> Manage Preferences: {{preferences_url}}

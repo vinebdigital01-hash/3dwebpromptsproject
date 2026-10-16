@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vine B Digital // 3D Vault — Lifecycle Email System Preview (QA Dashboard)</title>
+  <style>
+    :root {
+      --bg: #06060c;
+      --card-bg: #0c0c16;
+      --card-border: #1e1e2f;
+      --text: #f1f5f9;
+      --muted: #64748b;
+      --accent: #3b82f6;
+      --emerald: #10b981;
+      --amber: #f59e0b;
+      --rose: #ef4444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 32px 24px 64px 24px;
+    }
+    header {
+      max-width: 1300px;
+      margin: 0 auto 36px auto;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 18px;
+    }
+    .brand-title {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+    .brand-title span { color: var(--muted); font-weight: 400; }
+    .badge-bar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .badge {
+      font-family: "SF Mono", Consolas, monospace;
+      font-size: 11px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+    }
+    .badge-trans { background: rgba(16, 185, 129, 0.12); color: var(--emerald); border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-mktg { background: rgba(59, 130, 246, 0.12); color: var(--accent); border: 1px solid rgba(59, 130, 246, 0.3); }
+    .controls {
+      max-width: 1300px;
+      margin: 0 auto 28px auto;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+    .toggle-group {
+      display: flex;
+      background: #090914;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 4px;
+      gap: 4px;
+    }
+    .toggle-btn {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .toggle-btn.active {
+      background: #1e1e32;
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    }
+    .grid {
+      max-width: 1300px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(580px, 1fr));
+      gap: 32px;
+    }
+    @media (max-width: 640px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+    .email-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    }
+    .email-card-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--card-border);
+      background: #0a0a14;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .email-num {
+      font-family: "SF Mono", Consolas, monospace;
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 4px;
+    }
+    .email-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+    .email-subject {
+      font-size: 13px;
+      color: #94a3b8;
+      margin-top: 6px;
+      font-family: "SF Mono", Consolas, monospace;
+    }
+    .card-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .action-btn {
+      color: var(--accent);
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .action-btn:hover {
+      background: var(--accent);
+      color: #ffffff;
+    }
+    .iframe-wrapper {
+      padding: 20px;
+      background: #05050a;
+      display: flex;
+      justify-content: center;
+      overflow-x: auto;
+    }
+    iframe {
+      border: 1px solid #161626;
+      border-radius: 8px;
+      background: #06060c;
+      transition: width 0.3s ease;
+      width: 600px;
+      height: 780px;
+    }
+    .is-mobile iframe {
+      width: 375px;
+      height: 780px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="brand-icon">⚡</div>
+      <div>
+        <div class="brand-title">Vine B Digital <span>//</span> 3D Vault</div>
+        <div style="font-size: 12px; color: var(--muted); margin-top: 2px;">Lifecycle Email QA Preview Matrix &bull; 7 Production Templates</div>
+      </div>
+    </div>
+    <div class="badge-bar">
+      <span class="badge badge-trans">3 Transactional</span>
+      <span class="badge badge-mktg">4 Marketing</span>
+      <span class="badge" style="background: rgba(139, 92, 246, 0.12); color: #a78bfa; border: 1px solid rgba(139, 92, 246, 0.3);">Dark Luxury System</span>
+    </div>
+  </header>
+
+  <div class="controls">
+    <div style="font-size: 14px; color: #94a3b8;">
+      Showing all 7 lifecycle templates compiled for Resend / ESP dispatch.
+    </div>
+    <div class="toggle-group">
+      <button class="toggle-btn active" onclick="setView('desktop')">Desktop View (600px)</button>
+      <button class="toggle-btn" onclick="setView('mobile')">Mobile View (375px)</button>
+    </div>
+  </div>
+
+  <div class="grid" id="grid">
+    
+    <!-- Email 1 -->
+    <div class="email-card">
+      <div class="email-card-header">
+        <div>
+          <div class="email-num">E1 &bull; TRANSACTIONAL &bull; INSTANT DISPATCH</div>
+          <div class="email-name">Order Approved & Instant Access Delivery</div>
+          <div class="email-subject">&ldquo;Access granted: your 3D Vault license is live&rdquo;</div>
+        </div>
+        <div class="card-actions">
+          <a href="01-order-approved.html" target="_blank" class="action-btn">Open &nearr;</a>
+        </div>
+      </div>
+      <div class="iframe-wrapper">
+        <iframe src="01-order-approved.html" title="Email 1"></iframe>
+      </div>
+    </div>
+
+    <!-- Email 2 -->
+    <div class="email-card">
+      <div class="email-card-header">
+        <div>
+          <div class="email-num">E2 &bull; TRANSACTIONAL &bull; INSTANT ON UTR SUBMIT</div>
+          <div class="email-name">UTR Verification In Progress</div>
+          <div class="email-subject">&ldquo;Payment received for review [{{order_number}}]&rdquo;</div>
+        </div>
+        <div class="card-actions">
+          <a href="02-utr-under-review.html" target="_blank" class="action-btn">Open &nearr;</a>
+        </div>
+      </div>
+      <div class="iframe-wrapper">
+        <iframe src="02-utr-under-review.html" title="Email 2"></iframe>
+      </div>
+    </div>
+
+    <!-- Email 3 -->
+    <div class="email-card">
+      <div class="email-card-header">
+        <div>
+          <div class="email-num">E3 &bull; TRANSACTIONAL &bull; INSTANT ON REJECT</div>
+          <div class="email-name">UTR Verification Failed / Action Required</div>
+          <div class="email-subject">&ldquo;Action needed: we couldn't match your payment [{{order_number}}]&rdquo;</div>
+        </div>
+        <div class="card-actions">
+          <a href="03-utr-failed.html" target="_blank" class="action-btn">Open &nearr;</a>
+        </div>
+      </div>
+      <div class="iframe-wrapper">
+        <iframe src="03-utr-failed.html" title="Email 3"></iframe>
+      </div>
+    </div>
+
+    <!-- Email 4 -->
+    <div class="email-card">
+      <div class="email-card-header">
+        <div>
+          <div class="email-num">E4 &bull; MARKETING &bull; 20-MIN DELAY</div>
+          <div class="email-name">Checkout Recovery (Step 1 Pre-QR Drop-off)</div>
+          <div class="email-subject">&ldquo;Quick question about your 3D Vault pass, {{first_name}}&rdquo;</div>
+        </div>
+        <div class="card-actions">
+          <a href="04-cart-abandoned.html" target="_blank" class="action-btn">Open &nearr;</a>
+        </div>
+      </div>
+      <div class="iframe-wrapper">
+        <iframe src="04-cart-abandoned.html" title="Email 4"></iframe>
+      </div>
+    </div>
+
+    <!-- Email 5 -->
+    <div class="email-card">
+      <div class="email-card-header">
+        <div>
+          <div class="email-num">E5 &bull; MARKETING &bull; 35-MIN DELAY</div>
+          <div class="email-name">Payment Interrupted (QR Viewed, Step 2 Drop-off)</div>
+          <div class="email-subject">&ldquo;Payment didn't go through? Here's the fast way&rdquo;</div>
+        </div>
+        <div class="card-actions">
+          <a href="05-qr-abandoned.html" target="_blank" class="action-btn">Open &nearr;</a>
+        </div>
+      </div>
+      <div class="iframe-wrapper">
+        <iframe src="05-qr-abandoned.html" title="Email 5"></iframe>
+      </div>
+    </div>
+
+    <!-- Email 6 -->
+    <div class="email-card">
+      <div class="email-card-header">
+        <div>
+          <div class="email-num">E6 &bull; MARKETING &bull; 15-MIN ON UPGRADE INTENT</div>
+          <div class="email-name">₹49 Sprint Pass Upgrade Hook (Hottest Lead)</div>
+          <div class="email-subject">&ldquo;Your ₹49 is already credited, {{first_name}}&rdquo;</div>
+        </div>
+        <div class="card-actions">
+          <a href="06-sprint-upgrade.html" target="_blank" class="action-btn">Open &nearr;</a>
+        </div>
+      </div>
+      <div class="iframe-wrapper">
+        <iframe src="06-sprint-upgrade.html" title="Email 6"></iframe>
+      </div>
+    </div>
+
+    <!-- Email 7 -->
+    <div class="email-card">
+      <div class="email-card-header">
+        <div>
+          <div class="email-num">E7 &bull; MARKETING &bull; 20-HOUR DELAY (4H REMAINING)</div>
+          <div class="email-name">Sprint Pass Expiring in 4 Hours (Lockout Prevention)</div>
+          <div class="email-subject">&ldquo;Your Sprint access ends at {{expires_at}}&rdquo;</div>
+        </div>
+        <div class="card-actions">
+          <a href="07-sprint-expiring.html" target="_blank" class="action-btn">Open &nearr;</a>
+        </div>
+      </div>
+      <div class="iframe-wrapper">
+        <iframe src="07-sprint-expiring.html" title="Email 7"></iframe>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    function setView(view) {
+      const grid = document.getElementById('grid');
+      const btns = document.querySelectorAll('.toggle-btn');
+      btns.forEach(b => b.classList.remove('active'));
+      
+      if (view === 'mobile') {
+        grid.classList.add('is-mobile');
+        btns[1].classList.add('active');
+      } else {
+        grid.classList.remove('is-mobile');
+        btns[0].classList.add('active');
+      }
+    }
+  </script>
+</body>
+</html>

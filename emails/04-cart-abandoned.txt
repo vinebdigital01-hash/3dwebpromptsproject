@@ -1,0 +1,84 @@
+VINE B DIGITAL // 3D VAULT
+------------------------------------------------------------------------
+CHECKOUT SAVED | STATUS: PENDING RESUMPTION
+------------------------------------------------------------------------
+
+Hey {{first_name}},
+
+Looks like your checkout session got interrupted. Your selection for
+{{tier_name}} (INR {{amount}}) is saved and ready for you to pick up
+right where you left off.
+
+
+PRIMARY ACTION:
+Resume your checkout session in one click:
+
+-> Resume Checkout: {{tier_name}}
+{{checkout_resume_link}}
+
+
+------------------------------------------------------------------------
+WHAT'S INSIDE THE VAULT
+------------------------------------------------------------------------
+- 500+ Calibrated WebGL, Three.js & GLSL Shader Prompts
+- Fully tuned for {{ai_model_label}} and Cursor AI
+- Engineered specifically for $15k to $40k agency client projects
+- Direct one-click copy with instant preview parameters
+
+
+------------------------------------------------------------------------
+SEE THE VAULT IN 20 SECONDS (60 FPS WEBGL REEL)
+------------------------------------------------------------------------
+Watch our quick 20-second product reel showcasing live shader results:
+
+-> Watch Product Reel:
+https://vinebdigital.store/watch/v01-hero-reel
+
+
+------------------------------------------------------------------------
+MEMBER PORTAL PREVIEW
+------------------------------------------------------------------------
+Direct interface screenshot:
+{{asset_base_url}}/portal-dashboard.jpg
+"One-click prompts, live code copy, and verified model configurations."
+
+
+------------------------------------------------------------------------
+COMMON QUESTIONS & HESITATIONS
+------------------------------------------------------------------------
+
+Q: Is Slice Merchant UPI payment secure?
+A: 100% secure. You pay directly via your preferred UPI app to verified
+   merchant VPA "s5305704393562990@slc", registered to Vine B Digital
+   Marketing Agency.
+
+Q: How quickly do I get access?
+A: Access is granted within 2 to 15 minutes as soon as our reconciliation
+   system matches your 12-digit bank UTR reference.
+
+Q: What if I have questions or need assistance?
+A: Our priority WhatsApp engineering desk is open directly for instant
+   human help.
+
+
+------------------------------------------------------------------------
+NEED HELP WITH CHECKOUT?
+------------------------------------------------------------------------
+If you ran into any friction with UPI or have questions about how these
+prompts work inside your stack, message us directly:
+
+-> WhatsApp Desk:
+{{whatsapp_link}} (Direct: +91 8860090791)
+
+
+------------------------------------------------------------------------
+Vine B Digital Marketing Agency
+[COMPANY REGISTERED ADDRESS]
+Website: https://vinebdigital.store
+
+Why you're receiving this: You initiated an access pass order on
+vinebdigital.store but did not complete the checkout.
+
+To stop receiving reminders, you can unsubscribe below:
+-> Unsubscribe: {{unsubscribe_url}}
+-> Manage Preferences: {{preferences_url}}

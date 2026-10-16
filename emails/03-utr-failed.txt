@@ -1,0 +1,74 @@
+VINE B DIGITAL // 3D VAULT
+------------------------------------------------------------------------
+ORDER: {{order_number}} | STATUS: ACTION REQUIRED
+------------------------------------------------------------------------
+
+We couldn't match this payment yet, {{first_name}}.
+
+When reconciling our Slice Merchant banking records against order
+{{order_number}}, we were unable to match the payment reference provided.
+Don't worry: your order is held open, and this usually takes just 30
+seconds to fix.
+
+
+========================================================================
+RECONCILIATION FEEDBACK
+========================================================================
+Reference Submitted : {{utr_number}}
+Order Tier          : {{tier_name}} (INR {{amount}})
+Reason Noted        : {{rejection_reason}}
+========================================================================
+
+
+PRIMARY ACTION:
+Please verify your 12-digit UTR or update your payment details here:
+
+-> Update My Payment Details:
+{{update_order_link}}
+
+
+------------------------------------------------------------------------
+HOW TO FIND YOUR 12-DIGIT UTR (30 SECONDS)
+------------------------------------------------------------------------
+
+Depending on which UPI app you used (Google Pay, PhonePe, Paytm, Slice,
+or CRED):
+
+1. Open your UPI App
+   Navigate to your "Transaction History" or "Passbook".
+
+2. Tap the Completed Payment
+   Select the INR {{amount}} payment sent to "s5305704393562990@slc".
+
+3. Locate the 12-Digit Reference Number
+   - Google Pay : Look for "UPI transaction ID" (starts with 4, 5, or 6)
+   - PhonePe    : Look for "UTR" (12 digits under Transfer Details)
+   - Paytm      : Look for "UPI Ref No." (12 digits)
+   - Slice/CRED : Look for "Bank Reference Number" or "UTR"
+
+Copy that 12-digit number and paste it into the update link above.
+
+
+------------------------------------------------------------------------
+DID MONEY ALREADY LEAVE YOUR ACCOUNT?
+------------------------------------------------------------------------
+If the amount was debited from your bank account, please send a screenshot
+of the completed transaction to our engineering desk. We will manually
+trace the banking transaction and provision your license immediately.
+
+-> WhatsApp Support Desk:
+{{whatsapp_link}} (Priority Desk: +91 8860090791)
+
+
+------------------------------------------------------------------------
+SECURITY NOTICE:
+We NEVER ask for your UPI PIN, OTP, banking passwords, or card numbers.
+Never enter your UPI PIN to receive money or fix a payment.
+------------------------------------------------------------------------
+
+
+Vine B Digital Marketing Agency
+[COMPANY REGISTERED ADDRESS]
+Website: https://vinebdigital.store
+
+This is a transactional operational notification regarding order {{order_number}}.

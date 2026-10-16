@@ -1,0 +1,89 @@
+VINE B DIGITAL // 3D VAULT
+------------------------------------------------------------------------
+ORDER: {{order_number}} | STATUS: PAYMENT PENDING
+------------------------------------------------------------------------
+
+Your pass is one payment away, {{first_name}}.
+
+You viewed the Slice Merchant QR for {{tier_name}} (INR {{amount}}), but
+we haven't received your 12-digit bank UTR reference yet.
+
+If your payment was interrupted or your UPI app timed out, here is how
+to finish in 30 seconds:
+
+
+========================================================================
+OFFICIAL MERCHANT PAYMENT DETAILS
+========================================================================
+Merchant Name   : Vine B Digital Marketing Agency
+Merchant VPA    : s5305704393562990@slc
+Payable Amount  : INR {{amount}} (exact)
+Order Reference : {{order_number}}
+Payment Method  : Slice Merchant UPI / QR
+========================================================================
+
+
+PRIMARY ACTION:
+Open your pre-filled payment screen to scan or copy merchant details:
+
+-> Complete My Payment:
+{{payment_resume_link}}
+
+
+------------------------------------------------------------------------
+PAY VIA YOUR PREFERRED UPI APP (ONE-TAP REDIRECT)
+------------------------------------------------------------------------
+Tap your preferred payment app to trigger the intent directly:
+
+-> Google Pay : {{upi_link_gpay}}
+-> PhonePe    : {{upi_link_phonepe}}
+-> Paytm      : {{upi_link_paytm}}
+-> Slice/CRED : {{upi_link_slice}}
+
+
+------------------------------------------------------------------------
+ALREADY PAID? PASTE YOUR UTR FOR INSTANT ACTIVATION
+------------------------------------------------------------------------
+If money already left your bank account, you don't need to pay again.
+Simply paste your 12-digit bank UTR / transaction number here:
+
+-> Submit My 12-Digit UTR:
+{{update_order_link}}
+
+
+------------------------------------------------------------------------
+EXPERIENCE WHAT YOU'RE UNLOCKING (60 FPS SHADER DEMO)
+------------------------------------------------------------------------
+Watch our 20-second client reel running 60 FPS WebGL:
+
+-> Watch WebGL Reel:
+https://vinebdigital.store/watch/v01-hero-reel
+
+
+------------------------------------------------------------------------
+NEED DIRECT ASSISTANCE?
+------------------------------------------------------------------------
+If your payment failed, UPI timed out, or you prefer a direct QR code,
+message our priority desk on WhatsApp:
+
+-> WhatsApp Desk:
+{{whatsapp_link}} (Priority Desk: +91 8860090791)
+
+
+------------------------------------------------------------------------
+SECURITY NOTICE:
+We NEVER ask for your UPI PIN or OTP. Never enter your secret UPI PIN to
+receive money or verify an order.
+------------------------------------------------------------------------
+
+
+Vine B Digital Marketing Agency
+[COMPANY REGISTERED ADDRESS]
+Website: https://vinebdigital.store
+
+Why you're receiving this: You opened checkout for order {{order_number}} on
+vinebdigital.store but did not submit a payment confirmation reference.
+
+To stop receiving reminders, you can unsubscribe below:
+-> Unsubscribe: {{unsubscribe_url}}
+-> Manage Preferences: {{preferences_url}}

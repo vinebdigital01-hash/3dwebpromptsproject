@@ -1,0 +1,93 @@
+VINE B DIGITAL // 3D VAULT
+------------------------------------------------------------------------
+ORDER: {{order_number}} | STATUS: PAID & VERIFIED
+------------------------------------------------------------------------
+
+Welcome to the Vault, {{first_name}}.
+
+Your {{tier_name}} license has been verified and provisioned with immediate
+access. You now have direct access to 500+ calibrated WebGL, Three.js,
+and GLSL shader prompts engineered for production client websites in the
+$15k to $40k range.
+
+
+========================================================================
+LICENSE CERTIFICATE
+========================================================================
+License Key : {{license_key}}
+Access Tier : {{tier_name}}
+Status      : Active & Verified
+Validity    : {{expires_at}}
+Copy Limit  : {{copy_limit}} / day
+Authorized  : {{first_name}} ({{customer_name}})
+========================================================================
+
+Security Note: Your license key is cryptographically assigned to your
+account. Do not share or publish it publicly.
+
+
+PRIMARY ACCESS:
+Launch the 3D Client Vault Portal immediately using your direct one-click
+session link:
+
+-> Launch Portal:
+{{portal_magic_link}}
+
+
+------------------------------------------------------------------------
+YOUR FIRST 3 MINUTES (QUICK-START PROTOCOL)
+------------------------------------------------------------------------
+
+Step 1: Authenticate
+Click your magic link above to open your private vault portal. No complex
+password setups required.
+
+Step 2: Choose Your Scene
+Filter by client category: Dark Luxury, Interactive Cyberpunk, Fluid GLSL,
+or Kinetic Typography.
+
+Step 3: Execute in {{ai_model_label}} or Cursor
+Copy the calibrated system prompt directly into your AI workflow to compile
+award-grade 60 FPS WebGL scenes in minutes.
+
+
+------------------------------------------------------------------------
+VIDEO WALKTHROUGH (40 SECONDS)
+------------------------------------------------------------------------
+Watch how to deploy your first Three.js shader into production:
+
+-> Watch Walkthrough:
+https://vinebdigital.store/watch/v02-portal-walkthrough
+
+
+------------------------------------------------------------------------
+TRANSACTION & TAX RECEIPT
+------------------------------------------------------------------------
+Order ID        : {{order_number}}
+Invoice Ref     : {{invoice_number}}
+Payment Method  : Slice Merchant UPI (VPA: s5305704393562990@slc)
+Bank UTR / Ref  : {{utr_number}}
+Amount Settled  : INR {{amount}}
+Issued By       : Vine B Digital Marketing Agency
+
+Download Tax Invoice PDF:
+{{invoice_download_url}}
+
+
+------------------------------------------------------------------------
+ENGINEERING & BILLING SUPPORT
+------------------------------------------------------------------------
+Questions or client delivery deadline emergencies? Our engineering team
+is available directly:
+
+Email    : support@vinebdigital.store
+WhatsApp : {{whatsapp_link}} (Priority Desk: +91 8860090791)
+
+
+------------------------------------------------------------------------
+Vine B Digital Marketing Agency
+[COMPANY REGISTERED ADDRESS]
+Website: https://vinebdigital.store
+
+This is a transactional security communication containing access credentials
+for your purchase at vinebdigital.store.

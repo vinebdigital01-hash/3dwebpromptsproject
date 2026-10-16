@@ -1,0 +1,74 @@
+VINE B DIGITAL // 3D VAULT
+------------------------------------------------------------------------
+ORDER: {{order_number}} | STATUS: VERIFICATION IN PROGRESS
+------------------------------------------------------------------------
+
+We've got your payment reference, {{first_name}}.
+
+We have received your 12-digit UPI transaction reference (UTR: {{utr_number}})
+for {{tier_name}} (INR {{amount}}). Our automated reconciliation queue is
+matching your payment with our Slice Merchant banking records.
+
+Verification is typically completed within 2 to 15 minutes.
+
+
+========================================================================
+WHAT HAPPENS NEXT (VERIFICATION PIPELINE)
+========================================================================
+
+[1] Bank Reconciliation (In Progress)
+Our merchant desk matches your 12-digit UTR against the banking ledger.
+
+[2] Cryptographic License Generation (Queued)
+Your unique access key and private member session are generated.
+
+[3] Instant Credentials Dispatch (Pending)
+You will receive Email 1 containing your active license key and
+one-click portal magic link.
+========================================================================
+
+
+TRANSACTION INTAKE DETAILS:
+------------------------------------------------------------------------
+Order ID        : {{order_number}}
+UTR Reference   : {{utr_number}}
+Access Tier     : {{tier_name}}
+Amount Due      : INR {{amount}}
+Received At     : {{submitted_at}}
+Merchant VPA    : s5305704393562990@slc
+------------------------------------------------------------------------
+
+
+WHILE YOU WAIT: PREVIEW 60 FPS WEBGL SHADERS
+Experience the caliber of shaders included in the vault:
+-> Watch Reel:
+https://vinebdigital.store/watch/v01-hero-reel
+
+
+------------------------------------------------------------------------
+NOTHING REQUIRED FROM YOU
+------------------------------------------------------------------------
+You do not need to refresh or submit another payment. Once verified, your
+access credentials will land directly in your inbox.
+
+If verification takes longer than 30 minutes, simply reply to this email
+or send your UPI payment receipt screenshot directly to our priority WhatsApp
+desk:
+
+-> WhatsApp Desk:
+{{whatsapp_link}} (Direct: +91 8860090791)
+
+
+------------------------------------------------------------------------
+SECURITY NOTICE:
+We NEVER ask for your UPI PIN, OTP, banking passwords, or card numbers.
+Never share your PIN with anyone claiming to be Vine B Digital.
+------------------------------------------------------------------------
+
+
+Vine B Digital Marketing Agency
+[COMPANY REGISTERED ADDRESS]
+Website: https://vinebdigital.store
+
+This is a transactional status update regarding your order verification at
+vinebdigital.store.
