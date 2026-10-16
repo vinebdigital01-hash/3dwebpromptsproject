@@ -556,7 +556,7 @@ export async function sendCartRecoveryEmail(lead: {
 </body>
 </html>`;
 
-  const subject = `⚠️ Did something go wrong with your 3D Vault pass? [Slot Reserved for ${name}]`;
+  const subject = `Did you face an issue with your 3D Vault pass? [Slot Reserved for ${name}]`;
   return sendEmailViaResend({
     to: lead.email,
     subject,

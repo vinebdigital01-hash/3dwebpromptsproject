@@ -107,14 +107,14 @@ export function generateEmailVideoBlockHtml(mode: ShowcaseMode = 'random', order
     : getPromptShowcase(mode, orderId);
 
   return `
-<!-- REAL PROJECT PROMPT VIDEO SHOWCASE (HTML5 AUTOPLAY / 60FPS WEBP FALLBACK / PORTAL DEEP-LINK) -->
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" bgcolor="#090914" style="background-color: #090914; border: 1px solid #1e1e2f; border-radius: 8px; overflow: hidden; margin-bottom: 28px;">
+<!-- REAL PROJECT PROMPT VIDEO SHOWCASE (100% GMAIL & OUTLOOK DELIVERABLE / PORTAL DEEP-LINK) -->
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" bgcolor="#090914" style="background: linear-gradient(180deg, #111122 0%, #080812 100%); border: 1px solid #1e1e38; border-radius: 12px; overflow: hidden; margin-bottom: 24px;">
   <tr>
-    <td style="padding: 14px 20px; border-bottom: 1px solid #161626; background: rgba(255,255,255,0.02);">
+    <td style="padding: 14px 20px; border-bottom: 1px solid #1e1e38; background: rgba(255,255,255,0.02);">
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
         <tr>
           <td align="left">
-            <span style="font-family: 'SF Mono', Consolas, Monaco, monospace; font-size: 11px; font-weight: 700; color: #ec4899; text-transform: uppercase; letter-spacing: 0.1em;">
+            <span style="font-family: 'SF Mono', Consolas, Monaco, monospace; font-size: 10px; font-weight: 700; color: #ec4899; text-transform: uppercase; letter-spacing: 0.1em;">
               &#9679; 60 FPS 3D VIDEO PLAYER // ${showcase.categoryLabel}
             </span>
           </td>
@@ -128,35 +128,22 @@ export function generateEmailVideoBlockHtml(mode: ShowcaseMode = 'random', order
     </td>
   </tr>
   <tr>
-    <td align="center" style="padding: 0; background-color: #040408;">
-      <!--[if !mso]><!-->
-      <video width="100%" height="auto" autoplay="autoplay" muted="muted" loop="loop" playsinline="playsinline" controls="controls" poster="${showcase.posterUrl}" style="display: block; width: 100%; max-width: 536px; border: 0; outline: none; background-color: #000000;">
-        <source src="${showcase.videoUrl}" type="video/mp4" />
-        <!-- Gmail & Webmail Fallback: Real 60 FPS Animated 3D Preview (Autoplays seamlessly in Gmail) -->
-        <a href="${showcase.portalDeepLink}" target="_blank" style="display: block; text-decoration: none; position: relative;">
-          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
-            <tr>
-              <td style="padding: 0; line-height: 0; background-color: #000000;">
-                <img src="${showcase.animatedPreviewUrl}" alt="${showcase.headline}" width="536" style="display: block; width: 100%; max-width: 536px; height: auto; border: 0;" />
-              </td>
-            </tr>
-          </table>
-        </a>
-      </video>
-      <!--<![endif]-->
-      <!--[if mso]>
-      <a href="${showcase.portalDeepLink}" target="_blank" style="display: block; text-decoration: none;">
-        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
-          <tr>
-            <td align="center" bgcolor="#090914" style="background-color: #090914; padding: 36px 16px;">
-              <div style="color: #ffffff; font-size: 20px; font-weight: bold; margin-bottom: 8px;">&#9658; ${showcase.headline}</div>
-              <div style="color: #10b981; font-family: 'SF Mono', monospace; font-size: 12px;">Client Value: ${showcase.clientValue}</div>
-              <div style="color: #818cf8; font-size: 12px; margin-top: 10px; text-decoration: underline;">&#9889; Play 60 FPS Video & Copy Prompt on 3D Vault &rarr;</div>
-            </td>
-          </tr>
-        </table>
-      </a>
-      <![endif]-->
+    <td style="padding: 24px 20px; text-align: center; background-color: #06060e;">
+      <div style="font-size: 18px; font-weight: 800; color: #ffffff; margin-bottom: 8px; letter-spacing: -0.01em;">
+        ${showcase.headline}
+      </div>
+      <div style="font-size: 12px; color: #94a3b8; line-height: 1.5; max-width: 440px; margin: 0 auto 18px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+        ${showcase.tagline}
+      </div>
+      <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 0 auto;">
+        <tr>
+          <td style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border-radius: 8px; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);">
+            <a href="${showcase.portalDeepLink}" target="_blank" style="display: inline-block; padding: 11px 26px; font-size: 12px; font-weight: 700; color: #ffffff; text-decoration: none; letter-spacing: 0.02em;">
+              &#9658; Play 60 FPS Video &amp; Copy Code on 3D Vault &rarr;
+            </a>
+          </td>
+        </tr>
+      </table>
     </td>
   </tr>
   <!-- Video Player Scrubber & Action Bar -->
@@ -165,25 +152,15 @@ export function generateEmailVideoBlockHtml(mode: ShowcaseMode = 'random', order
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
         <!-- Scrubber Line -->
         <tr>
-          <td colspan="2" style="padding: 0; height: 3px; background-color: #1e1e32;">
-            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="68%" style="height: 3px; background: linear-gradient(90deg, #3b82f6, #10b981);">
+          <td style="padding: 0; height: 3px; background-color: #1e1e32;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="75%" style="height: 3px; background: linear-gradient(90deg, #3b82f6, #10b981);">
               <tr><td style="height: 3px; font-size: 0; line-height: 0;">&nbsp;</td></tr>
             </table>
           </td>
         </tr>
         <tr>
-          <td valign="middle" align="left" style="padding: 14px 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 12px; color: #94a3b8; line-height: 1.5;">
-            <a href="${showcase.portalDeepLink}" target="_blank" style="text-decoration: none;">
-              <strong style="color: #ffffff; font-size: 13px;">${showcase.headline}</strong><br />
-              <span style="font-family: 'SF Mono', Consolas, monospace; font-size: 11px; color: #64748b;">
-                Valuation: <strong style="color: #10b981;">${showcase.clientValue}</strong> &bull; Click to Play on Site
-              </span>
-            </a>
-          </td>
-          <td valign="middle" align="right" style="padding: 14px 20px; white-space: nowrap;">
-            <a href="${showcase.portalDeepLink}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 12px; font-weight: 700; padding: 9px 18px; border-radius: 6px; text-decoration: none; box-shadow: 0 2px 10px rgba(16, 185, 129, 0.4); letter-spacing: 0.01em;">
-              &#9889; Play Video &amp; Copy &rarr;
-            </a>
+          <td valign="middle" align="center" style="padding: 10px 16px; font-family: 'SF Mono', Consolas, monospace; font-size: 11px; color: #64748b;">
+            Commercial Valuation: <strong style="color: #10b981;">${showcase.clientValue}</strong> &bull; Claude 3.7 &amp; Cursor AI Calibrated
           </td>
         </tr>
       </table>
