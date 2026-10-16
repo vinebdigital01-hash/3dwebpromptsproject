@@ -37,6 +37,7 @@ import {
   Layers,
   RotateCcw,
   Settings2,
+  MailCheck,
 } from 'lucide-react';
 import {
   getAllOrders,
@@ -69,6 +70,12 @@ import {
   generateSupabaseSqlSchema,
   CloudSyncResult,
 } from '../lib/cloudSync';
+import {
+  sendOrderApprovalEmail,
+  sendOrderRejectionEmail,
+  sendTestEmail,
+  EmailDispatchResult,
+} from '../lib/resendEmail';
 import { sound } from '../lib/audioEngine';
 import { VaultItem } from '../data/vaultCatalog';
 import { InvoiceModal } from './InvoiceModal';
@@ -124,6 +131,13 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
   const [isSqlModalOpen, setIsSqlModalOpen] = useState(false);
   const [copiedSql, setCopiedSql] = useState(false);
 
+  // Resend Email State
+  const [resendApiKey, setResendApiKey] = useState(settings.resendApiKey);
+  const [resendFromEmail, setResendFromEmail] = useState(settings.resendFromEmail);
+  const [testEmailRecipient, setTestEmailRecipient] = useState(settings.supportEmail || 'support@vinebdigital.store');
+  const [isSendingTestEmail, setIsSendingTestEmail] = useState(false);
+  const [testEmailResult, setTestEmailResult] = useState<EmailDispatchResult | null>(null);
+
   const loadData = () => {
     setOrders(getAllOrders());
     setMarketingHistory(getAllMarketingDispatches());
@@ -159,12 +173,26 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
   };
 
   // Actions
-  const handleApprove = (order: LeadOrder) => {
+  const handleApprove = async (order: LeadOrder) => {
     sound.playSuccess();
     const approved = approveOrder(order.id);
     if (approved) {
       loadData();
       showToast(`Order ${approved.orderNumber} Approved! License ${approved.licenseKey} & Invoice generated.`);
+
+      // Automated Resend transactional fulfillment email
+      if (approved.email) {
+        try {
+          const emailRes = await sendOrderApprovalEmail(approved);
+          if (emailRes.success) {
+            showToast(`Fulfillment email dispatched to ${approved.email}!`);
+          } else {
+            console.warn('Resend email notice:', emailRes.message);
+          }
+        } catch (err) {
+          console.error('Error dispatching fulfillment email:', err);
+        }
+      }
     }
   };
 
@@ -173,13 +201,22 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
     setRejectionModalOrder(order);
   };
 
-  const handleConfirmReject = () => {
+  const handleConfirmReject = async () => {
     if (!rejectionModalOrder) return;
     sound.playClick();
     const rejected = rejectOrder(rejectionModalOrder.id, rejectionReason);
     if (rejected) {
       loadData();
       showToast(`Order ${rejected.orderNumber} marked as Rejected.`);
+
+      // Automated Resend rejection notice
+      if (rejected.email) {
+        try {
+          await sendOrderRejectionEmail(rejected, rejectionReason);
+        } catch (err) {
+          console.error('Error dispatching rejection notice:', err);
+        }
+      }
     }
     setRejectionModalOrder(null);
   };
@@ -258,9 +295,33 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
       supabaseUrl: supabaseUrl.trim(),
       supabaseAnonKey: supabaseAnonKey.trim(),
       cloudSyncEnabled,
+      resendApiKey: resendApiKey.trim(),
+      resendFromEmail: resendFromEmail.trim(),
     });
     setSettings(updated);
     showToast('Store settings & payment configuration saved live!');
+  };
+
+  const handleSendTestEmail = async () => {
+    if (!testEmailRecipient.includes('@')) {
+      showToast('Please enter a valid recipient email address.');
+      return;
+    }
+    sound.playClick();
+    setIsSendingTestEmail(true);
+    setTestEmailResult(null);
+    try {
+      const res = await sendTestEmail(testEmailRecipient);
+      setTestEmailResult(res);
+      if (res.success) {
+        sound.playSuccess();
+        showToast('Test email dispatched! Check your inbox.');
+      } else {
+        showToast(`Email Notice: ${res.message}`);
+      }
+    } finally {
+      setIsSendingTestEmail(false);
+    }
   };
 
   const handleTestCloud = async () => {
@@ -1536,6 +1597,91 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                   Last Cloud Reconcile: {new Date(settings.lastCloudSyncAt).toLocaleString()}
                 </div>
               )}
+            </div>
+
+            {/* Section 4: Resend Transactional Email Engine */}
+            <div className="p-6 rounded-2xl bg-[#090914] border border-white/10 space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <h3 className="text-xs font-mono uppercase tracking-wider text-blue-400 font-bold flex items-center gap-2">
+                  <MailCheck className="w-4 h-4" />
+                  <span>04. Automated Transactional Emails (Resend API)</span>
+                </h3>
+
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 flex items-center gap-1">
+                  <span>1-Click Auto Fulfillment</span>
+                </span>
+              </div>
+
+              <p className="text-xs text-white/60">
+                Whenever you click "Approve" on a pending order, Resend automatically delivers the branded access email with their License Key, Portal Login link, and Invoice to the customer.
+              </p>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-semibold text-white/70 mb-1">Resend API Key</label>
+                  <input
+                    type="password"
+                    value={resendApiKey}
+                    onChange={(e) => setResendApiKey(e.target.value)}
+                    placeholder="re_xxxxxxxxxxxxxxxxxxxxxxxxx"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-xs font-mono text-blue-300 placeholder-white/20 focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-white/70 mb-1">From Sender Address (Display Name & Email)</label>
+                  <input
+                    type="text"
+                    value={resendFromEmail}
+                    onChange={(e) => setResendFromEmail(e.target.value)}
+                    placeholder="Vine B Digital // 3D Vault <vault@vinebdigital.store>"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-xs font-mono text-white placeholder-white/20 focus:outline-none focus:border-blue-500"
+                  />
+                  <span className="text-[10px] text-white/40 mt-1 block">
+                    Recommended: <code className="text-blue-300">Vine B Digital // 3D Vault &lt;vault@vinebdigital.store&gt;</code>. (Note: Ensure DNS records are added in Resend dashboard for vinebdigital.store).
+                  </span>
+                </div>
+
+                {/* Test Email Dispatcher */}
+                <div className="pt-2 p-4 rounded-xl bg-black/30 border border-white/5 space-y-2">
+                  <div className="text-xs font-semibold text-white/80 flex items-center gap-1.5">
+                    <Send className="w-3.5 h-3.5 text-blue-400" />
+                    <span>Send a Live Test Email to Your Inbox</span>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                    <input
+                      type="email"
+                      value={testEmailRecipient}
+                      onChange={(e) => setTestEmailRecipient(e.target.value)}
+                      placeholder="yourname@gmail.com"
+                      className="flex-1 px-3.5 py-2 rounded-xl bg-black/50 border border-white/10 text-xs font-mono text-white focus:outline-none focus:border-blue-500"
+                    />
+                    <button
+                      type="button"
+                      disabled={isSendingTestEmail}
+                      onClick={handleSendTestEmail}
+                      className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold font-mono shrink-0 flex items-center gap-1.5 transition-all shadow-md shadow-blue-600/30 disabled:opacity-50"
+                    >
+                      <Send className={`w-3.5 h-3.5 ${isSendingTestEmail ? 'animate-pulse' : ''}`} />
+                      <span>{isSendingTestEmail ? 'Sending...' : 'Send Test'}</span>
+                    </button>
+                  </div>
+
+                  {testEmailResult && (
+                    <div
+                      className={`p-2.5 rounded-lg text-xs font-mono flex items-center gap-2 ${
+                        testEmailResult.success
+                          ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300'
+                          : 'bg-amber-500/10 border border-amber-500/30 text-amber-300'
+                      }`}
+                    >
+                      <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                      <span>{testEmailResult.message}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Master Save Button */}

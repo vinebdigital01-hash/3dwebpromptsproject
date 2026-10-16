@@ -22,6 +22,9 @@ export interface AdminSettings {
   supabaseAnonKey: string;
   cloudSyncEnabled: boolean;
   lastCloudSyncAt: string | null;
+  // Email Automation (Resend)
+  resendApiKey: string;
+  resendFromEmail: string;
 }
 
 const SETTINGS_STORAGE_KEY = 'apex3d_admin_settings_v1';
@@ -42,6 +45,8 @@ export const DEFAULT_ADMIN_SETTINGS: AdminSettings = {
   supabaseAnonKey: '',
   cloudSyncEnabled: false,
   lastCloudSyncAt: null,
+  resendApiKey: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_RESEND_API_KEY) || '',
+  resendFromEmail: 'Vine B Digital // 3D Vault <vault@vinebdigital.store>',
 };
 
 /**
