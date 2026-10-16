@@ -3,6 +3,7 @@ import {
   ShieldCheck,
   CheckCircle2,
   XCircle,
+  X,
   Clock,
   User,
   Mail,
@@ -25,6 +26,9 @@ import {
   ChevronLeft,
   Award,
   MessageSquare,
+  Zap,
+  Eye,
+  MousePointerClick,
 } from 'lucide-react';
 import {
   getAllOrders,
@@ -33,6 +37,13 @@ import {
   LeadOrder,
   calculateTierExpiry,
 } from '../lib/leadTracker';
+import {
+  generateRetargetingEmail,
+  generateRetargetingWhatsAppUrl,
+  logMarketingDispatch,
+  getAllMarketingDispatches,
+  MarketingCampaign,
+} from '../lib/marketingAutomation';
 import { sound } from '../lib/audioEngine';
 import { VAULT_CATALOG, VaultItem } from '../data/vaultCatalog';
 import { InvoiceModal } from './InvoiceModal';
@@ -42,7 +53,7 @@ interface AdminConsoleProps {
   onBackToSite: () => void;
 }
 
-type AdminTab = 'approvals' | 'ghosts' | 'orders' | 'cms' | 'settings';
+type AdminTab = 'approvals' | 'retargeting' | 'ghosts' | 'orders' | 'cms' | 'settings';
 
 export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
   const [tab, setTab] = useState<AdminTab>('approvals');
@@ -54,6 +65,8 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
   const [statusNotification, setStatusNotification] = useState<string | null>(null);
   const [selectedInvoiceOrder, setSelectedInvoiceOrder] = useState<LeadOrder | null>(null);
   const [selectedLicenseOrder, setSelectedLicenseOrder] = useState<LeadOrder | null>(null);
+  const [emailPreviewOrder, setEmailPreviewOrder] = useState<LeadOrder | null>(null);
+  const [marketingHistory, setMarketingHistory] = useState<MarketingCampaign[]>([]);
 
   // Prompt CMS State
   const [promptsList, setPromptsList] = useState<VaultItem[]>(VAULT_CATALOG);
@@ -73,17 +86,25 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
 
   const loadData = () => {
     setOrders(getAllOrders());
+    setMarketingHistory(getAllMarketingDispatches());
   };
 
   useEffect(() => {
     loadData();
 
-    // Listen for real-time order updates
+    // Listen for real-time order and marketing updates
     const handleOrderUpdate = () => {
       loadData();
     };
+    const handleMarketingUpdate = () => {
+      setMarketingHistory(getAllMarketingDispatches());
+    };
     window.addEventListener('apex_order_updated', handleOrderUpdate);
-    return () => window.removeEventListener('apex_order_updated', handleOrderUpdate);
+    window.addEventListener('apex_marketing_dispatched', handleMarketingUpdate);
+    return () => {
+      window.removeEventListener('apex_order_updated', handleOrderUpdate);
+      window.removeEventListener('apex_marketing_dispatched', handleMarketingUpdate);
+    };
   }, []);
 
   const showToast = (msg: string) => {
@@ -166,6 +187,9 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
     (o) => o.status === 'unsubmitted_keystroke' || o.status === 'abandoned_at_qr'
   );
   const approvedOrders = orders.filter((o) => o.status === 'approved');
+  const upgradeIntentOrders = orders.filter(
+    (o) => (o.upgradeTelemetry?.viewsCount || 0) > 0 || (o.upgradeTelemetry?.clicksCount || 0) > 0
+  );
 
   // Stats
   const totalRevenue = approvedOrders.reduce((sum, o) => sum + (o.amountINR || 0), 0);
@@ -303,6 +327,21 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
           >
             <Clock className="w-4 h-4" />
             <span>Pending Approvals ({pendingApprovals.length})</span>
+          </button>
+
+          <button
+            onClick={() => {
+              sound.playClick();
+              setTab('retargeting');
+            }}
+            className={`px-4 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 shrink-0 ${
+              tab === 'retargeting'
+                ? 'bg-amber-500 text-black font-bold shadow-md shadow-amber-500/30'
+                : 'text-white/60 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <Zap className="w-4 h-4 text-amber-400" />
+            <span>Upgrade Retargeting ({upgradeIntentOrders.length})</span>
           </button>
 
           <button
@@ -476,6 +515,283 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* ------------------------------------------
+            TAB: UPGRADE RETARGETING & AUTOMATION
+           ------------------------------------------ */}
+        {tab === 'retargeting' && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/30 font-bold uppercase tracking-wider">
+                    UPGRADE INTENT & RETARGETING ENGINE
+                  </span>
+                  <span className="text-xs text-white/50 font-mono">
+                    {upgradeIntentOrders.length} Tracked Customers
+                  </span>
+                </div>
+                <h2 className="text-base font-bold text-white">Upgrade Telemetry & Automated Recovery</h2>
+                <p className="text-xs text-white/50">
+                  Track how many times customers opened the upgrade modal, which tier they selected (₹299, ₹699, ₹2,999), and dispatch personalized retargeting emails & WhatsApp messages.
+                </p>
+              </div>
+
+              {upgradeIntentOrders.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      sound.playClick();
+                      const firstLead = upgradeIntentOrders[0];
+                      if (firstLead) {
+                        setEmailPreviewOrder(firstLead);
+                      }
+                    }}
+                    className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-mono font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Mail className="w-3.5 h-3.5" />
+                    <span>Quick Email Automation</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Quick Metrics Bar */}
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+              <div className="p-4 rounded-xl bg-[#090914] border border-white/10">
+                <span className="text-[10px] font-mono text-zinc-500 uppercase block">Total Modal Views</span>
+                <span className="text-2xl font-bold font-mono text-white mt-1 block">
+                  {upgradeIntentOrders.reduce((sum, o) => sum + (o.upgradeTelemetry?.viewsCount || 0), 0)}
+                </span>
+                <span className="text-[10px] text-amber-400/80 mt-1 block font-mono">Quota & Manual clicks</span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-[#090914] border border-white/10">
+                <span className="text-[10px] font-mono text-zinc-500 uppercase block">Upgrade CTA Clicks</span>
+                <span className="text-2xl font-bold font-mono text-amber-400 mt-1 block">
+                  {upgradeIntentOrders.reduce((sum, o) => sum + (o.upgradeTelemetry?.clicksCount || 0), 0)}
+                </span>
+                <span className="text-[10px] text-zinc-400 mt-1 block font-mono">Initiated checkout</span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-[#090914] border border-white/10">
+                <span className="text-[10px] font-mono text-zinc-500 uppercase block">Hot Recoverable Leads</span>
+                <span className="text-2xl font-bold font-mono text-emerald-400 mt-1 block">
+                  {upgradeIntentOrders.filter((o) => o.upgradeTelemetry?.isAbandoned).length}
+                </span>
+                <span className="text-[10px] text-emerald-400/80 mt-1 block font-mono">Ready for retargeting</span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-[#090914] border border-white/10">
+                <span className="text-[10px] font-mono text-zinc-500 uppercase block">Sprint Fee Credit</span>
+                <span className="text-2xl font-bold font-mono text-blue-400 mt-1 block">
+                  ₹49 Applied
+                </span>
+                <span className="text-[10px] text-zinc-400 mt-1 block font-mono">Auto-deducted hook</span>
+              </div>
+            </div>
+
+            {/* Customer List */}
+            {upgradeIntentOrders.length === 0 ? (
+              <div className="py-20 text-center rounded-2xl bg-[#090914] border border-white/5 text-white/40">
+                <Zap className="w-10 h-10 text-amber-400 mx-auto mb-2 opacity-50" />
+                <p className="text-sm font-semibold text-white/70">No upgrade modal views recorded yet.</p>
+                <p className="text-xs text-white/40 mt-1">
+                  When 1-Day Pass users trigger their daily limit or explore higher tiers in /#portal, their telemetry will stream here live.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {upgradeIntentOrders.map((order) => {
+                  const telemetry = order.upgradeTelemetry;
+                  const selectedTier = telemetry?.lastSelectedTierId || 'month_1';
+                  const tierName =
+                    selectedTier === 'lifetime'
+                      ? 'Lifetime VIP All-Access (₹2,999)'
+                      : selectedTier === 'month_6'
+                      ? '6-Month Studio (₹699)'
+                      : '1-Month Pro Access (₹299)';
+
+                  const waUrl = generateRetargetingWhatsAppUrl(order);
+
+                  return (
+                    <div
+                      key={order.id}
+                      className="p-5 rounded-2xl bg-[#0b0e18] border border-amber-500/25 flex flex-col lg:flex-row lg:items-center justify-between gap-5 shadow-lg shadow-black/40"
+                    >
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-xs font-mono font-bold text-white bg-white/10 px-2 py-0.5 rounded border border-white/15">
+                            {order.orderNumber}
+                          </span>
+                          <span className="text-xs font-semibold text-zinc-200">
+                            Current: <strong className="text-amber-300">{order.tierName}</strong>
+                          </span>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
+                            ₹49 Sprint Customer
+                          </span>
+                          {telemetry?.isAbandoned && (
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/20 font-bold">
+                              HOT ABANDONED LEAD
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-4 text-xs text-zinc-300 pt-1">
+                          <span className="flex items-center gap-1.5 font-bold text-white">
+                            <User className="w-3.5 h-3.5 text-blue-400" />
+                            {order.name}
+                          </span>
+                          <span className="flex items-center gap-1.5 font-mono text-zinc-400">
+                            <Mail className="w-3.5 h-3.5 text-blue-400" />
+                            {order.email}
+                          </span>
+                          <span className="flex items-center gap-1.5 font-mono text-zinc-400">
+                            <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
+                            {order.phone}
+                          </span>
+                        </div>
+
+                        {/* Telemetry Readout Matrix */}
+                        <div className="p-3 rounded-xl bg-black/60 border border-white/[0.06] text-xs font-mono flex flex-wrap items-center gap-4 text-zinc-300 mt-2">
+                          <div className="flex items-center gap-1.5">
+                            <Eye className="w-3.5 h-3.5 text-amber-400" />
+                            <span>Modal Views: <strong className="text-white">{telemetry?.viewsCount || 0}x</strong></span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <MousePointerClick className="w-3.5 h-3.5 text-blue-400" />
+                            <span>Upgrade Clicks: <strong className="text-white">{telemetry?.clicksCount || 0}x</strong></span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <Zap className="w-3.5 h-3.5 text-purple-400" />
+                            <span>Target Tier: <strong className="text-amber-300">{tierName}</strong></span>
+                          </div>
+                          {telemetry?.triggerReason && (
+                            <div className="text-[10px] text-zinc-500">
+                              Trigger: {telemetry.triggerReason === 'quota_exceeded' ? 'Quota Limit Reached' : 'Manual Portal Click'}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Timeline snippet */}
+                        {telemetry?.history && telemetry.history.length > 0 && (
+                          <div className="text-[10px] font-mono text-zinc-500 flex items-center gap-2 flex-wrap pt-1">
+                            <span>Activity timeline:</span>
+                            {telemetry.history.slice(-3).map((h, i) => (
+                              <span key={i} className="px-1.5 py-0.5 rounded bg-white/[0.03] border border-white/[0.06]">
+                                {h.action.replace('_', ' ')} ({new Date(h.timestamp).toLocaleTimeString()})
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 1-Click Retargeting Actions */}
+                      <div className="flex flex-col sm:flex-row lg:flex-col gap-2 shrink-0 justify-center">
+                        <button
+                          onClick={() => {
+                            sound.playClick();
+                            setEmailPreviewOrder(order);
+                          }}
+                          className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-all shadow-md shadow-amber-500/20 active:scale-[0.98] cursor-pointer"
+                        >
+                          <Mail className="w-3.5 h-3.5" />
+                          <span>Send Retargeting Email</span>
+                        </button>
+
+                        <a
+                          href={waUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => {
+                            sound.playClick();
+                            logMarketingDispatch({
+                              type: 'whatsapp',
+                              recipientEmail: order.email,
+                              recipientPhone: order.phone,
+                              recipientName: order.name,
+                              orderNumber: order.orderNumber,
+                              triggerEvent: telemetry?.clicksCount ? 'cta_clicked_abandon' : 'quota_reached_abandon',
+                              selectedTierName: tierName,
+                              originalPrice: 299,
+                              discountedPrice: 250,
+                              subject: 'WhatsApp Retargeting Dispatch',
+                              body: 'Dispatched via WhatsApp deep-link',
+                              checkoutUrl: 'https://vinebdigital.store/#portal',
+                              status: 'dispatched',
+                            });
+                            showToast(`💬 WhatsApp Retargeting opened for ${order.name}`);
+                          }}
+                          className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-all active:scale-[0.98] cursor-pointer"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          <span>WhatsApp Retargeting</span>
+                        </a>
+
+                        <button
+                          onClick={() => {
+                            sound.playSuccess();
+                            logMarketingDispatch({
+                              type: 'webhook',
+                              recipientEmail: order.email,
+                              recipientPhone: order.phone,
+                              recipientName: order.name,
+                              orderNumber: order.orderNumber,
+                              triggerEvent: telemetry?.clicksCount ? 'cta_clicked_abandon' : 'quota_reached_abandon',
+                              selectedTierName: tierName,
+                              originalPrice: 299,
+                              discountedPrice: 250,
+                              subject: 'Webhook Auto-Retargeting Triggered',
+                              body: JSON.stringify(telemetry),
+                              checkoutUrl: 'https://vinebdigital.store/#portal',
+                              status: 'dispatched',
+                            });
+                            showToast(`⚡ Automated webhook payload dispatched for ${order.email}!`);
+                          }}
+                          className="px-4 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 text-xs font-mono border border-white/[0.08] flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                        >
+                          <Zap className="w-3.5 h-3.5 text-amber-400" />
+                          <span>Simulate Auto-Dispatch</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Campaign History Log */}
+            {marketingHistory.length > 0 && (
+              <div className="pt-6 border-t border-white/10">
+                <div className="flex items-center justify-between mb-3 text-xs font-mono text-zinc-400">
+                  <span>DISPATCHED AUTOMATION LOGS ({marketingHistory.length})</span>
+                  <span className="text-emerald-400">Active Retargeting Queue</span>
+                </div>
+                <div className="divide-y divide-white/5 rounded-2xl bg-[#090914] border border-white/10 overflow-hidden text-xs">
+                  {marketingHistory.slice(0, 5).map((m) => (
+                    <div key={m.id} className="p-3.5 flex flex-wrap items-center justify-between gap-3 font-mono text-[11px]">
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-0.5 rounded font-bold uppercase text-[9px] ${
+                          m.type === 'email' ? 'bg-blue-500/20 text-blue-300' : m.type === 'whatsapp' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-purple-500/20 text-purple-300'
+                        }`}>
+                          {m.type}
+                        </span>
+                        <strong className="text-white font-sans text-xs">{m.recipientName}</strong>
+                        <span className="text-zinc-500">({m.recipientEmail})</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-zinc-400">
+                        <span>{m.subject.slice(0, 35)}...</span>
+                        <span className="text-zinc-500">{new Date(m.dispatchedAt || '').toLocaleTimeString()}</span>
+                        <span className="text-emerald-400 font-bold">SENT</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
           </div>
         )}
 
@@ -996,6 +1312,98 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
         order={selectedLicenseOrder}
         onClose={() => setSelectedLicenseOrder(null)}
       />
+
+      {/* Retargeting Email Preview & Automation Modal */}
+      {emailPreviewOrder && (() => {
+        const emailData = generateRetargetingEmail(emailPreviewOrder);
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+            <div className="w-full max-w-2xl rounded-2xl bg-[#090912] border border-amber-500/30 text-white shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+              {/* Header */}
+              <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-[#07070c]">
+                <div>
+                  <div className="text-[10px] font-mono text-amber-400 uppercase tracking-widest">
+                    AUTOMATED RETARGETING EMAIL DISPATCHER
+                  </div>
+                  <h3 className="text-base font-bold text-white mt-0.5">
+                    Email Preview for {emailPreviewOrder.name}
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setEmailPreviewOrder(null)}
+                  className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="p-6 space-y-4 overflow-y-auto flex-1 text-xs font-mono scrollbar-thin">
+                <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] space-y-1">
+                  <div><span className="text-zinc-500">To:</span> <strong className="text-white font-sans">{emailPreviewOrder.name}</strong> &lt;{emailPreviewOrder.email}&gt;</div>
+                  <div><span className="text-zinc-500">Subject:</span> <strong className="text-amber-300 font-sans">{emailData.subject}</strong></div>
+                  <div><span className="text-zinc-500">Credit Hook:</span> <span className="text-emerald-400 font-bold">₹49 Sprint pass fee automatically deducted</span></div>
+                </div>
+
+                <div className="p-4 rounded-xl bg-black/80 border border-white/10 text-zinc-300 font-mono text-xs whitespace-pre-wrap leading-relaxed select-text">
+                  {emailData.bodyText}
+                </div>
+              </div>
+
+              {/* Actions Footer */}
+              <div className="px-6 py-4 border-t border-white/10 bg-[#06060a] flex flex-wrap items-center justify-between gap-3">
+                <button
+                  onClick={() => {
+                    sound.playClick();
+                    navigator.clipboard.writeText(emailData.bodyHtml);
+                    showToast('📋 Email HTML template copied to clipboard!');
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-zinc-300 text-xs font-mono cursor-pointer"
+                >
+                  Copy HTML Template
+                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setEmailPreviewOrder(null)}
+                    className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-400 text-xs font-mono cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+
+                  <a
+                    href={emailData.mailtoUrl}
+                    onClick={() => {
+                      sound.playSuccess();
+                      logMarketingDispatch({
+                        type: 'email',
+                        recipientEmail: emailPreviewOrder.email,
+                        recipientPhone: emailPreviewOrder.phone,
+                        recipientName: emailPreviewOrder.name,
+                        orderNumber: emailPreviewOrder.orderNumber,
+                        triggerEvent: emailPreviewOrder.upgradeTelemetry?.clicksCount ? 'cta_clicked_abandon' : 'quota_reached_abandon',
+                        selectedTierName: emailPreviewOrder.upgradeTelemetry?.lastSelectedTierId || 'month_1',
+                        originalPrice: 299,
+                        discountedPrice: 250,
+                        subject: emailData.subject,
+                        body: emailData.bodyText,
+                        checkoutUrl: 'https://vinebdigital.store/#portal',
+                        status: 'dispatched',
+                      });
+                      setEmailPreviewOrder(null);
+                      showToast(`✉️ Mail client launched for ${emailPreviewOrder.email}!`);
+                    }}
+                    className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>Launch in Mail Client</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };

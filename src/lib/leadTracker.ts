@@ -10,6 +10,24 @@ export type OrderStatus =
   | 'approved'             // Admin accepted; account active, invoice generated
   | 'rejected';            // Admin rejected with reason
 
+export interface UpgradeEvent {
+  timestamp: string;
+  action: 'modal_viewed' | 'tier_selected' | 'cta_clicked' | 'modal_dismissed';
+  tierId?: string;
+  triggerReason?: 'quota_exceeded' | 'manual';
+}
+
+export interface UpgradeTelemetry {
+  viewsCount: number;
+  clicksCount: number;
+  lastViewedAt?: string;
+  lastClickedAt?: string;
+  lastSelectedTierId?: string;
+  triggerReason?: 'quota_exceeded' | 'manual';
+  isAbandoned: boolean;
+  history: UpgradeEvent[];
+}
+
 export interface LeadOrder {
   id: string;
   orderNumber: string;
@@ -29,6 +47,7 @@ export interface LeadOrder {
   updatedAt: string;
   approvedAt?: string;
   expiresAt?: string | null;
+  upgradeTelemetry?: UpgradeTelemetry;
   utm?: {
     source?: string;
     campaign?: string;
@@ -169,6 +188,32 @@ const SEED_ORDERS: LeadOrder[] = [
     updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
     approvedAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
     expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 22).toISOString(), // 22 Hours Remaining
+    upgradeTelemetry: {
+      viewsCount: 2,
+      clicksCount: 1,
+      lastViewedAt: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
+      lastClickedAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+      lastSelectedTierId: 'month_1',
+      triggerReason: 'quota_exceeded',
+      isAbandoned: true,
+      history: [
+        {
+          timestamp: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
+          action: 'modal_viewed',
+          triggerReason: 'quota_exceeded',
+        },
+        {
+          timestamp: new Date(Date.now() - 1000 * 60 * 20).toISOString(),
+          action: 'tier_selected',
+          tierId: 'month_1',
+        },
+        {
+          timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+          action: 'cta_clicked',
+          tierId: 'month_1',
+        },
+      ],
+    },
     utm: { source: 'instagram_reels', campaign: 'shader_vault_49' },
   },
   {
@@ -468,4 +513,206 @@ export function getExpiryDetails(expiresAt: string | null | undefined): {
     daysRemaining: days,
     hoursRemaining: hours,
   };
+}
+
+/**
+ * Record when a customer opens the Upgrade Modal
+ */
+export function recordUpgradeModalView(
+  identifier: string,
+  triggerReason: 'quota_exceeded' | 'manual' = 'quota_exceeded'
+): void {
+  if (typeof window === 'undefined' || !identifier) return;
+  try {
+    const orders = getAllOrders();
+    const clean = identifier.trim().toLowerCase();
+    const index = orders.findIndex(
+      (o) =>
+        (o.licenseKey && o.licenseKey.toLowerCase() === clean) ||
+        (o.email && o.email.toLowerCase() === clean) ||
+        o.id === identifier
+    );
+    if (index === -1) return;
+
+    const currentOrder = orders[index];
+    const prevTelemetry = currentOrder.upgradeTelemetry || {
+      viewsCount: 0,
+      clicksCount: 0,
+      isAbandoned: false,
+      history: [],
+    };
+
+    const newHistory = [
+      ...(prevTelemetry.history || []),
+      {
+        timestamp: new Date().toISOString(),
+        action: 'modal_viewed' as const,
+        triggerReason,
+      },
+    ];
+
+    const updatedOrder: LeadOrder = {
+      ...currentOrder,
+      upgradeTelemetry: {
+        ...prevTelemetry,
+        viewsCount: prevTelemetry.viewsCount + 1,
+        lastViewedAt: new Date().toISOString(),
+        triggerReason,
+        isAbandoned: true,
+        history: newHistory,
+      },
+      updatedAt: new Date().toISOString(),
+    };
+
+    orders[index] = updatedOrder;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
+    window.dispatchEvent(new CustomEvent('apex_order_updated', { detail: updatedOrder }));
+  } catch (err) {
+    console.error('Failed to record upgrade modal view:', err);
+  }
+}
+
+/**
+ * Record when a customer clicks/switches to a specific tier in the modal
+ */
+export function recordUpgradeTierSelection(identifier: string, tierId: string): void {
+  if (typeof window === 'undefined' || !identifier) return;
+  try {
+    const orders = getAllOrders();
+    const clean = identifier.trim().toLowerCase();
+    const index = orders.findIndex(
+      (o) =>
+        (o.licenseKey && o.licenseKey.toLowerCase() === clean) ||
+        (o.email && o.email.toLowerCase() === clean) ||
+        o.id === identifier
+    );
+    if (index === -1) return;
+
+    const currentOrder = orders[index];
+    const prevTelemetry = currentOrder.upgradeTelemetry || {
+      viewsCount: 1,
+      clicksCount: 0,
+      isAbandoned: true,
+      history: [],
+    };
+
+    const updatedOrder: LeadOrder = {
+      ...currentOrder,
+      upgradeTelemetry: {
+        ...prevTelemetry,
+        lastSelectedTierId: tierId,
+        history: [
+          ...(prevTelemetry.history || []),
+          {
+            timestamp: new Date().toISOString(),
+            action: 'tier_selected' as const,
+            tierId,
+          },
+        ],
+      },
+      updatedAt: new Date().toISOString(),
+    };
+
+    orders[index] = updatedOrder;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
+    window.dispatchEvent(new CustomEvent('apex_order_updated', { detail: updatedOrder }));
+  } catch (err) {
+    console.error('Failed to record upgrade tier selection:', err);
+  }
+}
+
+/**
+ * Record when a customer clicks the primary upgrade CTA button
+ */
+export function recordUpgradeCtaClick(identifier: string, tierId: string): void {
+  if (typeof window === 'undefined' || !identifier) return;
+  try {
+    const orders = getAllOrders();
+    const clean = identifier.trim().toLowerCase();
+    const index = orders.findIndex(
+      (o) =>
+        (o.licenseKey && o.licenseKey.toLowerCase() === clean) ||
+        (o.email && o.email.toLowerCase() === clean) ||
+        o.id === identifier
+    );
+    if (index === -1) return;
+
+    const currentOrder = orders[index];
+    const prevTelemetry = currentOrder.upgradeTelemetry || {
+      viewsCount: 1,
+      clicksCount: 0,
+      isAbandoned: true,
+      history: [],
+    };
+
+    const updatedOrder: LeadOrder = {
+      ...currentOrder,
+      upgradeTelemetry: {
+        ...prevTelemetry,
+        clicksCount: prevTelemetry.clicksCount + 1,
+        lastClickedAt: new Date().toISOString(),
+        lastSelectedTierId: tierId,
+        isAbandoned: true,
+        history: [
+          ...(prevTelemetry.history || []),
+          {
+            timestamp: new Date().toISOString(),
+            action: 'cta_clicked' as const,
+            tierId,
+          },
+        ],
+      },
+      updatedAt: new Date().toISOString(),
+    };
+
+    orders[index] = updatedOrder;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
+    window.dispatchEvent(new CustomEvent('apex_order_updated', { detail: updatedOrder }));
+  } catch (err) {
+    console.error('Failed to record upgrade CTA click:', err);
+  }
+}
+
+/**
+ * Record when a customer dismisses the modal without upgrading
+ */
+export function recordUpgradeModalDismiss(identifier: string, tierId?: string): void {
+  if (typeof window === 'undefined' || !identifier) return;
+  try {
+    const orders = getAllOrders();
+    const clean = identifier.trim().toLowerCase();
+    const index = orders.findIndex(
+      (o) =>
+        (o.licenseKey && o.licenseKey.toLowerCase() === clean) ||
+        (o.email && o.email.toLowerCase() === clean) ||
+        o.id === identifier
+    );
+    if (index === -1) return;
+
+    const currentOrder = orders[index];
+    if (!currentOrder.upgradeTelemetry) return;
+
+    const updatedOrder: LeadOrder = {
+      ...currentOrder,
+      upgradeTelemetry: {
+        ...currentOrder.upgradeTelemetry,
+        isAbandoned: true,
+        history: [
+          ...(currentOrder.upgradeTelemetry.history || []),
+          {
+            timestamp: new Date().toISOString(),
+            action: 'modal_dismissed' as const,
+            tierId,
+          },
+        ],
+      },
+      updatedAt: new Date().toISOString(),
+    };
+
+    orders[index] = updatedOrder;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
+    window.dispatchEvent(new CustomEvent('apex_order_updated', { detail: updatedOrder }));
+  } catch (err) {
+    console.error('Failed to record upgrade modal dismiss:', err);
+  }
 }

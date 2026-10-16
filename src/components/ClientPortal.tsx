@@ -1463,6 +1463,7 @@ Rules:
         onClose={() => setIsUpgradeShowcaseOpen(false)}
         currentTierName={activeOrder.tierName}
         triggerReason={upgradeTriggerReason}
+        activeCustomerIdentifier={activeOrder.licenseKey || activeOrder.email || activeOrder.id}
         onUpgrade={(tierId) => {
           setIsUpgradeShowcaseOpen(false);
           if (onUpgradeClick) {

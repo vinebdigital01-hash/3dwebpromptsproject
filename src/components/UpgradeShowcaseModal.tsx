@@ -133,12 +133,20 @@ const PERK_TABS: PerkTab[] = [
   },
 ];
 
+import {
+  recordUpgradeModalView,
+  recordUpgradeTierSelection,
+  recordUpgradeCtaClick,
+  recordUpgradeModalDismiss,
+} from '../lib/leadTracker';
+
 export interface UpgradeShowcaseModalProps {
   isOpen: boolean;
   onClose: () => void;
   onUpgrade: (selectedTierId: TierId) => void;
   currentTierName?: string;
   triggerReason?: 'quota_exceeded' | 'manual';
+  activeCustomerIdentifier?: string;
 }
 
 export const UpgradeShowcaseModal: React.FC<UpgradeShowcaseModalProps> = ({
@@ -147,18 +155,29 @@ export const UpgradeShowcaseModal: React.FC<UpgradeShowcaseModalProps> = ({
   onUpgrade,
   currentTierName = '1-Day Sprint Pass',
   triggerReason = 'quota_exceeded',
+  activeCustomerIdentifier,
 }) => {
   const [selectedTierId, setSelectedTierId] = useState<TierId>('lifetime');
   const [activePerkTab, setActivePerkTab] = useState<string>('quota');
 
   useEffect(() => {
     if (!isOpen) return;
+
+    if (activeCustomerIdentifier) {
+      recordUpgradeModalView(activeCustomerIdentifier, triggerReason);
+    }
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        if (activeCustomerIdentifier) {
+          recordUpgradeModalDismiss(activeCustomerIdentifier, selectedTierId);
+        }
+        onClose();
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
+  }, [isOpen, activeCustomerIdentifier, triggerReason]);
 
   if (!isOpen) return null;
 
@@ -168,11 +187,25 @@ export const UpgradeShowcaseModal: React.FC<UpgradeShowcaseModalProps> = ({
   const handleSelectTier = (id: TierId) => {
     sound.playClick();
     setSelectedTierId(id);
+    if (activeCustomerIdentifier) {
+      recordUpgradeTierSelection(activeCustomerIdentifier, id);
+    }
   };
 
   const handleUpgradeSubmit = () => {
     sound.playSuccess();
+    if (activeCustomerIdentifier) {
+      recordUpgradeCtaClick(activeCustomerIdentifier, selectedTierId);
+    }
     onUpgrade(selectedTierId);
+  };
+
+  const handleDismiss = () => {
+    sound.playClick();
+    if (activeCustomerIdentifier) {
+      recordUpgradeModalDismiss(activeCustomerIdentifier, selectedTierId);
+    }
+    onClose();
   };
 
   const currentPerk = PERK_TABS.find((p) => p.id === activePerkTab) || PERK_TABS[0];
@@ -180,7 +213,7 @@ export const UpgradeShowcaseModal: React.FC<UpgradeShowcaseModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md overflow-hidden">
       {/* Click Outside Backdrop */}
-      <div className="fixed inset-0" onClick={onClose} />
+      <div className="fixed inset-0" onClick={handleDismiss} />
 
       {/* Main Container - Constrained to 90vh with Sticky Header & Sticky Footer */}
       <motion.div
@@ -230,7 +263,7 @@ export const UpgradeShowcaseModal: React.FC<UpgradeShowcaseModalProps> = ({
             </div>
 
             <button
-              onClick={onClose}
+              onClick={handleDismiss}
               className="p-1.5 sm:p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-400 hover:text-white border border-white/[0.06] transition-colors"
               title="Close modal"
             >
@@ -409,7 +442,7 @@ export const UpgradeShowcaseModal: React.FC<UpgradeShowcaseModalProps> = ({
           {/* Right: CTA Action Buttons */}
           <div className="flex items-center gap-2.5 sm:gap-3 w-full sm:w-auto justify-end">
             <button
-              onClick={onClose}
+              onClick={handleDismiss}
               className="px-3.5 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-400 hover:text-white text-xs font-mono transition-colors border border-white/[0.06]"
             >
               Dismiss
