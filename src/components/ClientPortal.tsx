@@ -81,6 +81,36 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
       if (stored) {
         return JSON.parse(stored);
       }
+
+      // Auto-recognize user if they previously entered name/email in popup or checkout
+      const cachedEmail = localStorage.getItem('vineb_user_email');
+      const cachedName = localStorage.getItem('vineb_user_name');
+      const cachedPhone = localStorage.getItem('vineb_user_phone');
+      if (cachedEmail && cachedEmail.includes('@')) {
+        const approved = findApprovedOrder(cachedEmail);
+        if (approved) {
+          sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(approved));
+          return approved;
+        }
+
+        const memberSession: LeadOrder = {
+          id: `USR-${cachedEmail.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8)}`,
+          orderNumber: `MEM-${Date.now().toString().slice(-4)}`,
+          name: cachedName || 'Enclave Member',
+          email: cachedEmail,
+          phone: cachedPhone || '',
+          tierId: 'member',
+          tierName: 'Enclave Member (1 Copy/Day)',
+          amountINR: 0,
+          status: 'approved',
+          licenseKey: `LIC-MBR-${Date.now().toString().slice(-6)}`,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          approvedAt: new Date().toISOString(),
+        };
+        sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(memberSession));
+        return memberSession;
+      }
     } catch {
       // ignore
     }

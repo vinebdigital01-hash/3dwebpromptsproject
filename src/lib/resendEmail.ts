@@ -356,3 +356,110 @@ export async function sendTestEmail(targetEmail: string): Promise<EmailDispatchR
     text: 'Test email from Vine B Digital // 3D Vault Resend API pipeline.',
   });
 }
+
+/**
+ * ⚡ Instant Lead Welcome & Starter Pack Email
+ * Dispatched automatically as soon as user types their email into popup or checkout
+ */
+export async function sendInstantLeadMagnetOrAbandonedEmail(lead: {
+  name?: string;
+  email: string;
+  phone?: string;
+  tierId?: string;
+  tierName?: string;
+}): Promise<EmailDispatchResult> {
+  if (!lead.email || !lead.email.includes('@')) {
+    return { success: false, message: 'Invalid email' };
+  }
+
+  // Deduplication check: only send instant email once per session per email
+  const dedupeKey = `apex_instant_lead_email_${lead.email.trim().toLowerCase()}`;
+  if (typeof window !== 'undefined' && sessionStorage.getItem(dedupeKey)) {
+    return { success: true, message: 'Email already dispatched recently.' };
+  }
+
+  const name = lead.name?.trim() || 'Creator';
+  const portalUrl = 'https://3dwebprompts-vineb.vercel.app/#portal';
+  const pricingUrl = 'https://3dwebprompts-vineb.vercel.app/#pricing';
+  const videoBlockHtml = generateEmailVideoBlockHtml('latest', 'STARTER-VAULT');
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Your 3D Vault Starter Pack is Ready</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #06060c; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #ffffff;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #06060c; padding: 40px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" style="max-width: 600px; background-color: #0c0c16; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 20px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.7);">
+          <tr>
+            <td style="height: 3px; background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);"></td>
+          </tr>
+          <tr>
+            <td style="padding: 32px 32px 16px 32px;">
+              <span style="font-family: monospace; font-size: 11px; letter-spacing: 0.15em; color: #3b82f6; text-transform: uppercase;">
+                VINE B DIGITAL // 3D VAULT
+              </span>
+              <h1 style="margin: 8px 0 0 0; font-size: 22px; font-weight: 800; color: #ffffff;">
+                Your 3D WebGL Starter Pack is Ready ⚡
+              </h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 0 32px 20px 32px; font-size: 14px; line-height: 1.6; color: #9ca3af;">
+              Hey <strong style="color: #ffffff;">${name}</strong>,<br><br>
+              We noticed you were checking out the <strong>APEX3D WebGL Prompt Vault</strong>! We've prepared your starter package containing <strong>30+ production Three.js, React Three Fiber, and custom GLSL shader prompts</strong>.
+              <br><br>
+              Your member preview enclave has also been provisioned with <strong>1 free daily prompt copy</strong>.
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 0 32px 20px 32px;">
+              ${videoBlockHtml}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 0 32px 28px 32px;" align="center">
+              <table role="presentation" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td style="background: linear-gradient(135deg, #2563eb, #1d4ed8); border-radius: 12px; box-shadow: 0 10px 20px rgba(37, 99, 235, 0.4);">
+                    <a href="${portalUrl}" target="_blank" style="display: inline-block; padding: 14px 32px; font-size: 13px; font-weight: 700; color: #ffffff; text-decoration: none;">
+                      ⚡ Open Your Enclave Workspace &rarr;
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              <div style="font-size: 11px; color: #6b7280; margin-top: 10px; font-family: monospace;">
+                Or upgrade to full 500+ Vault Pass from ₹49: <a href="${pricingUrl}" style="color: #60a5fa; text-decoration: underline;">View Plans</a>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 24px 32px; border-top: 1px solid rgba(255, 255, 255, 0.06); text-align: center; font-size: 11px; color: #6b7280;">
+              Need support? Reply directly to this email or write to <a href="mailto:support@vinebdigital.store" style="color: #60a5fa; text-decoration: underline;">support@vinebdigital.store</a>.<br><br>
+              &copy; 2026 Vine B Digital Marketing Agency &bull; <a href="https://3dwebprompts-vineb.vercel.app" style="color: #6b7280; text-decoration: underline;">3dwebprompts-vineb.vercel.app</a>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  const subject = `⚡ Your 3D WebGL Starter Pack is Ready [30+ Free Prompts Unlocked]`;
+  const result = await sendEmailViaResend({
+    to: lead.email,
+    subject,
+    html,
+    text: `Hey ${name}, your 3D WebGL Starter Pack is ready! Open your enclave workspace at https://3dwebprompts-vineb.vercel.app/#portal`,
+  });
+
+  if (result.success && typeof window !== 'undefined') {
+    sessionStorage.setItem(dedupeKey, 'true');
+  }
+
+  return result;
+}

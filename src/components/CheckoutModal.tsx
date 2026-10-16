@@ -27,6 +27,7 @@ import {
   getAdAttribution,
   LeadOrder,
 } from '../lib/leadTracker';
+import { sendInstantLeadMagnetOrAbandonedEmail } from '../lib/resendEmail';
 import { getAdminSettings, AdminSettings } from '../lib/adminSettings';
 import { sanitizeInput, validateEmail, validateIndianPhone } from '../lib/security';
 import {
@@ -270,14 +271,50 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const handleGhostAutoSave = () => {
     if (!tier || !email.trim()) return;
     if (email.includes('@') && email.includes('.')) {
-      saveGhostKeystrokeLead({
-        email: email.trim(),
-        name: name.trim(),
-        phone: phone.trim(),
+      const cleanPhone = phone.trim() ? phone.replace(/\D/g, '') : '';
+      const leadName = name.trim() || 'Visitor (Checkout)';
+      const cleanEmail = email.trim().toLowerCase();
+
+      const leadData = {
+        email: cleanEmail,
+        name: leadName,
+        phone: cleanPhone,
         tierId: tier.id,
         tierName: tier.name,
         amountINR: tier.priceINR,
-      });
+      };
+
+      // 1. Save in Ghost / Abandoned Orders database
+      saveGhostKeystrokeLead(leadData);
+
+      // 2. Cache in localStorage & provision Client Portal member preview
+      try {
+        localStorage.setItem('vineb_user_name', leadName);
+        localStorage.setItem('vineb_user_email', cleanEmail);
+        if (cleanPhone) localStorage.setItem('vineb_user_phone', cleanPhone);
+
+        const memberSession: LeadOrder = {
+          id: `USR-${cleanEmail.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8)}`,
+          orderNumber: `MEM-${Date.now().toString().slice(-4)}`,
+          name: leadName,
+          email: cleanEmail,
+          phone: cleanPhone,
+          tierId: 'member',
+          tierName: 'Enclave Member (1 Copy/Day)',
+          amountINR: 0,
+          status: 'approved',
+          licenseKey: `LIC-MBR-${Date.now().toString().slice(-6)}`,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          approvedAt: new Date().toISOString(),
+        };
+        sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(memberSession));
+      } catch {
+        // storage error ignored
+      }
+
+      // 3. Dispatch instant welcome/abandoned recovery email via Resend
+      sendInstantLeadMagnetOrAbandonedEmail(leadData).catch(() => {});
     }
   };
 

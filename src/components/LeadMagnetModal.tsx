@@ -18,7 +18,8 @@ import {
   Zap,
 } from 'lucide-react';
 import { sound } from '../lib/audioEngine';
-import { saveGhostKeystrokeLead } from '../lib/leadTracker';
+import { saveGhostKeystrokeLead, LeadOrder } from '../lib/leadTracker';
+import { sendInstantLeadMagnetOrAbandonedEmail } from '../lib/resendEmail';
 
 export type UserRole = 'Student' | 'Freelancer' | 'Agency Owner';
 
@@ -192,6 +193,7 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         sound.playClick();
+        handleGhostAutoSave();
         onClose();
       }
     };
@@ -201,7 +203,7 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
       document.body.style.overflow = originalOverflow;
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, email, name, phone]);
 
   if (!isOpen || !mounted) return null;
 
@@ -209,23 +211,60 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim());
   };
 
-  const handleClose = () => {
-    sound.playClick();
-    setError(null);
-    setIsSubmittedSuccess(false);
-    onClose();
-  };
-
   const handleGhostAutoSave = () => {
     if (!email.trim() || !email.includes('@') || !email.includes('.')) return;
-    saveGhostKeystrokeLead({
-      name: name.trim() || 'Visitor (Lead Magnet)',
-      phone: phone.trim() ? phone.replace(/\D/g, '') : '',
-      email: email.trim().toLowerCase(),
+    const cleanPhone = phone.trim() ? phone.replace(/\D/g, '') : '';
+    const leadName = name.trim() || 'Visitor (Lead Magnet)';
+    const cleanEmail = email.trim().toLowerCase();
+
+    const leadData = {
+      name: leadName,
+      phone: cleanPhone,
+      email: cleanEmail,
       tierId: 'free_pdf',
       tierName: 'Free 30+ Prompts PDF Magnet',
       amountINR: 0,
-    });
+    };
+
+    // 1. Save in Ghost / Abandoned Orders database
+    saveGhostKeystrokeLead(leadData);
+
+    // 2. Cache in localStorage & provision Client Portal member preview
+    try {
+      localStorage.setItem('vineb_user_name', leadName);
+      localStorage.setItem('vineb_user_email', cleanEmail);
+      if (cleanPhone) localStorage.setItem('vineb_user_phone', cleanPhone);
+
+      const memberSession: LeadOrder = {
+        id: `USR-${cleanEmail.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8)}`,
+        orderNumber: `MEM-${Date.now().toString().slice(-4)}`,
+        name: leadName,
+        email: cleanEmail,
+        phone: cleanPhone,
+        tierId: 'member',
+        tierName: 'Enclave Member (1 Copy/Day)',
+        amountINR: 0,
+        status: 'approved',
+        licenseKey: `LIC-MBR-${Date.now().toString().slice(-6)}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        approvedAt: new Date().toISOString(),
+      };
+      sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(memberSession));
+    } catch {
+      // storage error ignored
+    }
+
+    // 3. Dispatch instant welcome & starter email via Resend API
+    sendInstantLeadMagnetOrAbandonedEmail(leadData).catch(() => {});
+  };
+
+  const handleClose = () => {
+    sound.playClick();
+    handleGhostAutoSave();
+    setError(null);
+    setIsSubmittedSuccess(false);
+    onClose();
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -495,8 +534,12 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
                     required
                     value={email}
                     onChange={(e) => {
-                      setEmail(e.target.value);
+                      const val = e.target.value;
+                      setEmail(val);
                       if (error) setError(null);
+                      if (val.includes('@') && val.includes('.') && val.length > 6) {
+                        handleGhostAutoSave();
+                      }
                     }}
                     onBlur={handleGhostAutoSave}
                     placeholder="developer@studio.com"
