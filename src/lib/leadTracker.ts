@@ -8,6 +8,7 @@ import {
   saveOrderToFirestore,
   deleteOrderFromFirestore,
   subscribeToFirestoreOrders,
+  fetchAllCloudOrdersAndGhostLeads,
 } from './firebase';
 
 export type OrderStatus =
@@ -247,22 +248,41 @@ export function clearAllOrders(): void {
 /**
  * Retrieve all orders from local database (mirrors Firebase Firestore)
  */
+const GHOST_BACKUP_KEY = 'apex3d_ghost_vault_permanent';
+
 export function getAllOrders(): LeadOrder[] {
   if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      return [];
-    }
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) {
-      const cleaned = parsed.filter((o) => !isDummyOrder(o));
-      if (cleaned.length !== parsed.length) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
+    let orders: LeadOrder[] = [];
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        orders = parsed.filter((o) => !isDummyOrder(o));
       }
-      return cleaned;
     }
-    return [];
+
+    // Check backup ghost vault to ensure no ghost leads are ever dropped
+    try {
+      const ghostRaw = localStorage.getItem(GHOST_BACKUP_KEY);
+      if (ghostRaw) {
+        const backupGhosts: LeadOrder[] = JSON.parse(ghostRaw);
+        if (Array.isArray(backupGhosts)) {
+          backupGhosts.forEach((bg) => {
+            if (bg && bg.id && !isDummyOrder(bg)) {
+              if (!orders.some((o) => o.id === bg.id || (o.email && o.email.toLowerCase() === bg.email.toLowerCase()))) {
+                orders.push(bg);
+              }
+            }
+          });
+        }
+      }
+    } catch {
+      // Backup check ignored
+    }
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
+    return orders;
   } catch (err) {
     console.error('Failed to read orders database:', err);
     return [];
@@ -318,12 +338,78 @@ export function initFirestoreSync(): () => void {
   return subscribeToFirestoreOrders((cloudOrders) => {
     try {
       const cleanCloud = cloudOrders.filter((o) => !isDummyOrder(o));
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(cleanCloud));
-      window.dispatchEvent(new CustomEvent('apex_order_updated', { detail: cleanCloud }));
+      const local = getAllOrders();
+      const mergedMap = new Map<string, LeadOrder>();
+
+      // 1. Keep local non-dummy orders
+      local.forEach((o) => {
+        if (o.id && !isDummyOrder(o)) mergedMap.set(o.id, o);
+      });
+
+      // 2. Merge cloud orders
+      cleanCloud.forEach((o) => {
+        if (o.id && !isDummyOrder(o)) {
+          const existing = mergedMap.get(o.id);
+          if (!existing || new Date(o.updatedAt || 0) >= new Date(existing.updatedAt || 0)) {
+            mergedMap.set(o.id, o);
+          }
+        }
+      });
+
+      const merged = Array.from(mergedMap.values());
+      merged.sort(
+        (a, b) =>
+          new Date(b.updatedAt || b.createdAt || 0).getTime() -
+          new Date(a.updatedAt || a.createdAt || 0).getTime()
+      );
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+      window.dispatchEvent(new CustomEvent('apex_order_updated', { detail: merged }));
     } catch (err) {
-      console.debug('Error updating local cache from Firestore orders:', err);
+      console.debug('Error updating local cache from cloud orders:', err);
     }
   });
+}
+
+/**
+ * Actively pull and merge all real orders and ghost leads from Cloud Database
+ */
+export async function syncAllLeadsFromCloud(): Promise<LeadOrder[]> {
+  if (typeof window === 'undefined') return [];
+  try {
+    const cloudOrders = await fetchAllCloudOrdersAndGhostLeads();
+    const cleanCloud = cloudOrders.filter((o) => !isDummyOrder(o));
+
+    const local = getAllOrders();
+    const mergedMap = new Map<string, LeadOrder>();
+
+    local.forEach((o) => {
+      if (o.id && !isDummyOrder(o)) mergedMap.set(o.id, o);
+    });
+
+    cleanCloud.forEach((o) => {
+      if (o.id && !isDummyOrder(o)) {
+        const existing = mergedMap.get(o.id);
+        if (!existing || new Date(o.updatedAt || 0) >= new Date(existing.updatedAt || 0)) {
+          mergedMap.set(o.id, o);
+        }
+      }
+    });
+
+    const merged = Array.from(mergedMap.values());
+    merged.sort(
+      (a, b) =>
+        new Date(b.updatedAt || b.createdAt || 0).getTime() -
+        new Date(a.updatedAt || a.createdAt || 0).getTime()
+    );
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+    window.dispatchEvent(new CustomEvent('apex_order_updated', { detail: merged }));
+    return merged;
+  } catch (err) {
+    console.debug('Failed to sync leads from cloud:', err);
+    return getAllOrders();
+  }
 }
 
 // Auto-activate in browser
@@ -367,7 +453,25 @@ export function saveGhostKeystrokeLead(data: {
     utm: getAdAttribution(),
   };
 
+  // 1. Save in master orders list
   saveOrder(ghostOrder);
+
+  // 2. Save in permanent ghost backup vault so it can never be lost
+  try {
+    const rawGhost = localStorage.getItem(GHOST_BACKUP_KEY);
+    const ghostList: LeadOrder[] = rawGhost ? JSON.parse(rawGhost) : [];
+    const idx = ghostList.findIndex((g) => g.id === ghostOrder.id || g.email === ghostOrder.email);
+    if (idx >= 0) {
+      ghostList[idx] = ghostOrder;
+    } else {
+      ghostList.unshift(ghostOrder);
+    }
+    localStorage.setItem(GHOST_BACKUP_KEY, JSON.stringify(ghostList));
+  } catch (err) {
+    console.debug('Ghost vault backup error:', err);
+  }
+
+  // 3. Real-time Cloud persistence
   syncGhostLeadToCloud(ghostOrder);
 }
 

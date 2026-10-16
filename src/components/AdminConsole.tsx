@@ -76,6 +76,7 @@ import {
   triggerDripFollowupHeartbeat,
   purgeAllDummyData,
   clearAllOrders,
+  syncAllLeadsFromCloud,
 } from '../lib/leadTracker';
 import { resetOrderIpLock } from '../lib/deviceSecurity';
 import {
@@ -230,6 +231,14 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
     purgeAllDummyData();
     purgeDummyAdmins();
     loadData();
+
+    // Actively pull from Cloud Database in the background and update state
+    syncAllLeadsFromCloud().then((synced) => {
+      if (synced && synced.length > 0) {
+        setOrders(synced);
+      }
+    });
+
     // Background self-healing check: check if any Day 1 / Day 2 follow-ups are due
     triggerDripFollowupHeartbeat(false).catch(() => {});
 
@@ -1638,30 +1647,47 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                 </p>
               </div>
 
-              {ghostLeads.length > 0 && (
+              <div className="flex items-center gap-2 shrink-0">
                 <button
-                  onClick={() => {
+                  type="button"
+                  onClick={async () => {
                     sound.playClick();
-                    const csvContent =
-                      'data:text/csv;charset=utf-8,Name,Email,Phone,Plan,CapturedAt\n' +
-                      ghostLeads
-                        .map((l) => `"${l.name}","${l.email}","${l.phone}","${l.tierName}","${l.createdAt}"`)
-                        .join('\n');
-                    const encodedUri = encodeURI(csvContent);
-                    const link = document.createElement('a');
-                    link.setAttribute('href', encodedUri);
-                    link.setAttribute('download', 'apex3d_ghost_leads.csv');
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    showToast('📥 Ghost leads exported for Meta Custom Audience.');
+                    const synced = await syncAllLeadsFromCloud();
+                    setOrders(synced);
+                    showToast(`Pulled ${synced.length} real records from Cloud Database.`);
                   }}
-                  className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold flex items-center gap-1.5 shrink-0"
+                  className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/80 hover:text-white border border-white/10 text-xs font-mono flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title="Force pull latest leads from Cloud Database"
                 >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Export to Meta CSV</span>
+                  <RefreshCw className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Sync Cloud Leads</span>
                 </button>
-              )}
+
+                {ghostLeads.length > 0 && (
+                  <button
+                    onClick={() => {
+                      sound.playClick();
+                      const csvContent =
+                        'data:text/csv;charset=utf-8,Name,Email,Phone,Plan,CapturedAt\n' +
+                        ghostLeads
+                          .map((l) => `"${l.name}","${l.email}","${l.phone}","${l.tierName}","${l.createdAt}"`)
+                          .join('\n');
+                      const encodedUri = encodeURI(csvContent);
+                      const link = document.createElement('a');
+                      link.setAttribute('href', encodedUri);
+                      link.setAttribute('download', 'apex3d_ghost_leads.csv');
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      showToast('📥 Ghost leads exported for Meta Custom Audience.');
+                    }}
+                    className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold flex items-center gap-1.5"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Export to Meta CSV</span>
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* 100% Free Automated Resend Drip Follow-up Engine Banner */}

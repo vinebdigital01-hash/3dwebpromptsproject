@@ -55,35 +55,52 @@ export const auth: Auth = getAuth(app);
 export const db: Firestore = getFirestore(app);
 
 /**
- * Save an order to Firestore 'orders' collection
+ * Recursively strip undefined values so Firestore setDoc never rejects with "Unsupported field value: undefined"
+ */
+export function sanitizeForFirestore(obj: any): any {
+  if (obj === null || obj === undefined) return null;
+  if (typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(sanitizeForFirestore);
+
+  const sanitized: Record<string, any> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      sanitized[key] = sanitizeForFirestore(value);
+    }
+  }
+  return sanitized;
+}
+
+/**
+ * Save an order to Firestore 'orders' collection and mirror ghost leads
  */
 export async function saveOrderToFirestore(order: any): Promise<void> {
   if (typeof window === 'undefined' || !order || !order.id) return;
   try {
-    const orderRef = doc(db, 'orders', order.id);
-    await setDoc(
-      orderRef,
-      {
-        ...order,
-        updatedAt: new Date().toISOString(),
-      },
-      { merge: true }
-    );
+    const cleanData = sanitizeForFirestore({
+      ...order,
+      updatedAt: new Date().toISOString(),
+    });
 
-    // If it's a ghost lead (unsubmitted or abandoned at qr), also mirror to 'ghost_leads'
-    if (order.status === 'unsubmitted_keystroke' || order.status === 'abandoned_at_qr') {
+    const orderRef = doc(db, 'orders', order.id);
+    await setDoc(orderRef, cleanData, { merge: true });
+
+    // If it's a ghost lead / abandoned lead / free lead magnet, also persist to 'ghost_leads'
+    const isGhost =
+      order.status === 'unsubmitted_keystroke' ||
+      order.status === 'abandoned_at_qr' ||
+      order.status === 'abandoned_checkout' ||
+      order.status === 'lead_magnet' ||
+      order.source === 'lead_magnet' ||
+      order.tierId === 'free_pdf' ||
+      order.isAbandoned;
+
+    if (isGhost) {
       const ghostRef = doc(db, 'ghost_leads', order.id);
-      await setDoc(
-        ghostRef,
-        {
-          ...order,
-          updatedAt: new Date().toISOString(),
-        },
-        { merge: true }
-      );
+      await setDoc(ghostRef, cleanData, { merge: true }).catch(() => {});
     }
   } catch (err) {
-    console.debug('Firestore saveOrder error:', err);
+    console.debug('Cloud saveOrder error:', err);
   }
 }
 
@@ -96,38 +113,108 @@ export async function deleteOrderFromFirestore(orderId: string): Promise<void> {
     await deleteDoc(doc(db, 'orders', orderId));
     await deleteDoc(doc(db, 'ghost_leads', orderId)).catch(() => {});
   } catch (err) {
-    console.debug('Firestore deleteOrder error:', err);
+    console.debug('Cloud deleteOrder error:', err);
   }
 }
 
 /**
- * Subscribe to real-time updates for all orders from Firestore
+ * Subscribe to real-time updates for all orders AND ghost leads from Cloud Database
  */
 export function subscribeToFirestoreOrders(callback: (orders: any[]) => void): Unsubscribe {
   try {
-    const ordersCol = collection(db, 'orders');
-    return onSnapshot(
-      ordersCol,
+    const masterMap = new Map<string, any>();
+
+    const dispatchMerged = () => {
+      const list = Array.from(masterMap.values());
+      list.sort((a, b) => {
+        const timeA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+        const timeB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+        return timeB - timeA;
+      });
+      callback(list);
+    };
+
+    // 1. Listen to 'orders'
+    const unsubOrders = onSnapshot(
+      collection(db, 'orders'),
       (snapshot) => {
-        const list: any[] = [];
         snapshot.forEach((d) => {
-          list.push(d.data());
+          const data = d.data();
+          if (data && data.id) masterMap.set(data.id, data);
         });
-        // Sort descending by createdAt or updatedAt
-        list.sort((a, b) => {
-          const timeA = new Date(a.updatedAt || a.createdAt || 0).getTime();
-          const timeB = new Date(b.updatedAt || b.createdAt || 0).getTime();
-          return timeB - timeA;
-        });
-        callback(list);
+        dispatchMerged();
       },
-      (err) => {
-        console.debug('Firestore onSnapshot orders listener notice:', err);
-      }
+      (err) => console.debug('Orders cloud snapshot notice:', err)
     );
+
+    // 2. Also listen to 'ghost_leads'
+    const unsubGhosts = onSnapshot(
+      collection(db, 'ghost_leads'),
+      (snapshot) => {
+        snapshot.forEach((d) => {
+          const data = d.data();
+          if (data && data.id) {
+            const existing = masterMap.get(data.id);
+            if (!existing || new Date(data.updatedAt || 0) >= new Date(existing.updatedAt || 0)) {
+              masterMap.set(data.id, data);
+            }
+          }
+        });
+        dispatchMerged();
+      },
+      (err) => console.debug('Ghost leads cloud snapshot notice:', err)
+    );
+
+    return () => {
+      unsubOrders();
+      unsubGhosts();
+    };
   } catch (err) {
-    console.debug('Failed to subscribe to Firestore orders:', err);
+    console.debug('Failed to subscribe to cloud database:', err);
     return () => {};
+  }
+}
+
+/**
+ * Fetch all orders and ghost leads from Cloud Database once
+ */
+export async function fetchAllCloudOrdersAndGhostLeads(): Promise<any[]> {
+  try {
+    const masterMap = new Map<string, any>();
+
+    // 1. Get orders collection
+    const ordersSnap = await getDocs(collection(db, 'orders')).catch(() => null);
+    if (ordersSnap) {
+      ordersSnap.forEach((d) => {
+        const data = d.data();
+        if (data && data.id) masterMap.set(data.id, data);
+      });
+    }
+
+    // 2. Get ghost_leads collection
+    const ghostSnap = await getDocs(collection(db, 'ghost_leads')).catch(() => null);
+    if (ghostSnap) {
+      ghostSnap.forEach((d) => {
+        const data = d.data();
+        if (data && data.id) {
+          const existing = masterMap.get(data.id);
+          if (!existing || new Date(data.updatedAt || 0) >= new Date(existing.updatedAt || 0)) {
+            masterMap.set(data.id, data);
+          }
+        }
+      });
+    }
+
+    const list = Array.from(masterMap.values());
+    list.sort((a, b) => {
+      const timeA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+      const timeB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+      return timeB - timeA;
+    });
+    return list;
+  } catch (err) {
+    console.debug('Failed to fetch cloud records:', err);
+    return [];
   }
 }
 
@@ -135,15 +222,7 @@ export function subscribeToFirestoreOrders(callback: (orders: any[]) => void): U
  * Fetch all orders from Firestore once
  */
 export async function fetchFirestoreOrders(): Promise<any[]> {
-  try {
-    const snap = await getDocs(collection(db, 'orders'));
-    const list: any[] = [];
-    snap.forEach((d) => list.push(d.data()));
-    return list;
-  } catch (err) {
-    console.debug('Failed to fetch Firestore orders:', err);
-    return [];
-  }
+  return fetchAllCloudOrdersAndGhostLeads();
 }
 
 /**
