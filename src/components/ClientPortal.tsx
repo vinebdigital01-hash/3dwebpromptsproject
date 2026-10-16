@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   ShieldCheck,
   Search,
@@ -23,6 +23,16 @@ import {
   AlertCircle,
   HelpCircle,
   Code2,
+  Play,
+  Pause,
+  Maximize2,
+  X,
+  Volume2,
+  VolumeX,
+  Eye,
+  Film,
+  Layers,
+  Cpu,
 } from 'lucide-react';
 import {
   LeadOrder,
@@ -45,6 +55,187 @@ interface ClientPortalProps {
 
 type PortalTab = 'vault' | 'boilerplates' | 'license';
 
+// -------------------------------------------------------------
+// VISUAL PROMPT CARD COMPONENT (WITH 3D VIDEO / IMAGE SHOWCASE)
+// -------------------------------------------------------------
+interface PromptCardProps {
+  prompt: VaultItem;
+  isCopied: boolean;
+  onCopy: () => void;
+  onInspect: () => void;
+}
+
+const PromptCard: React.FC<PromptCardProps> = ({ prompt, isCopied, onCopy, onInspect }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [isHovered, setIsHovered] = useState(false);
+
+  const togglePlay = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    sound.playClick();
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        videoRef.current.play();
+        setIsPlaying(true);
+      }
+    }
+  };
+
+  const isVideo = prompt.videoUrl.endsWith('.mp4');
+
+  return (
+    <div
+      onMouseEnter={() => {
+        setIsHovered(true);
+        sound.playHover();
+      }}
+      onMouseLeave={() => setIsHovered(false)}
+      className="group rounded-2xl bg-[#090914] border border-white/10 hover:border-blue-500/40 transition-all duration-300 overflow-hidden flex flex-col justify-between shadow-xl hover:shadow-2xl hover:shadow-blue-500/10"
+    >
+      {/* 1. CINEMATIC 3D VIDEO SHOWCASE CONTAINER */}
+      <div
+        onClick={onInspect}
+        className="relative aspect-video w-full bg-black/80 overflow-hidden cursor-pointer"
+      >
+        {isVideo ? (
+          <video
+            ref={videoRef}
+            src={prompt.videoUrl}
+            poster={prompt.poster}
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+          />
+        ) : (
+          <img
+            src={prompt.videoUrl || prompt.poster}
+            alt={prompt.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+          />
+        )}
+
+        {/* Ambient Top & Bottom Vignette Gradient */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#090914] via-transparent to-black/60 pointer-events-none" />
+
+        {/* Top Floating Badges */}
+        <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 z-10">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 backdrop-blur-md">
+              {prompt.category}
+            </span>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-black/60 text-emerald-400 border border-emerald-500/30 backdrop-blur-md flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span>{prompt.fpsBadge || '60 FPS WEBGL'}</span>
+            </span>
+          </div>
+
+          <div className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[11px] font-mono font-bold backdrop-blur-md shadow-sm">
+            {prompt.clientValue} SOW
+          </div>
+        </div>
+
+        {/* Bottom Video Controls & Inspect Pill */}
+        <div className="absolute bottom-2.5 left-3 right-3 flex items-center justify-between gap-2 z-10">
+          {isVideo && (
+            <button
+              onClick={togglePlay}
+              className="p-1.5 rounded-lg bg-black/60 hover:bg-black/90 text-white/80 hover:text-white border border-white/10 backdrop-blur-md transition-all"
+              title={isPlaying ? 'Pause 3D Loop' : 'Play 3D Loop'}
+            >
+              {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+            </button>
+          )}
+
+          <div className="ml-auto flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-600/80 hover:bg-blue-600 text-white text-[11px] font-mono font-semibold backdrop-blur-md transition-all group-hover:scale-105">
+            <Eye className="w-3.5 h-3.5" />
+            <span>Inspect 3D Blueprint</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. CARD CONTENT & PRODUCTION DETAILS */}
+      <div className="p-5 flex-1 flex flex-col justify-between">
+        <div>
+          <h3
+            onClick={onInspect}
+            className="text-base font-bold text-white tracking-tight hover:text-blue-400 transition-colors cursor-pointer line-clamp-1"
+          >
+            {prompt.title}
+          </h3>
+          <p className="text-xs text-white/60 mt-1 line-clamp-2 leading-relaxed">
+            {prompt.subtitle}
+          </p>
+
+          {/* Key Visual Capabilities */}
+          <div className="mt-3.5 space-y-1.5">
+            {prompt.keyFeatures.slice(0, 3).map((feat, idx) => (
+              <div key={idx} className="flex items-start gap-1.5 text-[11px] text-white/70">
+                <span className="text-blue-400 mt-0.5">•</span>
+                <span className="line-clamp-1">{feat}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Tested Model Chips & Token Count */}
+          <div className="mt-4 pt-3 border-t border-white/5 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap gap-1">
+              {prompt.testedModels.slice(0, 2).map((m) => (
+                <span
+                  key={m}
+                  className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/60 border border-white/5"
+                >
+                  {m}
+                </span>
+              ))}
+            </div>
+            <span className="text-[10px] font-mono text-white/40">~{prompt.tokens} tokens</span>
+          </div>
+        </div>
+
+        {/* 3. BOTTOM BUTTONS (INSPECT & 1-CLICK COPY) */}
+        <div className="mt-5 pt-3.5 border-t border-white/10 flex items-center justify-between gap-2">
+          <button
+            onClick={onInspect}
+            className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/80 hover:text-white text-xs font-mono font-medium flex items-center gap-1.5 border border-white/10 transition-colors"
+          >
+            <Maximize2 className="w-3.5 h-3.5 text-blue-400" />
+            <span>Architecture</span>
+          </button>
+
+          <button
+            onClick={onCopy}
+            className={`px-4 py-2 rounded-xl text-xs font-bold font-mono flex items-center gap-1.5 transition-all active:scale-95 shadow-md ${
+              isCopied
+                ? 'bg-emerald-600 text-white shadow-emerald-600/30'
+                : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/30'
+            }`}
+          >
+            {isCopied ? (
+              <>
+                <Check className="w-3.5 h-3.5" />
+                <span>Copied!</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-3.5 h-3.5" />
+                <span>Copy Syntax</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// -------------------------------------------------------------
+// MAIN CLIENT PORTAL COMPONENT
+// -------------------------------------------------------------
 export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgradeClick }) => {
   // Authentication State
   const [activeOrder, setActiveOrder] = useState<LeadOrder | null>(() => {
@@ -67,7 +258,9 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedModel, setSelectedModel] = useState<string>('All');
-  const [expandedPromptId, setExpandedPromptId] = useState<string | null>(null);
+
+  // Inspection Lightbox Modal State
+  const [inspectingPrompt, setInspectingPrompt] = useState<VaultItem | null>(null);
 
   // Copy State & Toast
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -108,7 +301,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
 
     const order = findApprovedOrder(loginInput);
     if (!order) {
-      sound.playError?.();
+      sound.playError();
       setLoginError(
         'No active verified order found with this License Key, Order Number, or Email. If you just paid via UPI, verification takes 2-10 minutes.'
       );
@@ -123,7 +316,6 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
 
   const handleDemoVipLogin = () => {
     sound.playSuccess();
-    // Default VIP customer Priya Nambiar
     const orders = getAllOrders();
     const vip = orders.find((o) => o.status === 'approved' && o.tierId === 'lifetime') || orders.find((o) => o.status === 'approved');
     if (vip) {
@@ -150,14 +342,14 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
       return;
     }
 
-    sound.playClick();
+    sound.playSuccess();
     navigator.clipboard.writeText(prompt.promptArchitecture);
     setCopiedId(prompt.id);
     setTimeout(() => setCopiedId(null), 2500);
 
     const newCount = incrementDailyCopyUsage(activeOrder.licenseKey || '');
     setDailyUsage(newCount);
-    showToast(`Copied "${prompt.title}" syntax!`);
+    showToast(`Copied "${prompt.title}" architecture syntax!`);
   };
 
   // Expiry Details
@@ -222,7 +414,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
               </div>
               <h1 className="text-xl font-bold tracking-tight text-white">Client Member Portal</h1>
               <p className="text-xs text-white/50 mt-1">
-                Enter your License Key, Order Number, or Registered Email to access your 500+ master prompts vault.
+                Enter your License Key, Order Number, or Registered Email to access your 500+ master prompts vault with 3D video previews.
               </p>
             </div>
 
@@ -283,7 +475,6 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
           </div>
         </main>
 
-        {/* Footer */}
         <footer className="border-t border-white/5 py-4 text-center text-xs text-white/30 font-mono">
           APEX3D Architectural Systems · Secured by Vine B Digital
         </footer>
@@ -449,8 +640,8 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                 : 'border-transparent text-white/50 hover:text-white'
             }`}
           >
-            <Code2 className="w-4 h-4" />
-            <span>500+ Master Prompts Vault</span>
+            <Film className="w-4 h-4 text-blue-400" />
+            <span>500+ Master 3D Prompts Vault</span>
           </button>
 
           <button
@@ -489,7 +680,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8">
         
         {/* -------------------------------------------------------------
-            TAB 1: 500+ MASTER PROMPTS VAULT
+            TAB 1: 500+ MASTER PROMPTS VAULT (VISUAL SHOWCASE WITH 3D VIDEOS)
            ------------------------------------------------------------- */}
         {activeTab === 'vault' && (
           <div className="space-y-6">
@@ -553,118 +744,40 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
               ))}
             </div>
 
-            {/* Prompt Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-              {filteredPrompts.map((prompt) => {
-                const isExpanded = expandedPromptId === prompt.id;
-                const isCopied = copiedId === prompt.id;
+            {/* Visual Header Banner */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-950/30 via-[#0a0f20] to-[#090914] border border-blue-500/20 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
+                  <Film className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-white tracking-tight">
+                    Production 3D Video & Code Vault
+                  </h2>
+                  <p className="text-xs text-white/50 mt-0.5">
+                    Click any 3D showcase video to inspect full shader architecture, camera parameters, and calibrated prompts.
+                  </p>
+                </div>
+              </div>
+              <span className="hidden sm:inline-block text-xs font-mono text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                {filteredPrompts.length} Master Blueprints Active
+              </span>
+            </div>
 
-                return (
-                  <div
-                    key={prompt.id}
-                    className="p-5 sm:p-6 rounded-2xl bg-[#090914] border border-white/10 hover:border-white/20 transition-all flex flex-col justify-between"
-                  >
-                    <div>
-                      {/* Top Meta Header */}
-                      <div className="flex items-start justify-between gap-3 mb-2">
-                        <span className="text-[10px] font-mono uppercase px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-300 border border-blue-500/20">
-                          {prompt.category}
-                        </span>
-
-                        <div className="text-right">
-                          <span className="text-xs font-mono font-bold text-amber-400">
-                            {prompt.clientValue} SOW
-                          </span>
-                          <span className="text-[10px] text-white/40 block font-mono">
-                            ~{prompt.tokens} tokens
-                          </span>
-                        </div>
-                      </div>
-
-                      <h3 className="text-base font-bold text-white tracking-tight">{prompt.title}</h3>
-                      <p className="text-xs text-white/60 mt-1 line-clamp-2">{prompt.subtitle}</p>
-
-                      {/* Description & Features */}
-                      <p className="text-xs text-white/50 mt-3 leading-relaxed">
-                        {prompt.description}
-                      </p>
-
-                      {/* Key Features Bullet Points */}
-                      <div className="mt-3 space-y-1">
-                        {prompt.keyFeatures.slice(0, 3).map((feat, idx) => (
-                          <div key={idx} className="flex items-start gap-1.5 text-[11px] text-white/70">
-                            <span className="text-blue-400 mt-0.5">•</span>
-                            <span>{feat}</span>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Calibrated Model Badges */}
-                      <div className="mt-4 flex flex-wrap gap-1.5">
-                        {prompt.testedModels.map((model) => (
-                          <span
-                            key={model}
-                            className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/60 border border-white/5"
-                          >
-                            {model}
-                          </span>
-                        ))}
-                      </div>
-
-                      {/* Expandable Architecture Syntax */}
-                      {isExpanded && (
-                        <div className="mt-4 p-4 rounded-xl bg-black/60 border border-white/10 text-xs font-mono text-blue-200/90 whitespace-pre-wrap leading-relaxed max-h-72 overflow-y-auto animate-role-fade-in">
-                          {prompt.promptArchitecture}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Bottom Action Buttons */}
-                    <div className="mt-5 pt-4 border-t border-white/10 flex items-center justify-between gap-3">
-                      <button
-                        onClick={() => {
-                          sound.playClick();
-                          setExpandedPromptId(isExpanded ? null : prompt.id);
-                        }}
-                        className="text-xs text-white/60 hover:text-white flex items-center gap-1 font-mono transition-colors"
-                      >
-                        {isExpanded ? (
-                          <>
-                            <span>Hide Architecture</span>
-                            <ChevronUp className="w-3.5 h-3.5" />
-                          </>
-                        ) : (
-                          <>
-                            <span>View Full Syntax</span>
-                            <ChevronDown className="w-3.5 h-3.5" />
-                          </>
-                        )}
-                      </button>
-
-                      <button
-                        onClick={() => handleCopyPrompt(prompt)}
-                        className={`px-4 py-2 rounded-xl text-xs font-bold font-mono flex items-center gap-1.5 transition-all active:scale-95 ${
-                          isCopied
-                            ? 'bg-emerald-600 text-white'
-                            : 'bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-600/30'
-                        }`}
-                      >
-                        {isCopied ? (
-                          <>
-                            <Check className="w-3.5 h-3.5" />
-                            <span>Copied to Clipboard!</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="w-3.5 h-3.5" />
-                            <span>1-Click Copy Syntax</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+            {/* 3D Visual Cards Grid (Video/Image First) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+              {filteredPrompts.map((prompt) => (
+                <PromptCard
+                  key={prompt.id}
+                  prompt={prompt}
+                  isCopied={copiedId === prompt.id}
+                  onCopy={() => handleCopyPrompt(prompt)}
+                  onInspect={() => {
+                    sound.playClick();
+                    setInspectingPrompt(prompt);
+                  }}
+                />
+              ))}
             </div>
           </div>
         )}
@@ -935,6 +1048,172 @@ Rules:
         )}
 
       </main>
+
+      {/* -------------------------------------------------------------
+          FULLSCREEN 3D SHOWCASE LIGHTBOX MODAL (SPLIT-SCREEN VIDEO + CODE)
+         ------------------------------------------------------------- */}
+      {inspectingPrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/90 backdrop-blur-md animate-role-fade-in overflow-y-auto">
+          <div className="relative w-full max-w-5xl bg-[#090914] border border-white/15 rounded-2xl shadow-2xl overflow-hidden text-white my-auto flex flex-col max-h-[92vh]">
+            
+            {/* Top Bar */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-[#0d0d18]">
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 uppercase">
+                  {inspectingPrompt.category}
+                </span>
+                <h2 className="text-sm sm:text-base font-bold text-white tracking-tight truncate max-w-md">
+                  {inspectingPrompt.title}
+                </h2>
+              </div>
+
+              <button
+                onClick={() => {
+                  sound.playClick();
+                  setInspectingPrompt(null);
+                }}
+                className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+                aria-label="Close Inspection Modal"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Split Screen Modal Body */}
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 overflow-y-auto divide-y lg:divide-y-0 lg:divide-x divide-white/10">
+              
+              {/* Left Column: High-Res 3D Video Player */}
+              <div className="p-6 flex flex-col justify-between bg-black/40">
+                <div>
+                  <div className="relative aspect-video w-full rounded-xl overflow-hidden border border-white/10 shadow-2xl bg-black">
+                    {inspectingPrompt.videoUrl.endsWith('.mp4') ? (
+                      <video
+                        src={inspectingPrompt.videoUrl}
+                        poster={inspectingPrompt.poster}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        controls
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <img
+                        src={inspectingPrompt.videoUrl || inspectingPrompt.poster}
+                        alt={inspectingPrompt.title}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+
+                    <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/70 text-emerald-400 font-mono text-[10px] border border-emerald-500/30 backdrop-blur-md">
+                      {inspectingPrompt.fpsBadge || '60 FPS WEBGL'}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex items-center justify-between text-xs font-mono">
+                    <span className="text-white/40">Client SOW Valuation:</span>
+                    <span className="text-amber-400 font-bold text-sm">{inspectingPrompt.clientValue}</span>
+                  </div>
+
+                  <p className="text-xs text-white/70 mt-3 leading-relaxed">
+                    {inspectingPrompt.description}
+                  </p>
+
+                  <div className="mt-4 space-y-1.5">
+                    <div className="text-[10px] font-mono text-white/40 uppercase">Key Architecture Highlights:</div>
+                    {inspectingPrompt.keyFeatures.map((feat, idx) => (
+                      <div key={idx} className="flex items-start gap-2 text-xs text-white/80">
+                        <span className="text-blue-400 font-bold">✓</span>
+                        <span>{feat}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-white/10 flex flex-wrap gap-2">
+                  {inspectingPrompt.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/60 border border-white/5"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Right Column: Code & Production Architecture Syntax */}
+              <div className="p-6 flex flex-col justify-between bg-[#08080f]">
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-mono uppercase text-blue-400 font-semibold flex items-center gap-1.5">
+                      <Code2 className="w-4 h-4" />
+                      <span>Calibrated Prompt Architecture</span>
+                    </span>
+
+                    <span className="text-[10px] font-mono text-white/40">
+                      ~{inspectingPrompt.tokens} tokens
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {inspectingPrompt.testedModels.map((m) => (
+                      <span
+                        key={m}
+                        className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-300 border border-blue-500/20"
+                      >
+                        {m}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Preformatted Code Box */}
+                  <div className="p-4 rounded-xl bg-black/70 border border-white/10 font-mono text-xs text-blue-200/90 whitespace-pre-wrap leading-relaxed max-h-80 overflow-y-auto select-text scrollbar-thin">
+                    {inspectingPrompt.promptArchitecture}
+                  </div>
+
+                  <p className="text-[10px] font-mono text-white/40 mt-3">
+                    💡 <strong>Pro Tip:</strong> Copy and paste this exact prompt into Claude 3.7 Sonnet or Cursor Agent to generate the entire React + Three.js + Tailwind codebase.
+                  </p>
+                </div>
+
+                {/* Bottom Modal Actions */}
+                <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between gap-3">
+                  <button
+                    onClick={() => setInspectingPrompt(null)}
+                    className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 text-xs font-mono"
+                  >
+                    Close Preview
+                  </button>
+
+                  <button
+                    onClick={() => handleCopyPrompt(inspectingPrompt)}
+                    className={`px-5 py-2.5 rounded-xl text-xs font-bold font-mono flex items-center gap-2 transition-all active:scale-95 shadow-lg ${
+                      copiedId === inspectingPrompt.id
+                        ? 'bg-emerald-600 text-white shadow-emerald-600/30'
+                        : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/30'
+                    }`}
+                  >
+                    {copiedId === inspectingPrompt.id ? (
+                      <>
+                        <Check className="w-4 h-4" />
+                        <span>Copied to Clipboard!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        <span>Copy Full Architecture</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+      )}
 
       {/* Tax Invoice Modal */}
       <InvoiceModal

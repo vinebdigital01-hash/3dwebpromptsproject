@@ -146,6 +146,9 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
         'Camera focal shifting with kinetic inertia',
         'High-converting interactive client deliverable',
       ],
+      videoUrl: newVideoUrl.trim() || 'https://images.refero.design/styles/refero.design/video/a3ee62c8-c674-48a3-84a9-e8269eefd621.mp4',
+      poster: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=1400&auto=format&fit=crop&q=80',
+      fpsBadge: '60 FPS WEBGL',
       promptArchitecture: newSyntax.trim(),
     };
 

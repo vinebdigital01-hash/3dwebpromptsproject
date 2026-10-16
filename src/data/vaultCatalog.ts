@@ -12,6 +12,9 @@ export interface VaultItem {
   tags: string[];
   promptArchitecture: string;
   keyFeatures: string[];
+  videoUrl: string;
+  poster: string;
+  fpsBadge: string;
 }
 
 export const VAULT_CATALOG: VaultItem[] = [
@@ -25,6 +28,9 @@ export const VAULT_CATALOG: VaultItem[] = [
     testedModels: ['Claude 3.7 Sonnet', 'Cursor Agent', 'ChatGPT o3'],
     tokens: 2840,
     highlightStat: '14.2x Agency Markup',
+    videoUrl: 'https://images.refero.design/styles/refero.design/video/7b76f1c1-600b-444f-a1a1-c51c831ec51a.mp4',
+    poster: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=1400&auto=format&fit=crop&q=80',
+    fpsBadge: '60 FPS WEBGL',
     description: 'Deploys an interactive 3D threat detection core with particle breach vectors, real-time audio-reactive GLSL displacement, and mouse-parallax HUD overlays.',
     tags: ['WebGL 60FPS', 'GLSL Shaders', 'Three.js BufferGeometry'],
     keyFeatures: [
@@ -58,6 +64,9 @@ TECHNICAL CORE REQUIREMENTS:
     testedModels: ['Claude 3.7 Sonnet', 'ChatGPT o3-mini', 'Cursor'],
     tokens: 3120,
     highlightStat: '4.9/5 Client Rating',
+    videoUrl: 'https://images.refero.design/styles/refero.design/video/a3ee62c8-c674-48a3-84a9-e8269eefd621.mp4',
+    poster: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=1400&auto=format&fit=crop&q=80',
+    fpsBadge: 'PBR TITANIUM 60FPS',
     description: 'Precision horology showcase featuring anisotropic brushed titanium textures, sapphire crystal refraction, ticking complication gear movements, and smooth camera angle switching.',
     tags: ['PBR Materials', 'Sapphire Glass', 'Ray-Traced Reflections'],
     keyFeatures: [
@@ -86,6 +95,9 @@ KEY VISUAL SPECIFICATIONS:
     testedModels: ['Claude 3.7 Sonnet', 'Cursor', 'v0'],
     tokens: 2450,
     highlightStat: '11.8% Checkout Lift',
+    videoUrl: 'https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(22).webp',
+    poster: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1400&auto=format&fit=crop&q=80',
+    fpsBadge: 'KINETIC PHYSICS 60FPS',
     description: 'High-energy footwear visualizer with air-bubble spring deformation, colorway switching without reload, and exploded foam layer inspection.',
     tags: ['Kinetic Physics', 'Colorway Engine', 'Mobile 60FPS'],
     keyFeatures: [
@@ -107,6 +119,9 @@ Include dynamic sole deformation upon hover, exploded anatomy breakdown with ann
     testedModels: ['Claude 3.7 Sonnet', 'ChatGPT o3'],
     tokens: 2690,
     highlightStat: '$16,000 Paid Client',
+    videoUrl: 'https://images.refero.design/styles/refero.design/video/3863f6a5-d963-4e26-ab94-4f5dae747954.mp4',
+    poster: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=1400&auto=format&fit=crop&q=80',
+    fpsBadge: 'RAY-TRACED FLUID',
     description: 'Haute couture fragrance visualizer with real-time sloshing amber fluid physics inside an emerald-cut glass bottle with optical caustics.',
     tags: ['Glass Refraction', 'Fluid Dynamics', 'Optical Caustics'],
     keyFeatures: [
@@ -127,6 +142,9 @@ Include dynamic sole deformation upon hover, exploded anatomy breakdown with ann
     testedModels: ['Claude 3.7 Sonnet', 'Cursor Agent', 'ChatGPT o3'],
     tokens: 3450,
     highlightStat: 'Client Deposit: $14,000',
+    videoUrl: 'https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(21).webp',
+    poster: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1400&auto=format&fit=crop&q=80',
+    fpsBadge: 'AERODYNAMIC PBR',
     description: 'Ultra-high-end automotive configurator featuring multi-coat metallic pearlescent paint, procedural carbon fiber normal mapping, and real-time wind tunnel smoke trails.',
     tags: ['Automotive 3D', 'Procedural Carbon', 'Aerodynamic Physics'],
     keyFeatures: [
@@ -148,6 +166,9 @@ Include real-time PBR material paint swapping (Pearlescent Pearl, British Racing
     testedModels: ['Claude 3.7 Sonnet', 'Cursor'],
     tokens: 3100,
     highlightStat: 'Sold to Swiss Jeweler',
+    videoUrl: 'https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/designs/alethia-video.mp4',
+    poster: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=1400&auto=format&fit=crop&q=80',
+    fpsBadge: 'SPECTRAL DISPERSION',
     description: 'Bespoke diamond jewelry showcase calculating internal light reflections, spectral chromatic fire, and 58-facet brilliant-cut refractive sparkle.',
     tags: ['Diamond Shaders', 'Spectral Dispersion', 'Haute Joaillerie'],
     keyFeatures: [
@@ -168,6 +189,9 @@ Include real-time PBR material paint swapping (Pearlescent Pearl, British Racing
     testedModels: ['Claude 3.7 Sonnet', 'Cursor', 'Antigravity'],
     tokens: 2280,
     highlightStat: 'Awwwards Nominee',
+    videoUrl: 'https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(23).webp',
+    poster: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1400&auto=format&fit=crop&q=80',
+    fpsBadge: 'VISIONOS SPATIAL',
     description: 'Ultra-refined spatial interface framework with dynamic frosted glass material tiers, specular edge lighting, and depth-based z-index parallax.',
     tags: ['VisionOS UI', 'Frosted Specular', 'Depth Parallax'],
     keyFeatures: [
@@ -189,6 +213,9 @@ Implement specular border highlights that reflect pointer coordinates, multi-tie
     testedModels: ['Claude 3.7 Sonnet', 'Cursor', 'ChatGPT o3'],
     tokens: 3350,
     highlightStat: 'Billed to Hedge Fund',
+    videoUrl: 'https://images.refero.design/styles/refero.design/video/6e6ad2ff-26c5-4fb6-90dc-ee4c3d596ca7.mp4',
+    poster: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=1400&auto=format&fit=crop&q=80',
+    fpsBadge: 'SUB-12MS LIQUIDITY',
     description: 'Wall Street institutional trading visualizer transforming live order book bids and asks into a real-time undulating 3D topographic mesh with millisecond telemetry.',
     tags: ['FinTech 3D', 'WebGL Topography', 'Real-Time WebSockets'],
     keyFeatures: [
@@ -209,6 +236,9 @@ Implement specular border highlights that reflect pointer coordinates, multi-tie
     testedModels: ['Claude 3.7 Sonnet', 'Cursor Agent'],
     tokens: 3600,
     highlightStat: 'Closed $32k Enterprise',
+    videoUrl: 'https://images.refero.design/styles/refero.design/video/8b7c1764-b8c0-4d71-9b7e-6bd84bce04ad.mp4',
+    poster: 'https://images.unsplash.com/photo-1504639725590-34d0984388bd?w=1400&auto=format&fit=crop&q=80',
+    fpsBadge: 'ORBITAL TELEMETRY',
     description: 'Enterprise cybersecurity fortress featuring an interactive 3D globe with orbital satellites, real-time cyberattack threat trajectories, and hardware telemetry readouts.',
     tags: ['Defense Tech', 'Orbital Globe', 'Shader Displacement'],
     keyFeatures: [
@@ -229,6 +259,9 @@ Implement specular border highlights that reflect pointer coordinates, multi-tie
     testedModels: ['Claude 3.7 Sonnet', 'Cursor'],
     tokens: 2850,
     highlightStat: '18% DTC Conversion Jump',
+    videoUrl: 'https://images.refero.design/styles/refero.design/video/51cb9ee2-498c-4f7f-8567-bf1bfe649987.mp4',
+    poster: 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=1400&auto=format&fit=crop&q=80',
+    fpsBadge: 'WEARABLE 3D CAD',
     description: 'Next-generation wearable visualizer demonstrating smart audio speaker chambers, dual ultra-wide camera lenses, and heads-up display projection cones.',
     tags: ['Wearables 3D', 'Lens Refraction', 'Micro-Acoustic Waves'],
     keyFeatures: [
@@ -249,6 +282,9 @@ Implement specular border highlights that reflect pointer coordinates, multi-tie
     testedModels: ['Claude 3.7 Sonnet', 'v0', 'Cursor'],
     tokens: 2600,
     highlightStat: '9.4x ROI for Creator Store',
+    videoUrl: 'https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(22).webp',
+    poster: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=1400&auto=format&fit=crop&q=80',
+    fpsBadge: 'AUDIO-REACTIVE 60FPS',
     description: 'E-commerce visualizer for enthusiast mechanical keyboards featuring per-key RGB illumination, switch stem exploded views, and realistic Web Audio sound playback on keypress.',
     tags: ['Keycap PBR', 'Web Audio API', 'Interactive Keypress'],
     keyFeatures: [
@@ -269,6 +305,9 @@ Implement specular border highlights that reflect pointer coordinates, multi-tie
     testedModels: ['Claude 3.7 Sonnet', 'Cursor'],
     tokens: 2950,
     highlightStat: '60 FPS Scrubbing',
+    videoUrl: 'https://images.refero.design/styles/refero.design/video/a2f41146-9aef-429b-b606-91a852661960.mp4',
+    poster: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1400&auto=format&fit=crop&q=80',
+    fpsBadge: 'CANVAS SCRUB 60FPS',
     description: 'Syncs high-resolution video frames or 3D skeletal rig rotations directly with user scroll position and mouse velocity without frame drops.',
     tags: ['Video-Scrub', 'ScrollSync', 'Skeletal Rig'],
     keyFeatures: [
@@ -289,6 +328,9 @@ Implement specular border highlights that reflect pointer coordinates, multi-tie
     testedModels: ['Claude 3.7 Sonnet', 'Cursor'],
     tokens: 2750,
     highlightStat: '3.4x Booking Rate',
+    videoUrl: 'https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/a/Geno%20Trace.mp4',
+    poster: 'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=1400&auto=format&fit=crop&q=80',
+    fpsBadge: '3D DENTAL SIMULATOR',
     description: 'Turnkey website system for cosmetic dental clinics featuring an interactive 3D teeth model, before-and-after smile slider, and conversion booking funnels.',
     tags: ['Medical 3D', 'High-Ticket B2B', 'Lead Funnel'],
     keyFeatures: [
@@ -309,6 +351,9 @@ Implement specular border highlights that reflect pointer coordinates, multi-tie
     testedModels: ['Claude 3.7 Sonnet', 'Cursor', 'ChatGPT o3'],
     tokens: 2890,
     highlightStat: '+24% AOV Increase',
+    videoUrl: 'https://images.refero.design/styles/refero.design/video/51cb9ee2-498c-4f7f-8567-bf1bfe649987.mp4',
+    poster: 'https://images.unsplash.com/photo-1556742049-0a67c5574f73?w=1400&auto=format&fit=crop&q=80',
+    fpsBadge: 'SHOPIFY HEADLESS',
     description: 'Headless e-commerce architecture pairing Three.js 360-degree rotation, exploded parts inspection, and instant Shopify cart dispatch.',
     tags: ['Shopify Headless', 'Cart API', '360 Turntable'],
     keyFeatures: [
@@ -329,6 +374,9 @@ Implement specular border highlights that reflect pointer coordinates, multi-tie
     testedModels: ['Claude 3.7 Sonnet', 'ChatGPT o3', 'Human Closing'],
     tokens: 3600,
     highlightStat: '42% Meeting Rate',
+    videoUrl: 'https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/designs/anchor-ai-landing.mp4',
+    poster: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1400&auto=format&fit=crop&q=80',
+    fpsBadge: 'AGENCY PITCH ENGINE',
     description: 'Battle-tested cold email scripts, LinkedIn outreach sequences, and agency closing pitch decks used to secure 5-figure 3D web design retainers.',
     tags: ['Client Acquisition', 'Cold Email', 'Proposal Decks'],
     keyFeatures: [
@@ -349,6 +397,9 @@ Implement specular border highlights that reflect pointer coordinates, multi-tie
     testedModels: ['Claude 3.7 Sonnet', 'Cursor Agent', 'ChatGPT o3', 'v0'],
     tokens: 4200,
     highlightStat: '2,000 Systems Included',
+    videoUrl: 'https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(23).webp',
+    poster: 'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?w=1400&auto=format&fit=crop&q=80',
+    fpsBadge: 'DESIGN TOKENS REPO',
     description: 'Curated library of 2,000 prompt formulas specifying exact hex tokens, typographic hierarchies, spring curves, and spacing math for instant AI generation.',
     tags: ['Design Tokens', 'Design Hierarchy', 'Multi-Industry'],
     keyFeatures: [
@@ -369,6 +420,9 @@ Implement specular border highlights that reflect pointer coordinates, multi-tie
     testedModels: ['Claude 3.7 Sonnet', 'Cursor'],
     tokens: 3100,
     highlightStat: '60 FPS on iOS/Android',
+    videoUrl: 'https://images.refero.design/styles/refero.design/video/ed2c729e-76ce-4ad0-bad8-c57d67247ec7.mp4',
+    poster: 'https://images.unsplash.com/photo-1642543492481-44e81e3914a7?w=1400&auto=format&fit=crop&q=80',
+    fpsBadge: 'MERCURY RAYMARCHING',
     description: 'Metaball-inspired liquid mercury shader with cursor inertia wake, iridescent specular sheen, and procedural droplet coalescence.',
     tags: ['Mercury Shader', 'Liquid Physics', 'GLSL Fragment'],
     keyFeatures: [
@@ -389,6 +443,9 @@ Implement specular border highlights that reflect pointer coordinates, multi-tie
     testedModels: ['Claude 3.7 Sonnet', 'Cursor Agent'],
     tokens: 3200,
     highlightStat: 'Billed to Biotech Firm',
+    videoUrl: 'https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/a/Geno%20Trace.mp4',
+    poster: 'https://images.unsplash.com/photo-1530497610245-94d3c16cda28?w=1400&auto=format&fit=crop&q=80',
+    fpsBadge: 'BIOMEDICAL 3D',
     description: 'Interactive anatomical cardiology visualizer with real-time heartbeat contractions, transparent myocardium tissue inspection, and catheter stent simulation.',
     tags: ['Medical Hologram', 'Anatomical 3D', 'Biotech SaaS'],
     keyFeatures: [
@@ -409,6 +466,9 @@ Implement specular border highlights that reflect pointer coordinates, multi-tie
     testedModels: ['Claude 3.7 Sonnet', 'ChatGPT o3'],
     tokens: 2900,
     highlightStat: 'Awwwards Mobile Nominee',
+    videoUrl: 'https://images.refero.design/styles/refero.design/video/a3ee62c8-c674-48a3-84a9-e8269eefd621.mp4',
+    poster: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=1400&auto=format&fit=crop&q=80',
+    fpsBadge: 'LEATHER PBR GRAIN',
     description: 'Ultra-luxury leather goods showcase revealing individual saddle stitch thread tensions, natural leather grain pore normal maps, and gold foil stamping.',
     tags: ['Leather PBR', 'Saddle Stitch', 'Macro Inspection'],
     keyFeatures: [
@@ -429,6 +489,9 @@ Implement specular border highlights that reflect pointer coordinates, multi-tie
     testedModels: ['Claude 3.7 Sonnet', 'Human Agency Closing'],
     tokens: 4100,
     highlightStat: 'Over $480,000 Closed',
+    videoUrl: 'https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/designs/anchor-ai-landing.mp4',
+    poster: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=1400&auto=format&fit=crop&q=80',
+    fpsBadge: 'HIGH-TICKET SOW',
     description: 'The exact battle-tested sales pitch scripts, contract clauses, and video audit framework that transformed $2k freelance developers into $15k agency owners.',
     tags: ['Sales Scripts', 'Proposal Decks', 'Contract Templates'],
     keyFeatures: [
