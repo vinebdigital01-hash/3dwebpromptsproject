@@ -422,6 +422,8 @@ export function findApprovedOrder(identifier: string): LeadOrder | null {
  */
 export function getMaxDailyCopies(tierId: string): number {
   switch (tierId) {
+    case 'member':
+    case 'free_preview':
     case 'day_pass':
     case 'day_1':
       return 1;

@@ -33,7 +33,20 @@ import {
   ArrowUpRight,
   SlidersHorizontal,
   ChevronRight,
+  Key,
+  Loader2,
 } from 'lucide-react';
+import {
+  loginWithGoogle,
+  loginWithGithub,
+  loginWithEmail,
+  registerWithEmail,
+  sendPasswordReset,
+  logoutFirebase,
+  subscribeToAuth,
+  getFirebaseErrorMessage,
+} from '../lib/firebase';
+import { User } from 'firebase/auth';
 import {
   LeadOrder,
   getAllOrders,
@@ -76,6 +89,26 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
 
   const [loginInput, setLoginInput] = useState('');
   const [loginError, setLoginError] = useState<string | null>(null);
+
+  // Firebase Auth State
+  const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authDisplayName, setAuthDisplayName] = useState('');
+  const [isAuthLoading, setIsAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  // Password Reset Modal State
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetStatus, setResetStatus] = useState<string | null>(null);
+  const [isResetLoading, setIsResetLoading] = useState(false);
+
+  // Link License Modal State
+  const [isLinkLicenseModalOpen, setIsLinkLicenseModalOpen] = useState(false);
+  const [linkLicenseInput, setLinkLicenseInput] = useState('');
+  const [linkLicenseError, setLinkLicenseError] = useState<string | null>(null);
 
   // Portal Navigation & Filtering State
   const [activeTab, setActiveTab] = useState<PortalTab>('vault');
@@ -205,6 +238,223 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
     setTimeout(() => setPortalToast(null), 3200);
   };
 
+  // Listen to Firebase Auth state
+  useEffect(() => {
+    const unsubscribe = subscribeToAuth((user) => {
+      setFirebaseUser(user);
+      if (user && !activeOrder) {
+        // Auto-check if order exists for this email
+        const existing = findApprovedOrder(user.email || '');
+        if (existing) {
+          setActiveOrder(existing);
+          sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(existing));
+          setDailyUsage(getDailyCopyUsage(existing.licenseKey || ''));
+        } else {
+          // Provision authenticated Member session
+          const memberOrder: LeadOrder = {
+            id: `USR-${user.uid.slice(0, 8)}`,
+            orderNumber: `MEM-${user.uid.slice(0, 6).toUpperCase()}`,
+            name: user.displayName || user.email?.split('@')[0] || 'Enclave Member',
+            email: user.email || '',
+            phone: user.phoneNumber || '',
+            tierId: 'member',
+            tierName: 'Enclave Member (1 Copy/Day)',
+            amountINR: 0,
+            status: 'approved',
+            licenseKey: `LIC-MBR-${user.uid.slice(0, 8).toUpperCase()}`,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            approvedAt: new Date().toISOString(),
+          };
+          setActiveOrder(memberOrder);
+          sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(memberOrder));
+          setDailyUsage(getDailyCopyUsage(memberOrder.licenseKey || ''));
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, [activeOrder]);
+
+  const handleGoogleLogin = async () => {
+    setIsAuthLoading(true);
+    setAuthError(null);
+    try {
+      sound.playClick();
+      const user = await loginWithGoogle();
+      const existing = findApprovedOrder(user.email || '');
+      if (existing) {
+        setActiveOrder(existing);
+        sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(existing));
+        setDailyUsage(getDailyCopyUsage(existing.licenseKey || ''));
+        sound.playSuccess();
+        showToast(`Access Restored // ${existing.tierName}`);
+      } else {
+        const memberOrder: LeadOrder = {
+          id: `USR-${user.uid.slice(0, 8)}`,
+          orderNumber: `MEM-${user.uid.slice(0, 6).toUpperCase()}`,
+          name: user.displayName || user.email?.split('@')[0] || 'Enclave Member',
+          email: user.email || '',
+          phone: user.phoneNumber || '',
+          tierId: 'member',
+          tierName: 'Enclave Member (1 Copy/Day)',
+          amountINR: 0,
+          status: 'approved',
+          licenseKey: `LIC-MBR-${user.uid.slice(0, 8).toUpperCase()}`,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          approvedAt: new Date().toISOString(),
+        };
+        setActiveOrder(memberOrder);
+        sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(memberOrder));
+        setDailyUsage(getDailyCopyUsage(memberOrder.licenseKey || ''));
+        sound.playSuccess();
+        showToast(`Authenticated via Google // ${user.displayName || user.email}`);
+      }
+    } catch (err: any) {
+      sound.playError();
+      setAuthError(getFirebaseErrorMessage(err));
+    } finally {
+      setIsAuthLoading(false);
+    }
+  };
+
+  const handleGithubLogin = async () => {
+    setIsAuthLoading(true);
+    setAuthError(null);
+    try {
+      sound.playClick();
+      const user = await loginWithGithub();
+      const existing = findApprovedOrder(user.email || '');
+      if (existing) {
+        setActiveOrder(existing);
+        sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(existing));
+        setDailyUsage(getDailyCopyUsage(existing.licenseKey || ''));
+        sound.playSuccess();
+        showToast(`Access Restored // ${existing.tierName}`);
+      } else {
+        const memberOrder: LeadOrder = {
+          id: `USR-${user.uid.slice(0, 8)}`,
+          orderNumber: `MEM-${user.uid.slice(0, 6).toUpperCase()}`,
+          name: user.displayName || user.email?.split('@')[0] || 'Enclave Member',
+          email: user.email || '',
+          phone: user.phoneNumber || '',
+          tierId: 'member',
+          tierName: 'Enclave Member (1 Copy/Day)',
+          amountINR: 0,
+          status: 'approved',
+          licenseKey: `LIC-MBR-${user.uid.slice(0, 8).toUpperCase()}`,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          approvedAt: new Date().toISOString(),
+        };
+        setActiveOrder(memberOrder);
+        sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(memberOrder));
+        setDailyUsage(getDailyCopyUsage(memberOrder.licenseKey || ''));
+        sound.playSuccess();
+        showToast(`Authenticated via GitHub // ${user.displayName || user.email}`);
+      }
+    } catch (err: any) {
+      sound.playError();
+      setAuthError(getFirebaseErrorMessage(err));
+    } finally {
+      setIsAuthLoading(false);
+    }
+  };
+
+  const handleEmailAuthSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!authEmail || !authPassword) {
+      setAuthError('Please fill in both email and password.');
+      return;
+    }
+    if (authMode === 'signup' && authPassword.length < 6) {
+      setAuthError('Password must be at least 6 characters.');
+      return;
+    }
+    setIsAuthLoading(true);
+    setAuthError(null);
+    try {
+      sound.playClick();
+      let user: User;
+      if (authMode === 'signup') {
+        user = await registerWithEmail(authEmail, authPassword, authDisplayName);
+      } else {
+        user = await loginWithEmail(authEmail, authPassword);
+      }
+      const existing = findApprovedOrder(user.email || '');
+      if (existing) {
+        setActiveOrder(existing);
+        sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(existing));
+        setDailyUsage(getDailyCopyUsage(existing.licenseKey || ''));
+        sound.playSuccess();
+        showToast(`Access Restored // ${existing.tierName}`);
+      } else {
+        const memberOrder: LeadOrder = {
+          id: `USR-${user.uid.slice(0, 8)}`,
+          orderNumber: `MEM-${user.uid.slice(0, 6).toUpperCase()}`,
+          name: user.displayName || authDisplayName || user.email?.split('@')[0] || 'Enclave Member',
+          email: user.email || '',
+          phone: user.phoneNumber || '',
+          tierId: 'member',
+          tierName: 'Enclave Member (1 Copy/Day)',
+          amountINR: 0,
+          status: 'approved',
+          licenseKey: `LIC-MBR-${user.uid.slice(0, 8).toUpperCase()}`,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          approvedAt: new Date().toISOString(),
+        };
+        setActiveOrder(memberOrder);
+        sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(memberOrder));
+        setDailyUsage(getDailyCopyUsage(memberOrder.licenseKey || ''));
+        sound.playSuccess();
+        showToast(`Signed In as ${user.displayName || user.email}`);
+      }
+    } catch (err: any) {
+      sound.playError();
+      setAuthError(getFirebaseErrorMessage(err));
+    } finally {
+      setIsAuthLoading(false);
+    }
+  };
+
+  const handlePasswordResetSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetEmail) return;
+    setIsResetLoading(true);
+    setResetStatus(null);
+    try {
+      await sendPasswordReset(resetEmail);
+      setResetStatus('Password reset link sent! Check your inbox.');
+    } catch (err: any) {
+      setResetStatus(getFirebaseErrorMessage(err));
+    } finally {
+      setIsResetLoading(false);
+    }
+  };
+
+  const handleLinkLicenseSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLinkLicenseError(null);
+    const order = findApprovedOrder(linkLicenseInput);
+    if (!order) {
+      sound.playError();
+      setLinkLicenseError('License Key or Order Reference could not be verified.');
+      return;
+    }
+    sound.playSuccess();
+    if (firebaseUser?.email && order.email !== firebaseUser.email) {
+      order.email = firebaseUser.email;
+      saveOrder(order);
+    }
+    setActiveOrder(order);
+    sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(order));
+    setDailyUsage(getDailyCopyUsage(order.licenseKey || ''));
+    setIsLinkLicenseModalOpen(false);
+    setLinkLicenseInput('');
+    showToast(`Commercial License Linked // ${order.tierName}`);
+  };
+
   const handleLogin = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setLoginError(null);
@@ -282,10 +532,16 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
     showToast('1-Day Sprint Pass Loaded // 1 Copy/Day Quota Active');
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     sound.playClick();
+    try {
+      await logoutFirebase();
+    } catch {
+      // ignore
+    }
     setActiveOrder(null);
     sessionStorage.removeItem('apex3d_portal_active_order');
+    showToast('Session Terminated // Signed Out');
   };
 
   const handleCopyPrompt = (prompt: VaultItem) => {
@@ -377,61 +633,221 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
           </div>
         </header>
 
-        {/* Access Terminal Form */}
-        <main className="flex-1 flex items-center justify-center px-4 py-12 relative z-10">
-          <div className="w-full max-w-md p-8 rounded-2xl bg-[#09090e] border border-white/[0.09] shadow-[0_24px_64px_-12px_rgba(0,0,0,0.8),inset_0_1px_0_0_rgba(255,255,255,0.06)] relative">
+        {/* Access Terminal Form with Firebase Auth */}
+        <main className="flex-1 flex items-center justify-center px-4 py-10 relative z-10">
+          <div className="w-full max-w-md p-6 sm:p-8 rounded-2xl bg-[#09090e] border border-white/[0.09] shadow-[0_24px_64px_-12px_rgba(0,0,0,0.8),inset_0_1px_0_0_rgba(255,255,255,0.06)] relative">
             
             {/* Header */}
-            <div className="mb-6">
+            <div className="mb-5">
               <div className="flex items-center justify-between text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-2">
                 <span>IDENTITY VALIDATION</span>
-                <span>SEC-256</span>
+                <span className="flex items-center gap-1 text-emerald-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  FIREBASE AUTH
+                </span>
               </div>
               <h1 className="text-xl font-bold tracking-tight text-white">
                 Member Vault Console
               </h1>
               <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
-                Provide your commercial license key, order reference, or registered identity.
+                Sign in with Google, GitHub, Email, or commercial license key to unlock 500+ calibrated Three.js prompts.
               </p>
             </div>
 
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <label className="block text-[10px] font-mono uppercase tracking-[0.16em] text-zinc-400 mb-1.5">
-                  Access Key / Order Token
-                </label>
-                <div className="relative">
+            {/* Error Message */}
+            {authError && (
+              <div className="mb-4 p-3 rounded-xl bg-red-950/40 border border-red-500/30 text-red-300 text-xs font-mono flex items-start gap-2 animate-role-fade-in">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span className="leading-relaxed">{authError}</span>
+              </div>
+            )}
+
+            {/* 1. Fast Social OAuth Identity Providers */}
+            <div className="space-y-2.5 mb-5">
+              {/* Google */}
+              <button
+                type="button"
+                disabled={isAuthLoading}
+                onClick={handleGoogleLogin}
+                className="w-full py-2.5 px-4 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.12] hover:border-white/20 text-white text-xs font-mono font-medium flex items-center justify-center gap-2.5 transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+              >
+                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+                  <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
+                  <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
+                  <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+                </svg>
+                <span>Continue with Google</span>
+              </button>
+
+              {/* GitHub */}
+              <button
+                type="button"
+                disabled={isAuthLoading}
+                onClick={handleGithubLogin}
+                className="w-full py-2.5 px-4 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.12] hover:border-white/20 text-white text-xs font-mono font-medium flex items-center justify-center gap-2.5 transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+              >
+                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                  <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                </svg>
+                <span>Continue with GitHub</span>
+              </button>
+            </div>
+
+            {/* Divider */}
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-white/[0.08]" />
+              </div>
+              <div className="relative flex justify-center text-[10px] font-mono uppercase tracking-widest">
+                <span className="bg-[#09090e] px-2 text-zinc-500">Or with Email</span>
+              </div>
+            </div>
+
+            {/* Mode Switcher Tabs */}
+            <div className="grid grid-cols-2 p-1 rounded-xl bg-black/60 border border-white/[0.08] mb-3 text-xs font-mono">
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playClick();
+                  setAuthMode('signin');
+                  setAuthError(null);
+                }}
+                className={`py-1.5 rounded-lg transition-all cursor-pointer ${
+                  authMode === 'signin'
+                    ? 'bg-white/10 text-white font-bold shadow-sm'
+                    : 'text-zinc-500 hover:text-zinc-300'
+                }`}
+              >
+                Sign In
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playClick();
+                  setAuthMode('signup');
+                  setAuthError(null);
+                }}
+                className={`py-1.5 rounded-lg transition-all cursor-pointer ${
+                  authMode === 'signup'
+                    ? 'bg-white/10 text-white font-bold shadow-sm'
+                    : 'text-zinc-500 hover:text-zinc-300'
+                }`}
+              >
+                Create Account
+              </button>
+            </div>
+
+            {/* Email / Password Form */}
+            <form onSubmit={handleEmailAuthSubmit} className="space-y-3">
+              {authMode === 'signup' && (
+                <div>
+                  <label className="block text-[10px] font-mono uppercase tracking-[0.16em] text-zinc-400 mb-1">
+                    Your Name
+                  </label>
                   <input
                     type="text"
-                    required
-                    value={loginInput}
-                    onChange={(e) => setLoginInput(e.target.value)}
-                    placeholder="LIC-VIP-XXXX-XXXX"
-                    className="w-full px-4 py-3 rounded-xl bg-black/60 border border-white/[0.12] text-xs font-mono text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-300 transition-colors tracking-wider"
+                    value={authDisplayName}
+                    onChange={(e) => setAuthDisplayName(e.target.value)}
+                    placeholder="Marcus Vance"
+                    className="w-full px-3.5 py-2 rounded-xl bg-black/60 border border-white/[0.12] text-xs font-mono text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-300 transition-colors"
                   />
-                </div>
-                <span className="text-[10px] text-zinc-500 font-mono mt-1.5 block">
-                  Reference dispatched via WhatsApp & Tax Invoice upon approval.
-                </span>
-              </div>
-
-              {loginError && (
-                <div className="p-3 rounded-xl bg-red-950/30 border border-red-500/30 text-red-300 text-xs font-mono flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                  <span>{loginError}</span>
                 </div>
               )}
 
+              <div>
+                <label className="block text-[10px] font-mono uppercase tracking-[0.16em] text-zinc-400 mb-1">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={authEmail}
+                  onChange={(e) => setAuthEmail(e.target.value)}
+                  placeholder="developer@studio.agency"
+                  className="w-full px-3.5 py-2 rounded-xl bg-black/60 border border-white/[0.12] text-xs font-mono text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-300 transition-colors"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[10px] font-mono uppercase tracking-[0.16em] text-zinc-400">
+                    Password
+                  </label>
+                  {authMode === 'signin' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sound.playClick();
+                        setResetEmail(authEmail);
+                        setResetStatus(null);
+                        setIsResetModalOpen(true);
+                      }}
+                      className="text-[10px] font-mono text-blue-400 hover:text-blue-300 hover:underline cursor-pointer"
+                    >
+                      Forgot?
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="password"
+                  required
+                  value={authPassword}
+                  onChange={(e) => setAuthPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full px-3.5 py-2 rounded-xl bg-black/60 border border-white/[0.12] text-xs font-mono text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-300 transition-colors"
+                />
+              </div>
+
               <button
                 type="submit"
-                className="w-full py-3 rounded-xl bg-white hover:bg-zinc-200 text-black text-xs font-mono font-bold tracking-wider uppercase transition-all active:scale-[0.98] shadow-lg shadow-white/10"
+                disabled={isAuthLoading}
+                className="w-full mt-1 py-2.5 rounded-xl bg-white hover:bg-zinc-200 text-black text-xs font-mono font-bold tracking-wider uppercase transition-all active:scale-[0.98] shadow-lg shadow-white/10 flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
               >
-                Unlock Architecture Vault
+                {isAuthLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                <span>
+                  {authMode === 'signin' ? '⚡ Sign In to Vault Console' : '⚡ Create Enclave Account'}
+                </span>
               </button>
             </form>
 
+            {/* Divider: License Key Direct Access */}
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-white/[0.08]" />
+              </div>
+              <div className="relative flex justify-center text-[10px] font-mono uppercase tracking-widest">
+                <span className="bg-[#09090e] px-2 text-zinc-500">Or Commercial Key</span>
+              </div>
+            </div>
+
+            {/* Direct Commercial Key Form */}
+            <form onSubmit={handleLogin} className="space-y-2">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={loginInput}
+                  onChange={(e) => setLoginInput(e.target.value)}
+                  placeholder="LIC-VIP-XXXX-XXXX"
+                  className="flex-1 px-3.5 py-2 rounded-xl bg-black/60 border border-white/[0.12] text-xs font-mono text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-300 transition-colors tracking-wider"
+                />
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] text-white text-xs font-mono font-bold border border-white/[0.12] transition-colors whitespace-nowrap cursor-pointer"
+                >
+                  Unlock
+                </button>
+              </div>
+              {loginError && (
+                <div className="text-[10px] text-red-400 font-mono flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3 shrink-0" />
+                  <span>{loginError}</span>
+                </div>
+              )}
+            </form>
+
             {/* Quick Demo Options */}
-            <div className="mt-6 pt-6 border-t border-white/[0.08] space-y-2.5">
+            <div className="mt-5 pt-4 border-t border-white/[0.08] space-y-2">
               <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest text-center mb-1">
                 INSTANT SIMULATION ENCLAVES
               </div>
@@ -440,7 +856,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
               <button
                 type="button"
                 onClick={handleDemo1DayLogin}
-                className="w-full py-2.5 px-4 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-300 text-xs font-mono flex items-center justify-between transition-all active:scale-[0.98]"
+                className="w-full py-2 px-3.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-300 text-xs font-mono flex items-center justify-between transition-all active:scale-[0.98] cursor-pointer"
               >
                 <div className="flex items-center gap-2">
                   <Clock className="w-3.5 h-3.5 text-purple-400" />
@@ -453,7 +869,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
               <button
                 type="button"
                 onClick={handleDemoVipLogin}
-                className="w-full py-2.5 px-4 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-mono flex items-center justify-between transition-all active:scale-[0.98]"
+                className="w-full py-2 px-3.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-mono flex items-center justify-between transition-all active:scale-[0.98] cursor-pointer"
               >
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-3.5 h-3.5 text-amber-400" />
@@ -462,7 +878,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                 <span className="text-[10px] text-amber-400/80">Unlimited</span>
               </button>
 
-              <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06] text-[10px] font-mono text-zinc-500 space-y-1">
+              <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.06] text-[10px] font-mono text-zinc-500 space-y-0.5">
                 <div>🔑 1-Day Key: <strong className="text-zinc-300">LIC-PRO-1DAY-99X2</strong> (Order: APX-104921)</div>
                 <div>👑 VIP Key: <strong className="text-zinc-300">LIC-VIP-84K2-91Q7</strong> (Order: APX-310492)</div>
               </div>
@@ -485,6 +901,84 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
         <footer className="border-t border-white/[0.06] py-4 text-center text-[10px] font-mono text-zinc-600 uppercase tracking-widest">
           Vine B Digital Marketing Agency · Architectural Systems Enclave
         </footer>
+
+        {/* Firebase Password Reset Modal */}
+        {isResetModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <div className="w-full max-w-md rounded-2xl bg-[#0d0d15] border border-white/[0.12] p-6 shadow-2xl relative text-left">
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playClick();
+                  setIsResetModalOpen(false);
+                  setResetStatus(null);
+                }}
+                className="absolute top-4 right-4 p-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.1] text-zinc-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+                  <Key className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono">Reset Password</h3>
+                  <p className="text-[11px] text-zinc-400 font-mono">Receive recovery instructions via Firebase Auth</p>
+                </div>
+              </div>
+
+              <form onSubmit={handlePasswordResetSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-mono uppercase tracking-[0.16em] text-zinc-400 mb-1">
+                    Registered Email
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    placeholder="architect@agency.com"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-black/60 border border-white/[0.12] text-xs font-mono text-white placeholder-zinc-600 focus:outline-none focus:border-blue-400/50 transition-colors"
+                  />
+                </div>
+
+                {resetStatus && (
+                  <div
+                    className={`p-3 rounded-xl text-xs font-mono border ${
+                      resetStatus.includes('sent')
+                        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
+                        : 'bg-red-500/10 border-red-500/20 text-red-300'
+                    }`}
+                  >
+                    {resetStatus}
+                  </div>
+                )}
+
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsResetModalOpen(false);
+                      setResetStatus(null);
+                    }}
+                    className="px-4 py-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-zinc-300 text-xs font-mono transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isResetLoading || !resetEmail.trim()}
+                    className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-mono font-bold tracking-wider uppercase transition-colors flex items-center gap-2 cursor-pointer shadow-lg shadow-blue-500/20"
+                  >
+                    {isResetLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    <span>Send Reset Link</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -523,23 +1017,51 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
             <div className="h-4 w-[1px] bg-white/[0.08]" />
 
             <div className="flex items-center gap-3">
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center font-mono font-bold text-xs shadow-md shadow-blue-500/20">
-                3D
-              </div>
+              {firebaseUser?.photoURL ? (
+                <img
+                  src={firebaseUser.photoURL}
+                  alt={activeOrder.name}
+                  className="w-8 h-8 rounded-full border border-white/20 object-cover shadow-sm"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center font-mono font-bold text-xs shadow-md shadow-blue-500/20 text-white">
+                  {activeOrder.name.slice(0, 2).toUpperCase()}
+                </div>
+              )}
 
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-white tracking-tight uppercase">
                     {activeOrder.name}
                   </span>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/30 uppercase tracking-widest font-bold">
+                  <span
+                    className={`text-[10px] font-mono px-2 py-0.5 rounded border uppercase tracking-widest font-bold ${
+                      activeOrder.tierId === 'lifetime'
+                        ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+                        : activeOrder.tierId === 'day_pass'
+                        ? 'bg-purple-500/10 text-purple-300 border-purple-500/30'
+                        : 'bg-blue-500/10 text-blue-300 border-blue-500/30'
+                    }`}
+                  >
                     {activeOrder.tierName}
                   </span>
+
+                  {firebaseUser && (
+                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/[0.06] text-zinc-400 border border-white/[0.08]">
+                      {firebaseUser.providerData?.[0]?.providerId === 'google.com'
+                        ? 'Google'
+                        : firebaseUser.providerData?.[0]?.providerId === 'github.com'
+                        ? 'GitHub'
+                        : 'Email Auth'}
+                    </span>
+                  )}
                 </div>
                 <div className="text-[10px] font-mono text-zinc-500 flex items-center gap-2">
-                  <span>{activeOrder.licenseKey || 'LIC-VIP-84K2-91Q7'}</span>
+                  <span>{activeOrder.licenseKey || 'LIC-ENCLAVE-MBR'}</span>
                   <span>·</span>
-                  <span className="text-emerald-400">Verified Commercial Licensee</span>
+                  <span className={activeOrder.tierId === 'member' ? 'text-blue-400' : 'text-emerald-400'}>
+                    {activeOrder.tierId === 'member' ? 'Free Preview Access' : 'Verified Commercial Licensee'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -547,12 +1069,39 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
 
           {/* Right Action Matrix */}
           <div className="flex items-center gap-2 sm:gap-3">
+            {activeOrder.tierId === 'member' && (
+              <>
+                <button
+                  onClick={() => {
+                    sound.playClick();
+                    setIsLinkLicenseModalOpen(true);
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 hover:text-amber-200 text-[11px] font-mono uppercase tracking-wider flex items-center gap-1.5 border border-amber-500/30 transition-colors shadow-sm cursor-pointer"
+                >
+                  <Key className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Link Commercial Key</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    sound.playClick();
+                    setUpgradeTriggerReason('manual');
+                    setIsUpgradeShowcaseOpen(true);
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-white hover:bg-zinc-200 text-black text-[11px] font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-md shadow-white/10 cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-black" />
+                  <span>Upgrade VIP</span>
+                </button>
+              </>
+            )}
+
             <button
               onClick={() => {
                 sound.playClick();
                 setIsInvoiceOpen(true);
               }}
-              className="px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white text-[11px] font-mono uppercase tracking-wider flex items-center gap-1.5 border border-white/[0.08] transition-colors"
+              className="px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white text-[11px] font-mono uppercase tracking-wider flex items-center gap-1.5 border border-white/[0.08] transition-colors cursor-pointer"
             >
               <FileText className="w-3.5 h-3.5 text-blue-400" />
               <span>Tax Invoice</span>
@@ -563,7 +1112,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                 sound.playClick();
                 setIsLicenseOpen(true);
               }}
-              className="px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white text-[11px] font-mono uppercase tracking-wider flex items-center gap-1.5 border border-white/[0.08] transition-colors"
+              className="px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white text-[11px] font-mono uppercase tracking-wider flex items-center gap-1.5 border border-white/[0.08] transition-colors cursor-pointer"
             >
               <Award className="w-3.5 h-3.5 text-amber-400" />
               <span>Commercial License</span>
@@ -571,7 +1120,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
 
             <button
               onClick={handleLogout}
-              className="p-1.5 rounded-lg bg-white/[0.04] hover:bg-red-500/20 text-zinc-500 hover:text-red-400 border border-white/[0.06] transition-colors"
+              className="p-1.5 rounded-lg bg-white/[0.04] hover:bg-red-500/20 text-zinc-500 hover:text-red-400 border border-white/[0.06] transition-colors cursor-pointer"
               title="Terminate Session"
             >
               <LogOut className="w-3.5 h-3.5" />
@@ -1551,6 +2100,85 @@ Rules:
           }
         }}
       />
+
+      {/* Link Commercial License Modal */}
+      {isLinkLicenseModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="w-full max-w-md rounded-2xl bg-[#0d0d15] border border-white/[0.12] p-6 shadow-2xl relative text-left">
+            <button
+              type="button"
+              onClick={() => {
+                sound.playClick();
+                setIsLinkLicenseModalOpen(false);
+                setLinkLicenseError(null);
+              }}
+              className="absolute top-4 right-4 p-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.1] text-zinc-400 hover:text-white transition-colors cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                <Key className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
+                  Link Commercial License
+                </h3>
+                <p className="text-[11px] text-zinc-400 font-mono">
+                  Attach your purchased order or license key to this account
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleLinkLicenseSubmit} className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-mono uppercase tracking-[0.16em] text-zinc-400 mb-1">
+                  License Key or Order Reference
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={linkLicenseInput}
+                  onChange={(e) => setLinkLicenseInput(e.target.value)}
+                  placeholder="LIC-VIP-XXXX-XXXX or APX-XXXXXX"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/60 border border-white/[0.12] text-xs font-mono text-white placeholder-zinc-600 focus:outline-none focus:border-amber-400/50 transition-colors uppercase tracking-wider"
+                />
+                <p className="text-[10px] text-zinc-500 font-mono mt-1">
+                  Check your purchase confirmation email or invoice for your key.
+                </p>
+              </div>
+
+              {linkLicenseError && (
+                <div className="p-3 rounded-xl text-xs font-mono border bg-red-500/10 border-red-500/20 text-red-300 flex items-center gap-2">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{linkLicenseError}</span>
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsLinkLicenseModalOpen(false);
+                    setLinkLicenseError(null);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-zinc-300 text-xs font-mono transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!linkLicenseInput.trim()}
+                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-black text-xs font-mono font-bold tracking-wider uppercase transition-colors cursor-pointer shadow-lg shadow-amber-500/20"
+                >
+                  Activate & Link
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );
