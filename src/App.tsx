@@ -107,17 +107,25 @@ export default function App() {
 
   if (isPortalMode) {
     return (
-      <ClientPortal
-        onBackToSite={() => {
-          window.location.hash = '';
-          setIsPortalMode(false);
-        }}
-        onUpgradeClick={() => {
-          window.location.hash = '';
-          setIsPortalMode(false);
-          handleScrollToPricing();
-        }}
-      />
+      <>
+        <ClientPortal
+          onBackToSite={() => {
+            window.location.hash = '';
+            setIsPortalMode(false);
+          }}
+          onUpgradeClick={() => {
+            const lifetimeTier = TIERS.find((t) => t.id === 'lifetime') || TIERS[3];
+            setSelectedTier(lifetimeTier);
+            setIsCheckoutOpen(true);
+          }}
+        />
+        <CheckoutModal
+          isOpen={isCheckoutOpen}
+          tier={selectedTier}
+          currency={currentCurrency}
+          onClose={() => setIsCheckoutOpen(false)}
+        />
+      </>
     );
   }
 

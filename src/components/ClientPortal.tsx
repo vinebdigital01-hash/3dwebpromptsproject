@@ -48,6 +48,7 @@ import { VAULT_CATALOG, VaultItem } from '../data/vaultCatalog';
 import { sound } from '../lib/audioEngine';
 import { InvoiceModal } from './InvoiceModal';
 import { LicenseModal } from './LicenseModal';
+import { UpgradeShowcaseModal } from './UpgradeShowcaseModal';
 
 interface ClientPortalProps {
   onBackToSite: () => void;
@@ -92,7 +93,8 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
   // Copy State & Toast
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [portalToast, setPortalToast] = useState<string | null>(null);
-  const [isQuotaExceededModalOpen, setIsQuotaExceededModalOpen] = useState(false);
+  const [isUpgradeShowcaseOpen, setIsUpgradeShowcaseOpen] = useState(false);
+  const [upgradeTriggerReason, setUpgradeTriggerReason] = useState<'quota_exceeded' | 'manual'>('quota_exceeded');
 
   // Invoices & License Modals
   const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
@@ -211,7 +213,8 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
     const maxCopies = getMaxDailyCopies(activeOrder.tierId);
     if (maxCopies !== -1 && dailyUsage >= maxCopies) {
       sound.playClick();
-      setIsQuotaExceededModalOpen(true);
+      setUpgradeTriggerReason('quota_exceeded');
+      setIsUpgradeShowcaseOpen(true);
       return;
     }
 
@@ -535,9 +538,10 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
               <button
                 onClick={() => {
                   sound.playClick();
-                  onUpgradeClick();
+                  setUpgradeTriggerReason('manual');
+                  setIsUpgradeShowcaseOpen(true);
                 }}
-                className="text-[10px] uppercase font-bold text-amber-400 hover:text-amber-300 border-b border-amber-400/40"
+                className="text-[10px] uppercase font-bold text-amber-400 hover:text-amber-300 border-b border-amber-400/40 cursor-pointer"
               >
                 Upgrade to Lifetime VIP
               </button>
@@ -596,6 +600,23 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
               <Award className="w-3.5 h-3.5 text-amber-400" />
               <span>Legal & Credentials</span>
             </button>
+
+            {activeOrder.tierId !== 'lifetime' && (
+              <button
+                onClick={() => {
+                  sound.playClick();
+                  setUpgradeTriggerReason('manual');
+                  setIsUpgradeShowcaseOpen(true);
+                }}
+                className="py-3 text-[11px] font-mono uppercase tracking-[0.16em] flex items-center gap-1.5 text-amber-400 hover:text-amber-300 transition-all font-bold cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                <span>Unlock VIP All-Access</span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-300">
+                  ₹2,999
+                </span>
+              </button>
+            )}
           </div>
 
           {activeTab === 'vault' && (
@@ -822,6 +843,45 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
               </div>
 
             </div>
+
+            {/* VIP UPGRADE REVEAL BANNER FOR NON-LIFETIME MEMBERS */}
+            {activeOrder.tierId !== 'lifetime' && (
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-[#0d0d15] to-[#07070b] border border-amber-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-[0_10px_30px_-10px_rgba(245,158,11,0.1)]">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0">
+                    <Sparkles className="w-5 h-5 text-amber-400" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-bold text-white uppercase tracking-tight">
+                        Permanent Studio Workstation Access
+                      </span>
+                      <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 font-bold">
+                        ₹49 SPRINT CREDITED
+                      </span>
+                      <span className="text-[9px] font-mono text-zinc-500">
+                        (Daily copies remaining: {remainingCopies})
+                      </span>
+                    </div>
+                    <p className="text-xs text-zinc-400 mt-1 leading-snug max-w-2xl">
+                      Remove the 1-copy daily threshold. Unlock unmetered 24/7 prompt copies, Next.js 15 hardware repositories, 12+ GLSL shaders, and lifetime commercial rights.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    sound.playClick();
+                    setUpgradeTriggerReason('manual');
+                    setIsUpgradeShowcaseOpen(true);
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-2 shrink-0 self-start sm:self-center shadow-lg shadow-amber-500/20 active:scale-[0.98] cursor-pointer"
+                >
+                  <span>Explore VIP Perks</span>
+                  <ArrowUpRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
 
             {/* -------------------------------------------------------------
                 MODE A: CINEMA GRID (ASIDE FROM GENERIC CARDS - LUXURY FRAMES)
@@ -1396,47 +1456,19 @@ Rules:
         onClose={() => setIsLicenseOpen(false)}
       />
 
-      {/* Daily Quota Exceeded Modal */}
-      {isQuotaExceededModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-role-fade-in">
-          <div className="w-full max-w-md p-6 rounded-2xl bg-[#09090e] border border-amber-500/30 text-white shadow-2xl font-mono">
-            <div className="text-[10px] text-amber-400 uppercase tracking-widest mb-1">
-              QUOTA LIMIT REACHED
-            </div>
-            <h3 className="text-base font-bold text-white font-sans">
-              Daily Prompt Copy Threshold
-            </h3>
-            <p className="text-xs text-zinc-400 mt-2 leading-relaxed">
-              Your <strong className="text-white">{activeOrder.tierName}</strong> includes{' '}
-              <strong className="text-amber-300">{maxDaily} prompt {maxDaily === 1 ? 'copy' : 'copies'} per calendar day</strong>. Your quota resets at midnight.
-            </p>
-
-            <div className="mt-4 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-[11px] text-zinc-300">
-              Upgrade to the Lifetime VIP All-Access Pass for unrestricted daily copies forever.
-            </div>
-
-            <div className="mt-5 flex items-center justify-end gap-3">
-              <button
-                onClick={() => setIsQuotaExceededModalOpen(false)}
-                className="px-4 py-2 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-zinc-400 text-xs"
-              >
-                Dismiss
-              </button>
-              {onUpgradeClick && (
-                <button
-                  onClick={() => {
-                    setIsQuotaExceededModalOpen(false);
-                    onUpgradeClick();
-                  }}
-                  className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold"
-                >
-                  Upgrade to Lifetime VIP
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Dynamic VIP Upgrade Showcase Modal with Motion Carousel */}
+      <UpgradeShowcaseModal
+        isOpen={isUpgradeShowcaseOpen}
+        onClose={() => setIsUpgradeShowcaseOpen(false)}
+        currentTierName={activeOrder.tierName}
+        triggerReason={upgradeTriggerReason}
+        onUpgrade={() => {
+          setIsUpgradeShowcaseOpen(false);
+          if (onUpgradeClick) {
+            onUpgradeClick();
+          }
+        }}
+      />
 
     </div>
   );
