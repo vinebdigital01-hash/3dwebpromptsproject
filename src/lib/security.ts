@@ -242,3 +242,55 @@ export function initAntiScraperShield() {
     }
   });
 }
+
+/**
+ * Generate cryptographic-like device & browser canvas fingerprint
+ * Independent of cookies & localStorage - survives browser cache clears
+ */
+export function generateDeviceFingerprint(): string {
+  if (typeof window === 'undefined') return 'server-node';
+  try {
+    const nav = window.navigator;
+    const screen = window.screen;
+    const parts = [
+      nav.userAgent || '',
+      nav.language || '',
+      nav.platform || '',
+      screen.width + 'x' + screen.height,
+      screen.colorDepth || '',
+      new Date().getTimezoneOffset(),
+      nav.hardwareConcurrency || '',
+    ];
+
+    // Minimal canvas fingerprint hash
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.textBaseline = 'top';
+        ctx.font = "14px 'Arial'";
+        ctx.textBaseline = 'alphabetic';
+        ctx.fillStyle = '#f60';
+        ctx.fillRect(125, 1, 62, 20);
+        ctx.fillStyle = '#069';
+        ctx.fillText('APEX3D_LIC_SIG', 2, 15);
+        ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
+        ctx.fillText('APEX3D_LIC_SIG', 4, 17);
+        parts.push(canvas.toDataURL().slice(-50));
+      }
+    } catch {
+      // ignore canvas sandbox failures
+    }
+
+    const rawStr = parts.join('###');
+    let hash = 0;
+    for (let i = 0; i < rawStr.length; i++) {
+      const char = rawStr.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash |= 0; // Convert to 32bit integer
+    }
+    return `FP-${Math.abs(hash).toString(36).toUpperCase()}-${screen.width}X${screen.height}`;
+  } catch {
+    return `FP-${Math.floor(Math.random() * 1000000).toString(36)}`;
+  }
+}

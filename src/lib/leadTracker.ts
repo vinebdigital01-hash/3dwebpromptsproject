@@ -9,7 +9,10 @@ import {
   deleteOrderFromFirestore,
   subscribeToFirestoreOrders,
   fetchAllCloudOrdersAndGhostLeads,
+  saveCloudQuotaRecord,
+  fetchCloudQuotaRecord,
 } from './firebase';
+import { generateDeviceFingerprint } from './security';
 
 export type OrderStatus =
   | 'unsubmitted_keystroke' // User typed email/phone but never hit proceed
@@ -74,6 +77,16 @@ export interface LeadOrder {
     content?: string;
     fbclid?: string;
   };
+  // 🔒 Copy Quota Persistence Fields (Syncs with Cloud Firestore)
+  freeCopiesUsed?: number;
+  lastFreeCopyAt?: string;
+  dailyCopyUsage?: {
+    date: string; // YYYY-MM-DD
+    count: number;
+  };
+  totalCopiesUsed?: number;
+  lastCopyAt?: string;
+  copiedPromptIds?: string[];
 }
 
 const STORAGE_KEY = 'apex3d_vault_orders_db';
@@ -654,56 +667,388 @@ export function getMaxDailyCopies(tierId: string): number {
 }
 
 /**
- * Get daily usage for a paid user with an active license today
+ * Cookie Persistence Helpers (Retains state even if localStorage is cleared)
  */
-export function getDailyCopyUsage(licenseKey: string): number {
+function getClientCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  try {
+    const match = document.cookie.match(new RegExp('(^|;\\s*)' + name + '=([^;]*)'));
+    return match ? decodeURIComponent(match[2]) : null;
+  } catch {
+    return null;
+  }
+}
+
+function setClientCookie(name: string, value: string, maxAgeSeconds = 31536000): void {
+  if (typeof document === 'undefined') return;
+  try {
+    document.cookie = `${name}=${encodeURIComponent(value)}; max-age=${maxAgeSeconds}; path=/; SameSite=Lax`;
+  } catch {
+    // ignore cookie errors
+  }
+}
+
+/**
+ * Get daily usage for a paid user with an active license today
+ * Checks 3 layers:
+ * 1. Active order / Master order record (Cloud-synced)
+ * 2. LocalStorage cache
+ * 3. Persistent browser cookies
+ */
+export function getDailyCopyUsage(licenseKey?: string | null, activeOrder?: LeadOrder | null): number {
   if (typeof window === 'undefined' || !licenseKey) return 0;
+  const cleanLic = licenseKey.trim().toUpperCase();
   const today = new Date().toISOString().slice(0, 10);
-  const key = `apex3d_quota_${licenseKey}_${today}`;
-  const val = localStorage.getItem(key);
-  return val ? parseInt(val, 10) || 0 : 0;
+  const key = `apex3d_quota_${cleanLic}_${today}`;
+
+  // 1. Order check
+  let orderUsage = 0;
+  if (activeOrder && activeOrder.dailyCopyUsage && activeOrder.dailyCopyUsage.date === today) {
+    orderUsage = activeOrder.dailyCopyUsage.count || 0;
+  } else {
+    const allOrders = getAllOrders();
+    const matchingOrder = allOrders.find((o) => o.licenseKey && o.licenseKey.trim().toUpperCase() === cleanLic);
+    if (matchingOrder && matchingOrder.dailyCopyUsage && matchingOrder.dailyCopyUsage.date === today) {
+      orderUsage = matchingOrder.dailyCopyUsage.count || 0;
+    }
+  }
+
+  // 2. LocalStorage check
+  const localVal = parseInt(localStorage.getItem(key) || '0', 10);
+
+  // 3. Persistent Cookie check
+  const cookieVal = parseInt(getClientCookie(key) || '0', 10);
+
+  const maxVal = Math.max(orderUsage, localVal, cookieVal);
+
+  // Re-hydrate local caches if authoritative cloud/order record was higher
+  if (maxVal > 0) {
+    if (localVal < maxVal) localStorage.setItem(key, String(maxVal));
+    if (cookieVal < maxVal) setClientCookie(key, String(maxVal), 86400 * 2);
+  }
+
+  return maxVal;
 }
 
 /**
  * Increment daily usage for paid license
+ * Persists immediately to:
+ * 1. LocalStorage
+ * 2. Persistent Cookie
+ * 3. Order record in local DB & Cloud Firestore (orders collection)
+ * 4. Dedicated Firestore usage_quotas collection
  */
-export function incrementDailyCopyUsage(licenseKey: string): number {
+export function incrementDailyCopyUsage(
+  licenseKey: string,
+  promptId?: string,
+  activeOrder?: LeadOrder | null
+): number {
   if (typeof window === 'undefined' || !licenseKey) return 1;
+  const cleanLic = licenseKey.trim().toUpperCase();
   const today = new Date().toISOString().slice(0, 10);
-  const key = `apex3d_quota_${licenseKey}_${today}`;
-  const current = getDailyCopyUsage(licenseKey);
+  const key = `apex3d_quota_${cleanLic}_${today}`;
+  const current = getDailyCopyUsage(cleanLic, activeOrder);
   const next = current + 1;
+  const nowIso = new Date().toISOString();
+
+  // 1. LocalStorage
   localStorage.setItem(key, String(next));
+
+  // 2. Persistent Cookie (48 hours)
+  setClientCookie(key, String(next), 86400 * 2);
+
+  // 3. Update order in local DB & Firestore
+  const allOrders = getAllOrders();
+  const targetOrder =
+    (activeOrder && allOrders.find((o) => o.id === activeOrder.id)) ||
+    allOrders.find((o) => o.licenseKey && o.licenseKey.trim().toUpperCase() === cleanLic);
+
+  if (targetOrder) {
+    targetOrder.dailyCopyUsage = { date: today, count: next };
+    targetOrder.totalCopiesUsed = (targetOrder.totalCopiesUsed || 0) + 1;
+    targetOrder.lastCopyAt = nowIso;
+    if (promptId) {
+      targetOrder.copiedPromptIds = Array.from(new Set([...(targetOrder.copiedPromptIds || []), promptId]));
+    }
+    saveOrder(targetOrder);
+  } else if (activeOrder) {
+    const updated: LeadOrder = {
+      ...activeOrder,
+      dailyCopyUsage: { date: today, count: next },
+      totalCopiesUsed: (activeOrder.totalCopiesUsed || 0) + 1,
+      lastCopyAt: nowIso,
+      copiedPromptIds: promptId ? [promptId] : [],
+    };
+    saveOrder(updated);
+  }
+
+  // 4. Dedicated Cloud Quota collection in Firestore
+  saveCloudQuotaRecord(`paid_${cleanLic}`, {
+    licenseKey: cleanLic,
+    dailyDate: today,
+    count: next,
+    lastCopiedAt: nowIso,
+    promptId,
+  });
+
   return next;
 }
 
 /**
  * 🔒 Free Trial Lifetime Copy Tracking (Strict 1-Time Lifetime Limit - NO RESET!)
  * Free users get exactly 1 prompt copy in their lifetime. Next copy tells them to upgrade!
+ * Checks 5 verification layers:
+ * 1. Active order object (freeCopiesUsed >= 1)
+ * 2. LocalStorage (user key + device key)
+ * 3. Long-lived browser cookies (survives localStorage wiping)
+ * 4. Device Canvas Fingerprint (survives cookie and cache wiping)
+ * 5. Cloud Orders & Ghost Leads database (synced from Cloud Firestore)
  */
-export function getFreeTrialCopyUsage(userIdentifier: string): number {
-  if (typeof window === 'undefined' || !userIdentifier) return 0;
-  const cleanId = userIdentifier.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-  const userKey = `apex3d_lifetime_free_copy_${cleanId}`;
+export function getFreeTrialCopyUsage(
+  userIdentifier?: string | null,
+  activeOrder?: LeadOrder | null
+): number {
+  if (typeof window === 'undefined') return 0;
+
+  // 1. Direct activeOrder check
+  if (
+    activeOrder &&
+    ((activeOrder.freeCopiesUsed || 0) >= 1 ||
+      (activeOrder.copiedPromptIds && activeOrder.copiedPromptIds.length > 0))
+  ) {
+    return 1;
+  }
+
+  const cleanId = (userIdentifier || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+  const userKey = cleanId ? `apex3d_lifetime_free_copy_${cleanId}` : null;
   const deviceKey = 'apex3d_lifetime_free_copy_device';
-  const userVal = localStorage.getItem(userKey);
-  const devVal = localStorage.getItem(deviceKey);
-  const uCount = userVal ? parseInt(userVal, 10) || 0 : 0;
-  const dCount = devVal ? parseInt(devVal, 10) || 0 : 0;
-  return Math.max(uCount, dCount);
+
+  // 2. LocalStorage check
+  const uCount = userKey ? parseInt(localStorage.getItem(userKey) || '0', 10) : 0;
+  const dCount = parseInt(localStorage.getItem(deviceKey) || '0', 10);
+  if (uCount >= 1 || dCount >= 1) return 1;
+
+  // 3. Persistent Cookie check
+  const uCookie = cleanId ? getClientCookie(`apex3d_free_${cleanId}`) : null;
+  const dCookie = getClientCookie('apex3d_free_device');
+  if (uCookie === '1' || dCookie === '1') {
+    if (userKey) localStorage.setItem(userKey, '1');
+    localStorage.setItem(deviceKey, '1');
+    return 1;
+  }
+
+  // 4. Device Canvas Fingerprint check
+  try {
+    const fp = generateDeviceFingerprint();
+    const fpStorage = localStorage.getItem(`apex3d_fp_free_${fp}`);
+    const fpCookie = getClientCookie(`apex3d_fp_free_${fp}`);
+    if (fpStorage === '1' || fpCookie === '1') {
+      if (userKey) localStorage.setItem(userKey, '1');
+      localStorage.setItem(deviceKey, '1');
+      return 1;
+    }
+  } catch {
+    // ignore
+  }
+
+  // 5. Cloud Orders & Ghost Leads database check
+  if (cleanId) {
+    const allOrders = getAllOrders();
+    const matchingOrder = allOrders.find((o) => {
+      const oEmail = (o.email || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+      const oPhone = (o.phone || '').replace(/\D/g, '');
+      const oId = (o.id || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+      return (cleanId && oEmail === cleanId) || (cleanId && oPhone === cleanId) || (cleanId && oId === cleanId);
+    });
+
+    if (
+      matchingOrder &&
+      ((matchingOrder.freeCopiesUsed || 0) >= 1 ||
+        (matchingOrder.copiedPromptIds && matchingOrder.copiedPromptIds.length > 0))
+    ) {
+      if (userKey) localStorage.setItem(userKey, '1');
+      localStorage.setItem(deviceKey, '1');
+      setClientCookie(`apex3d_free_${cleanId}`, '1', 31536000);
+      setClientCookie('apex3d_free_device', '1', 31536000);
+      return 1;
+    }
+  }
+
+  return 0;
 }
 
-export function incrementFreeTrialCopyUsage(userIdentifier: string): number {
-  if (typeof window === 'undefined' || !userIdentifier) return 1;
-  const cleanId = userIdentifier.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+export function incrementFreeTrialCopyUsage(
+  userIdentifier: string,
+  promptId?: string,
+  activeOrder?: LeadOrder | null
+): number {
+  if (typeof window === 'undefined') return 1;
+  const cleanId = (userIdentifier || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '') || 'free_guest';
   const userKey = `apex3d_lifetime_free_copy_${cleanId}`;
   const deviceKey = 'apex3d_lifetime_free_copy_device';
-  const current = getFreeTrialCopyUsage(userIdentifier);
-  const next = current + 1;
-  localStorage.setItem(userKey, String(next));
-  localStorage.setItem(deviceKey, String(next));
-  return next;
+  const nowIso = new Date().toISOString();
+
+  // 1. LocalStorage
+  localStorage.setItem(userKey, '1');
+  localStorage.setItem(deviceKey, '1');
+
+  // 2. Long-lived Cookies (1 year)
+  setClientCookie(`apex3d_free_${cleanId}`, '1', 31536000);
+  setClientCookie('apex3d_free_device', '1', 31536000);
+
+  // 3. Device Canvas Fingerprint
+  let fp = '';
+  try {
+    fp = generateDeviceFingerprint();
+    localStorage.setItem(`apex3d_fp_free_${fp}`, '1');
+    setClientCookie(`apex3d_fp_free_${fp}`, '1', 31536000);
+  } catch {
+    // ignore
+  }
+
+  // 4. Update / Save Order in Master Database & Firestore
+  const allOrders = getAllOrders();
+  const existingOrder =
+    (activeOrder && allOrders.find((o) => o.id === activeOrder.id)) ||
+    allOrders.find(
+      (o) =>
+        (userIdentifier.includes('@') && o.email && o.email.toLowerCase() === userIdentifier.toLowerCase()) ||
+        (o.id && o.id.toLowerCase() === userIdentifier.toLowerCase())
+    );
+
+  if (existingOrder) {
+    existingOrder.freeCopiesUsed = Math.max(1, (existingOrder.freeCopiesUsed || 0) + 1);
+    existingOrder.lastFreeCopyAt = nowIso;
+    if (promptId) {
+      existingOrder.copiedPromptIds = Array.from(new Set([...(existingOrder.copiedPromptIds || []), promptId]));
+    }
+    saveOrder(existingOrder);
+  } else if (activeOrder) {
+    const updated: LeadOrder = {
+      ...activeOrder,
+      freeCopiesUsed: 1,
+      lastFreeCopyAt: nowIso,
+      copiedPromptIds: promptId ? [promptId] : [],
+    };
+    saveOrder(updated);
+  } else {
+    // Record as prompt_copy ghost lead with freeCopiesUsed: 1
+    saveGhostKeystrokeLead({
+      email: userIdentifier.includes('@') ? userIdentifier : `free_${cleanId}@apex3d.local`,
+      name: 'Free Trial Visitor',
+      tierId: 'member',
+      tierName: 'Free Trial Member (1 Sample Quota)',
+      amountINR: 0,
+      source: 'prompt_copy',
+    });
+  }
+
+  // 5. Dedicated Cloud Quota record in Firestore
+  saveCloudQuotaRecord(`free_${cleanId}`, {
+    identifier: userIdentifier,
+    freeCopiesUsed: 1,
+    lastCopiedAt: nowIso,
+    fingerprint: fp,
+    promptId,
+  });
+  if (fp) {
+    saveCloudQuotaRecord(`fp_${fp}`, {
+      identifier: userIdentifier,
+      freeCopiesUsed: 1,
+      lastCopiedAt: nowIso,
+      fingerprint: fp,
+      promptId,
+    });
+  }
+
+  return 1;
 }
+
+/**
+ * ☁️ Asynchronously pull quota from Cloud Database & Firestore
+ * Run on login, session restore, or portal load to guarantee 0 quota reset even after cache clear
+ */
+export async function syncUserQuotaFromCloud(
+  userIdentifier?: string | null,
+  licenseKey?: string | null
+): Promise<{ freeTrialUsed: number; dailyUsed: number }> {
+  if (typeof window === 'undefined') return { freeTrialUsed: 0, dailyUsed: 0 };
+  const today = new Date().toISOString().slice(0, 10);
+  let cloudFree = 0;
+  let cloudDaily = 0;
+
+  try {
+    const cleanId = (userIdentifier || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+    const cleanLic = (licenseKey || '').trim().toUpperCase();
+
+    // 1. Pull latest cloud orders
+    const cloudOrders = await syncAllLeadsFromCloud();
+
+    // Check matching order in cloud
+    const match = cloudOrders.find(
+      (o) =>
+        (cleanLic && o.licenseKey && o.licenseKey.trim().toUpperCase() === cleanLic) ||
+        (cleanId && o.email && o.email.trim().toLowerCase().replace(/[^a-z0-9]/g, '') === cleanId) ||
+        (cleanId && o.id && o.id.trim().toLowerCase().replace(/[^a-z0-9]/g, '') === cleanId)
+    );
+
+    if (match) {
+      if ((match.freeCopiesUsed || 0) >= 1 || (match.copiedPromptIds && match.copiedPromptIds.length > 0)) {
+        cloudFree = 1;
+      }
+      if (match.dailyCopyUsage && match.dailyCopyUsage.date === today) {
+        cloudDaily = Math.max(cloudDaily, match.dailyCopyUsage.count || 0);
+      }
+    }
+
+    // 2. Query dedicated usage_quotas
+    if (cleanId) {
+      const qRecord = await fetchCloudQuotaRecord(`free_${cleanId}`);
+      if (qRecord && (qRecord.freeCopiesUsed >= 1 || qRecord.count >= 1)) {
+        cloudFree = 1;
+      }
+    }
+
+    // Query device fingerprint
+    try {
+      const fp = generateDeviceFingerprint();
+      const fpRecord = await fetchCloudQuotaRecord(`fp_${fp}`);
+      if (fpRecord && (fpRecord.freeCopiesUsed >= 1 || fpRecord.count >= 1)) {
+        cloudFree = 1;
+      }
+    } catch {
+      // ignore
+    }
+
+    // Query license quota
+    if (cleanLic) {
+      const licRecord = await fetchCloudQuotaRecord(`paid_${cleanLic}`);
+      if (licRecord && licRecord.dailyDate === today && typeof licRecord.count === 'number') {
+        cloudDaily = Math.max(cloudDaily, licRecord.count);
+      }
+    }
+
+    // 3. Backfill local storage and cookies so future synchronous checks are instantaneous
+    if (cloudFree >= 1) {
+      const userKey = cleanId ? `apex3d_lifetime_free_copy_${cleanId}` : null;
+      if (userKey) localStorage.setItem(userKey, '1');
+      localStorage.setItem('apex3d_lifetime_free_copy_device', '1');
+      if (cleanId) setClientCookie(`apex3d_free_${cleanId}`, '1', 31536000);
+      setClientCookie('apex3d_free_device', '1', 31536000);
+    }
+
+    if (cloudDaily > 0 && cleanLic) {
+      const key = `apex3d_quota_${cleanLic}_${today}`;
+      localStorage.setItem(key, String(cloudDaily));
+      setClientCookie(key, String(cloudDaily), 86400 * 2);
+    }
+  } catch (err) {
+    console.debug('Cloud quota sync notice:', err);
+  }
+
+  return { freeTrialUsed: cloudFree, dailyUsed: cloudDaily };
+}
+
 
 /**
  * Format expiry countdown

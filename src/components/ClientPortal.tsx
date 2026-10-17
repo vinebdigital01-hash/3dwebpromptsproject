@@ -58,6 +58,8 @@ import {
   getExpiryDetails,
   getFreeTrialCopyUsage,
   incrementFreeTrialCopyUsage,
+  syncUserQuotaFromCloud,
+  syncAllLeadsFromCloud,
 } from '../lib/leadTracker';
 import { VaultItem } from '../data/vaultCatalog';
 import { getAllVaultPrompts, initPromptsCloudSync } from '../lib/promptCatalogStore';
@@ -112,6 +114,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
           updatedAt: new Date().toISOString(),
           approvedAt: new Date().toISOString(),
         };
+        saveOrder(memberSession);
         sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(memberSession));
         return memberSession;
       }
@@ -223,10 +226,20 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
   useEffect(() => {
     if (activeOrder) {
       if (isPaidMember && activeOrder.licenseKey) {
-        setDailyUsage(getDailyCopyUsage(activeOrder.licenseKey));
+        setDailyUsage(getDailyCopyUsage(activeOrder.licenseKey, activeOrder));
+        syncUserQuotaFromCloud(activeOrder.email || activeOrder.id, activeOrder.licenseKey).then((q) => {
+          if (q.dailyUsed > 0) {
+            setDailyUsage((cur) => Math.max(cur, q.dailyUsed));
+          }
+        });
       } else {
         const userIdentifier = activeOrder.email || activeOrder.phone || activeOrder.id || 'free_guest';
-        setFreeTrialUsage(getFreeTrialCopyUsage(userIdentifier));
+        setFreeTrialUsage(getFreeTrialCopyUsage(userIdentifier, activeOrder));
+        syncUserQuotaFromCloud(userIdentifier).then((q) => {
+          if (q.freeTrialUsed >= 1) {
+            setFreeTrialUsage(1);
+          }
+        });
       }
     }
   }, [activeOrder, isPaidMember]);
@@ -306,15 +319,23 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
 
   // Listen to Firebase Auth state
   useEffect(() => {
-    const unsubscribe = subscribeToAuth((user) => {
+    const unsubscribe = subscribeToAuth(async (user) => {
       setFirebaseUser(user);
       if (user && !activeOrder) {
         // Auto-check if order exists for this email
-        const existing = findApprovedOrder(user.email || '');
+        let existing = findApprovedOrder(user.email || '');
+        if (!existing) {
+          await syncAllLeadsFromCloud();
+          existing = findApprovedOrder(user.email || '');
+        }
         if (existing) {
           setActiveOrder(existing);
           sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(existing));
-          setDailyUsage(getDailyCopyUsage(existing.licenseKey || ''));
+          if (existing.licenseKey && !existing.licenseKey.startsWith('LIC-MBR') && (existing.amountINR || 0) > 0) {
+            setDailyUsage(getDailyCopyUsage(existing.licenseKey, existing));
+          } else {
+            setFreeTrialUsage(getFreeTrialCopyUsage(existing.email, existing));
+          }
         } else {
           // Provision authenticated Free Member session (NO license or invoice for free accounts)
           const memberOrder: LeadOrder = {
@@ -331,9 +352,10 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
             updatedAt: new Date().toISOString(),
             approvedAt: new Date().toISOString(),
           };
+          saveOrder(memberOrder);
           setActiveOrder(memberOrder);
           sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(memberOrder));
-          setFreeTrialUsage(getFreeTrialCopyUsage(memberOrder.email));
+          setFreeTrialUsage(getFreeTrialCopyUsage(memberOrder.email, memberOrder));
         }
       }
     });
@@ -346,11 +368,19 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
     try {
       sound.playClick();
       const user = await loginWithGoogle();
-      const existing = findApprovedOrder(user.email || '');
+      let existing = findApprovedOrder(user.email || '');
+      if (!existing) {
+        await syncAllLeadsFromCloud();
+        existing = findApprovedOrder(user.email || '');
+      }
       if (existing) {
         setActiveOrder(existing);
         sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(existing));
-        setDailyUsage(getDailyCopyUsage(existing.licenseKey || ''));
+        if (existing.licenseKey && !existing.licenseKey.startsWith('LIC-MBR') && (existing.amountINR || 0) > 0) {
+          setDailyUsage(getDailyCopyUsage(existing.licenseKey, existing));
+        } else {
+          setFreeTrialUsage(getFreeTrialCopyUsage(existing.email, existing));
+        }
         sound.playSuccess();
         showToast(`Access Restored // ${existing.tierName}`);
       } else {
@@ -368,9 +398,10 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
           updatedAt: new Date().toISOString(),
           approvedAt: new Date().toISOString(),
         };
+        saveOrder(memberOrder);
         setActiveOrder(memberOrder);
         sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(memberOrder));
-        setFreeTrialUsage(getFreeTrialCopyUsage(memberOrder.email));
+        setFreeTrialUsage(getFreeTrialCopyUsage(memberOrder.email, memberOrder));
         sound.playSuccess();
         showToast(`Authenticated via Google // ${user.displayName || user.email}`);
       }
@@ -388,11 +419,19 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
     try {
       sound.playClick();
       const user = await loginWithGithub();
-      const existing = findApprovedOrder(user.email || '');
+      let existing = findApprovedOrder(user.email || '');
+      if (!existing) {
+        await syncAllLeadsFromCloud();
+        existing = findApprovedOrder(user.email || '');
+      }
       if (existing) {
         setActiveOrder(existing);
         sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(existing));
-        setDailyUsage(getDailyCopyUsage(existing.licenseKey || ''));
+        if (existing.licenseKey && !existing.licenseKey.startsWith('LIC-MBR') && (existing.amountINR || 0) > 0) {
+          setDailyUsage(getDailyCopyUsage(existing.licenseKey, existing));
+        } else {
+          setFreeTrialUsage(getFreeTrialCopyUsage(existing.email, existing));
+        }
         sound.playSuccess();
         showToast(`Access Restored // ${existing.tierName}`);
       } else {
@@ -410,9 +449,10 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
           updatedAt: new Date().toISOString(),
           approvedAt: new Date().toISOString(),
         };
+        saveOrder(memberOrder);
         setActiveOrder(memberOrder);
         sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(memberOrder));
-        setFreeTrialUsage(getFreeTrialCopyUsage(memberOrder.email));
+        setFreeTrialUsage(getFreeTrialCopyUsage(memberOrder.email, memberOrder));
         sound.playSuccess();
         showToast(`Authenticated via GitHub // ${user.displayName || user.email}`);
       }
@@ -452,11 +492,19 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
       } else {
         user = await loginWithEmail(authEmail, authPassword);
       }
-      const existing = findApprovedOrder(user.email || '');
+      let existing = findApprovedOrder(user.email || '');
+      if (!existing) {
+        await syncAllLeadsFromCloud();
+        existing = findApprovedOrder(user.email || '');
+      }
       if (existing) {
         setActiveOrder(existing);
         sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(existing));
-        setDailyUsage(getDailyCopyUsage(existing.licenseKey || ''));
+        if (existing.licenseKey && !existing.licenseKey.startsWith('LIC-MBR') && (existing.amountINR || 0) > 0) {
+          setDailyUsage(getDailyCopyUsage(existing.licenseKey, existing));
+        } else {
+          setFreeTrialUsage(getFreeTrialCopyUsage(existing.email, existing));
+        }
         sound.playSuccess();
         showToast(`Access Restored // ${existing.tierName}`);
       } else {
@@ -474,9 +522,10 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
           updatedAt: new Date().toISOString(),
           approvedAt: new Date().toISOString(),
         };
+        saveOrder(memberOrder);
         setActiveOrder(memberOrder);
         sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(memberOrder));
-        setFreeTrialUsage(getFreeTrialCopyUsage(memberOrder.email));
+        setFreeTrialUsage(getFreeTrialCopyUsage(memberOrder.email, memberOrder));
         sound.playSuccess();
         showToast(`Signed In as ${user.displayName || user.email}`);
       }
@@ -506,7 +555,11 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
   const handleLinkLicenseSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLinkLicenseError(null);
-    const order = findApprovedOrder(linkLicenseInput);
+    let order = findApprovedOrder(linkLicenseInput);
+    if (!order) {
+      await syncAllLeadsFromCloud();
+      order = findApprovedOrder(linkLicenseInput);
+    }
     if (!order) {
       sound.playError();
       setLinkLicenseError('License Key or Order Reference could not be verified.');
@@ -529,7 +582,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
     }
     setActiveOrder(finalOrder);
     sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(finalOrder));
-    setDailyUsage(getDailyCopyUsage(finalOrder.licenseKey || ''));
+    setDailyUsage(getDailyCopyUsage(finalOrder.licenseKey || '', finalOrder));
     setIsLinkLicenseModalOpen(false);
     setLinkLicenseInput('');
     showToast(`Commercial License Linked // ${finalOrder.tierName}`);
@@ -539,7 +592,11 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
     if (e) e.preventDefault();
     setLoginError(null);
 
-    const order = findApprovedOrder(loginInput);
+    let order = findApprovedOrder(loginInput);
+    if (!order) {
+      await syncAllLeadsFromCloud();
+      order = findApprovedOrder(loginInput);
+    }
     if (!order) {
       sound.playError();
       setLoginError(
@@ -560,7 +617,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
     const finalOrder = bindCheck.order || order;
     setActiveOrder(finalOrder);
     sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(finalOrder));
-    setDailyUsage(getDailyCopyUsage(finalOrder.licenseKey || ''));
+    setDailyUsage(getDailyCopyUsage(finalOrder.licenseKey || '', finalOrder));
     if (bindCheck.boundIp) {
       showToast(`Device Bound // IP: ${bindCheck.boundIp} (${bindCheck.boundLocation || 'Studio'})`);
     }
@@ -594,8 +651,8 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
       }
 
       const userIdentifier = activeOrder.email || activeOrder.phone || activeOrder.id || 'free_guest';
-      const usage = getFreeTrialCopyUsage(userIdentifier);
-      if (usage >= 1) {
+      const usage = getFreeTrialCopyUsage(userIdentifier, activeOrder);
+      if (usage >= 1 || (activeOrder.freeCopiesUsed && activeOrder.freeCopiesUsed >= 1)) {
         sound.playClick();
         setUpgradeTriggerReason('quota_exceeded');
         setIsUpgradeShowcaseOpen(true);
@@ -608,7 +665,16 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
       setCopiedId(prompt.id);
       setTimeout(() => setCopiedId(null), 2500);
 
-      incrementFreeTrialCopyUsage(userIdentifier);
+      incrementFreeTrialCopyUsage(userIdentifier, prompt.id, activeOrder);
+      const updatedOrder: LeadOrder = {
+        ...activeOrder,
+        freeCopiesUsed: 1,
+        lastFreeCopyAt: new Date().toISOString(),
+        copiedPromptIds: Array.from(new Set([...(activeOrder.copiedPromptIds || []), prompt.id])),
+      };
+      setActiveOrder(updatedOrder);
+      sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(updatedOrder));
+      saveOrder(updatedOrder);
       setFreeTrialUsage(1);
       showToast('✨ Free Sample Copied (1/1 Lifetime Quota Used)! Upgrade anytime for 500+ prompts.');
       return;
@@ -616,7 +682,9 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
 
     // 🌟 PAID MEMBERS (Daily Limit per Tier)
     const maxCopies = getMaxDailyCopies(activeOrder.tierId);
-    if (maxCopies !== -1 && dailyUsage >= maxCopies) {
+    const today = new Date().toISOString().slice(0, 10);
+    const currentUsage = getDailyCopyUsage(activeOrder.licenseKey || '', activeOrder);
+    if (maxCopies !== -1 && currentUsage >= maxCopies) {
       sound.playClick();
       setUpgradeTriggerReason('quota_exceeded');
       setIsUpgradeShowcaseOpen(true);
@@ -628,7 +696,17 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
     setCopiedId(prompt.id);
     setTimeout(() => setCopiedId(null), 2500);
 
-    const newCount = incrementDailyCopyUsage(activeOrder.licenseKey || '');
+    const newCount = incrementDailyCopyUsage(activeOrder.licenseKey || '', prompt.id, activeOrder);
+    const updatedOrder: LeadOrder = {
+      ...activeOrder,
+      dailyCopyUsage: { date: today, count: newCount },
+      totalCopiesUsed: (activeOrder.totalCopiesUsed || 0) + 1,
+      lastCopyAt: new Date().toISOString(),
+      copiedPromptIds: Array.from(new Set([...(activeOrder.copiedPromptIds || []), prompt.id])),
+    };
+    setActiveOrder(updatedOrder);
+    sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(updatedOrder));
+    saveOrder(updatedOrder);
     setDailyUsage(newCount);
     showToast(`Arch-Syntax [${prompt.title.slice(0, 24)}...] copied to clipboard`);
   };
@@ -926,24 +1004,31 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                   sound.playSuccess();
                   const cachedEmail = localStorage.getItem('vineb_user_email');
                   const cachedName = localStorage.getItem('vineb_user_name');
-                  const guestOrder: LeadOrder = {
-                    id: `USR-${Date.now().toString().slice(-6)}`,
-                    orderNumber: `MEM-${Date.now().toString().slice(-4)}`,
-                    name: cachedName || 'Free Trial Member',
-                    email: cachedEmail || 'free_guest@apex3d.local',
-                    phone: '',
-                    tierId: 'member',
-                    tierName: 'Free Trial Member (1 Sample Quota)',
-                    amountINR: 0,
-                    status: 'approved',
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
-                    approvedAt: new Date().toISOString(),
-                  };
+                  let guestOrder = cachedEmail ? findApprovedOrder(cachedEmail) : null;
+                  if (!guestOrder) {
+                    guestOrder = {
+                      id: `USR-${Date.now().toString().slice(-6)}`,
+                      orderNumber: `MEM-${Date.now().toString().slice(-4)}`,
+                      name: cachedName || 'Free Trial Member',
+                      email: cachedEmail || 'free_guest@apex3d.local',
+                      phone: '',
+                      tierId: 'member',
+                      tierName: 'Free Trial Member (1 Sample Quota)',
+                      amountINR: 0,
+                      status: 'approved',
+                      createdAt: new Date().toISOString(),
+                      updatedAt: new Date().toISOString(),
+                      approvedAt: new Date().toISOString(),
+                    };
+                    saveOrder(guestOrder);
+                  }
                   setActiveOrder(guestOrder);
                   sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(guestOrder));
                   const userIdentifier = guestOrder.email || 'free_guest';
-                  setFreeTrialUsage(getFreeTrialCopyUsage(userIdentifier));
+                  setFreeTrialUsage(getFreeTrialCopyUsage(userIdentifier, guestOrder));
+                  syncUserQuotaFromCloud(userIdentifier).then((q) => {
+                    if (q.freeTrialUsed >= 1) setFreeTrialUsage(1);
+                  });
                   const freePrompt = vaultPrompts.find((p) => p.allowFreeTrialCopy);
                   if (freePrompt) setSpotlightPrompt(freePrompt);
                   showToast('🎁 Free Member Access Opened! 1 Sample Prompt Quota Ready.');

@@ -65,6 +65,9 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, isOpen, onClo
     }
   };
 
+  const invoiceNo = order.invoiceNumber || `INV-${new Date().getFullYear()}-${(order.orderNumber || '1001').replace(/\D/g, '').slice(-4) || '1001'}`;
+  const licenseKey = order.licenseKey || 'LIC-VIP-APEX-ACTIVE';
+
   const issueTimestamp = formatDateTime(order.approvedAt || order.createdAt);
   const createdTimestamp = formatDateTime(order.createdAt);
   const reconciledTimestamp = formatDateTime(order.approvedAt || order.createdAt);

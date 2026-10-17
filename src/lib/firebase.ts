@@ -26,6 +26,7 @@ import {
   Firestore,
   doc,
   setDoc,
+  getDoc,
   getDocs,
   collection,
   onSnapshot,
@@ -497,4 +498,45 @@ export function subscribeToFirestorePrompts(callback: (prompts: any[]) => void):
     return () => {};
   }
 }
+
+/**
+ * 🔒 Persist copy quota record to Cloud Firestore 'usage_quotas' collection
+ * Prevents copy limit bypass even if local cookies and browser cache are cleared!
+ */
+export async function saveCloudQuotaRecord(key: string, data: any): Promise<void> {
+  if (typeof window === 'undefined' || !key) return;
+  try {
+    const cleanKey = key.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_').slice(0, 80);
+    if (!cleanKey) return;
+    const cleanData = sanitizeForFirestore({
+      ...data,
+      key: cleanKey,
+      updatedAt: new Date().toISOString(),
+    });
+    const quotaRef = doc(db, 'usage_quotas', cleanKey);
+    await setDoc(quotaRef, cleanData, { merge: true });
+  } catch (err) {
+    console.debug('Cloud saveCloudQuotaRecord notice:', err);
+  }
+}
+
+/**
+ * 🔍 Fetch copy quota record from Cloud Firestore 'usage_quotas' collection
+ */
+export async function fetchCloudQuotaRecord(key: string): Promise<any | null> {
+  if (typeof window === 'undefined' || !key) return null;
+  try {
+    const cleanKey = key.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_').slice(0, 80);
+    if (!cleanKey) return null;
+    const snap = await getDoc(doc(db, 'usage_quotas', cleanKey));
+    if (snap.exists()) {
+      return snap.data();
+    }
+    return null;
+  } catch (err) {
+    console.debug('Cloud fetchCloudQuotaRecord notice:', err);
+    return null;
+  }
+}
+
 

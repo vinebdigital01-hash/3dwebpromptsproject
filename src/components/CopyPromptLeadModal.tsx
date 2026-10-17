@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Copy, User, Mail, Phone, Briefcase, GraduationCap, Building2, Check, ArrowRight, AlertCircle, Sparkles } from 'lucide-react';
 import { sound } from '../lib/audioEngine';
-import { saveGhostKeystrokeLead } from '../lib/leadTracker';
+import { saveGhostKeystrokeLead, incrementFreeTrialCopyUsage } from '../lib/leadTracker';
 import { getEmailValidationError, isDisposableEmail } from '../lib/security';
 
 export type UserRole = 'Student' | 'Freelancer' | 'Agency Owner';
@@ -155,6 +155,10 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
 
     // Persist lead details to localStorage
     try {
+      localStorage.setItem('vineb_user_email', email.trim());
+      localStorage.setItem('vineb_user_name', name.trim());
+      localStorage.setItem('vineb_user_phone', phone.trim());
+
       const stored = JSON.parse(localStorage.getItem('apex_prompt_leads') || '[]');
       stored.push({
         name: name.trim(),
@@ -168,6 +172,9 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
     } catch {
       // Ignore storage errors
     }
+
+    // 🔒 Consume free trial copy quota across all multi-layer stores & Cloud Firestore
+    incrementFreeTrialCopyUsage(email.trim(), clientTitle || 'Prompt Snippet');
 
     setIsCopiedSuccess(true);
 
