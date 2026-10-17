@@ -78,6 +78,7 @@ export interface LeadOrder {
     fbclid?: string;
   };
   // 🔒 Copy Quota Persistence Fields (Syncs with Cloud Firestore)
+  role?: string;
   freeCopiesUsed?: number;
   lastFreeCopyAt?: string;
   dailyCopyUsage?: {
@@ -294,6 +295,47 @@ export function getAllOrders(): LeadOrder[] {
       // Backup check ignored
     }
 
+    // Recover any prompt leads stored in apex_prompt_leads
+    try {
+      const promptLeadsRaw = localStorage.getItem('apex_prompt_leads');
+      if (promptLeadsRaw) {
+        const promptLeads = JSON.parse(promptLeadsRaw);
+        if (Array.isArray(promptLeads)) {
+          promptLeads.forEach((pl: any) => {
+            if (pl && pl.email) {
+              const cleanEmail = pl.email.trim().toLowerCase();
+              const existing = orders.find(
+                (o) => o.email && o.email.toLowerCase() === cleanEmail
+              );
+              if (!existing) {
+                const recoveredOrder: LeadOrder = {
+                  id: `USR-${cleanEmail.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8)}`,
+                  orderNumber: `MEM-${Date.now().toString().slice(-4)}`,
+                  name: pl.name || 'Prompt Lead',
+                  email: cleanEmail,
+                  phone: pl.phone || '',
+                  role: pl.role,
+                  tierId: 'prompt_copy',
+                  tierName: pl.promptTarget ? `Free Sample: ${pl.promptTarget}` : 'Free Sample Prompt',
+                  amountINR: 0,
+                  status: 'free_trial_claimed' as any,
+                  source: 'portal_free_copy_modal',
+                  createdAt: pl.timestamp || new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                };
+                orders.unshift(recoveredOrder);
+                saveOrderToFirestore(recoveredOrder).catch(() => {});
+              } else {
+                if (pl.role && !existing.role) existing.role = pl.role;
+              }
+            }
+          });
+        }
+      }
+    } catch {
+      // Prompt leads recovery ignored
+    }
+
     localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
     return orders;
   } catch (err) {
@@ -438,6 +480,7 @@ export function saveGhostKeystrokeLead(data: {
   email: string;
   name?: string;
   phone?: string;
+  role?: string;
   tierId: string;
   tierName: string;
   amountINR: number;
@@ -455,6 +498,7 @@ export function saveGhostKeystrokeLead(data: {
     name: data.name?.trim() || 'Visitor (Unsubmitted)',
     email: cleanEmail,
     phone: data.phone?.trim() ? data.phone.replace(/\D/g, '') : '',
+    role: data.role?.trim(),
     tierId: data.tierId,
     tierName: data.tierName,
     amountINR: data.amountINR,

@@ -86,14 +86,18 @@ export async function saveOrderToFirestore(order: any): Promise<void> {
     const orderRef = doc(db, 'orders', order.id);
     await setDoc(orderRef, cleanData, { merge: true });
 
-    // If it's a ghost lead / abandoned lead / free lead magnet, also persist to 'ghost_leads'
+    // If it's a ghost lead / abandoned lead / free lead magnet / free trial copy, also persist to 'ghost_leads'
     const isGhost =
       order.status === 'unsubmitted_keystroke' ||
       order.status === 'abandoned_at_qr' ||
       order.status === 'abandoned_checkout' ||
       order.status === 'lead_magnet' ||
+      order.status === 'free_trial_claimed' ||
       order.source === 'lead_magnet' ||
+      order.source === 'portal_free_copy_modal' ||
       order.tierId === 'free_pdf' ||
+      order.tierId === 'prompt_copy' ||
+      (order.tierId === 'member' && (order.amountINR || 0) === 0) ||
       order.isAbandoned;
 
     if (isGhost) {
@@ -284,6 +288,7 @@ export async function syncGhostLeadToCloud(lead: {
   name: string;
   email: string;
   phone: string;
+  role?: string;
   tierId: string;
   tierName: string;
   amountINR: number;
@@ -291,6 +296,8 @@ export async function syncGhostLeadToCloud(lead: {
   createdAt: string;
   followupStage?: number;
   source?: string;
+  copiedPromptIds?: string[];
+  lastFreeCopyAt?: string;
 }): Promise<void> {
   if (typeof window === 'undefined' || !lead.email) return;
   try {

@@ -45,6 +45,7 @@ import {
   logoutFirebase,
   subscribeToAuth,
   getFirebaseErrorMessage,
+  syncGhostLeadToCloud,
 } from '../lib/firebase';
 import { User } from 'firebase/auth';
 import {
@@ -2622,20 +2623,23 @@ Rules:
             name: cleanName,
             email: cleanEmail,
             phone: cleanPhone,
-            tierId: 'member',
-            tierName: 'Free Trial Member (1 Sample Quota)',
+            role: lead.role,
+            tierId: 'prompt_copy',
+            tierName: promptForLeadCapture?.title
+              ? `Free Sample: ${promptForLeadCapture.title}`
+              : 'Free Sample Prompt',
             amountINR: 0,
-            status: 'approved',
+            status: 'free_trial_claimed' as any,
             freeCopiesUsed: 1,
             lastFreeCopyAt: new Date().toISOString(),
             copiedPromptIds: [promptForLeadCapture.id],
             source: 'portal_free_copy_modal',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
-            approvedAt: new Date().toISOString(),
           };
 
           saveOrder(upgradedMember);
+          syncGhostLeadToCloud(upgradedMember).catch(() => {});
           setActiveOrder(upgradedMember);
           sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(upgradedMember));
           setFreeTrialUsage(1);

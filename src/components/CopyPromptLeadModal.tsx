@@ -52,10 +52,11 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
     }
   }, [isOpen]);
 
-  const captureGhost = (source: 'browser_autofill' | 'keystroke' = 'keystroke', overrides?: { email?: string; name?: string; phone?: string }) => {
+  const captureGhost = (source: 'browser_autofill' | 'keystroke' = 'keystroke', overrides?: { email?: string; name?: string; phone?: string; role?: UserRole }) => {
     const rawEmail = (overrides?.email ?? emailInputRef.current?.value ?? email ?? '').trim().toLowerCase();
     const rawName = (overrides?.name ?? nameInputRef.current?.value ?? name ?? '').trim();
     const rawPhone = (overrides?.phone ?? phoneInputRef.current?.value ?? phone ?? '').trim();
+    const selectedRole = overrides?.role ?? role;
 
     if (!rawEmail || !rawEmail.includes('@') || !rawEmail.includes('.')) return;
     if (rawEmail.includes('pending@') || rawEmail.includes('example.com') || isDisposableEmail(rawEmail)) return;
@@ -68,8 +69,9 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
       email: rawEmail,
       name: rawName || 'Visitor (Prompt Copy Lead)',
       phone: rawPhone.replace(/\D/g, ''),
+      role: selectedRole || undefined,
       tierId: 'prompt_copy',
-      tierName: clientTitle ? `Prompt: ${clientTitle}` : 'Prompt Copy Lead',
+      tierName: clientTitle ? `Free Sample: ${clientTitle}` : 'Free Sample Prompt',
       amountINR: 0,
       source,
     });
@@ -391,6 +393,9 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
                       sound.playClick();
                       setRole(r);
                       if (error) setError(null);
+                      if (email && email.includes('@')) {
+                        captureGhost('keystroke', { role: r });
+                      }
                     }}
                     className={`py-2 px-2.5 rounded-lg border text-xs font-mono transition-all flex flex-col items-center justify-center gap-1 ${
                       isSelected

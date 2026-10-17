@@ -223,6 +223,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
 
   // Ghost Leads Grouping & Timeline State
   const [ghostViewMode, setGhostViewMode] = useState<'grouped' | 'raw'>('grouped');
+  const [ghostFilter, setGhostFilter] = useState<'all' | 'free_trial' | 'abandoned_qr' | 'keystroke'>('all');
   const [expandedGhostKeys, setExpandedGhostKeys] = useState<Set<string>>(new Set());
 
   const toggleExpandGhost = (key: string) => {
@@ -732,9 +733,21 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
 
   // Filtered lists
   const pendingApprovals = orders.filter((o) => o.status === 'pending_approval');
-  const ghostLeads = orders.filter(
-    (o) => o.status === 'unsubmitted_keystroke' || o.status === 'abandoned_at_qr'
-  );
+
+  // Check if an order is a free trial copy / lead magnet lead
+  const isFreeTrialLead = (o: LeadOrder) =>
+    o.status === ('free_trial_claimed' as any) ||
+    o.source === 'portal_free_copy_modal' ||
+    o.tierId === 'prompt_copy' ||
+    (o.tierId === 'member' && (o.amountINR || 0) === 0);
+
+  const isGhostOrAbandoned = (o: LeadOrder) =>
+    o.status === 'unsubmitted_keystroke' ||
+    o.status === 'abandoned_at_qr' ||
+    (o.status as string) === 'abandoned_checkout' ||
+    isFreeTrialLead(o);
+
+  const ghostLeads = orders.filter(isGhostOrAbandoned);
 
   // Grouped Ghost Leads by Customer (Email / Phone) with Multiplier Counters (x2, x3, etc.)
   const groupedGhostLeads = useMemo(() => {
@@ -743,7 +756,8 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
       name: string;
       email: string;
       phone: string;
-      latestStatus: 'unsubmitted_keystroke' | 'abandoned_at_qr';
+      role?: string;
+      latestStatus: 'unsubmitted_keystroke' | 'abandoned_at_qr' | 'free_trial_claimed' | string;
       highestTierName: string;
       highestAmountINR: number;
       attemptCount: number;
@@ -769,22 +783,28 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
       const cleanPhone = (lead.phone || '').trim().replace(/\D/g, '');
       const key = cleanEmail || (cleanPhone ? `phone_${cleanPhone}` : lead.id);
 
+      const isLeadFreeTrial = isFreeTrialLead(lead);
+      const computedStatus = isLeadFreeTrial ? 'free_trial_claimed' : lead.status;
+      const cleanName =
+        lead.name &&
+        lead.name !== 'Visitor (Unsubmitted)' &&
+        lead.name !== 'Anonymous Visitor' &&
+        lead.name !== 'Visitor (Checkout)' &&
+        lead.name !== 'Visitor (Lead Magnet)' &&
+        lead.name !== 'Visitor (Prompt Copy Lead)'
+          ? lead.name
+          : lead.name || 'Anonymous Visitor';
+
       const existing = map.get(key);
       if (!existing) {
         map.set(key, {
           key,
-          name:
-            lead.name &&
-            lead.name !== 'Visitor (Unsubmitted)' &&
-            lead.name !== 'Anonymous Visitor' &&
-            lead.name !== 'Visitor (Checkout)' &&
-            lead.name !== 'Visitor (Lead Magnet)'
-              ? lead.name
-              : lead.name || 'Anonymous Visitor',
+          name: cleanName,
           email: lead.email || '',
           phone: lead.phone || '',
-          latestStatus: lead.status as 'unsubmitted_keystroke' | 'abandoned_at_qr',
-          highestTierName: lead.tierName || 'Custom Plan',
+          role: lead.role,
+          latestStatus: computedStatus,
+          highestTierName: lead.tierName || (isLeadFreeTrial ? 'Free Sample Prompt' : 'Custom Plan'),
           highestAmountINR: lead.amountINR || 0,
           attemptCount: 1,
           latestCreatedAt: lead.createdAt || new Date().toISOString(),
@@ -804,14 +824,12 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
             existing.name === 'Visitor (Unsubmitted)' ||
             existing.name === 'Anonymous Visitor' ||
             existing.name === 'Visitor (Checkout)' ||
-            existing.name === 'Visitor (Lead Magnet)') &&
-          lead.name &&
-          lead.name !== 'Visitor (Unsubmitted)' &&
-          lead.name !== 'Anonymous Visitor' &&
-          lead.name !== 'Visitor (Checkout)' &&
-          lead.name !== 'Visitor (Lead Magnet)'
+            existing.name === 'Visitor (Lead Magnet)' ||
+            existing.name === 'Visitor (Prompt Copy Lead)') &&
+          cleanName &&
+          cleanName !== 'Anonymous Visitor'
         ) {
-          existing.name = lead.name;
+          existing.name = cleanName;
         }
 
         // Keep phone if missing
@@ -819,13 +837,23 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
           existing.phone = lead.phone;
         }
 
+        // Keep role if missing
+        if (!existing.role && lead.role) {
+          existing.role = lead.role;
+        }
+
         // Higher intent stage takes priority
-        if (lead.status === 'abandoned_at_qr') {
+        if (computedStatus === 'free_trial_claimed') {
+          existing.latestStatus = 'free_trial_claimed';
+          existing.primaryLead = lead;
+        } else if (computedStatus === 'abandoned_at_qr' && existing.latestStatus !== 'free_trial_claimed') {
           existing.latestStatus = 'abandoned_at_qr';
         }
 
         // Highest plan value takes priority
-        if ((lead.amountINR || 0) > (existing.highestAmountINR || 0)) {
+        if (isLeadFreeTrial && lead.tierName) {
+          existing.highestTierName = lead.tierName;
+        } else if ((lead.amountINR || 0) > (existing.highestAmountINR || 0)) {
           existing.highestAmountINR = lead.amountINR || 0;
           existing.highestTierName = lead.tierName || existing.highestTierName;
         }
@@ -837,7 +865,13 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
         }
 
         // Primary lead selection for recovery actions
-        if (lead.status === 'abandoned_at_qr' && existing.primaryLead.status !== 'abandoned_at_qr') {
+        if (computedStatus === 'free_trial_claimed') {
+          existing.primaryLead = lead;
+        } else if (
+          lead.status === 'abandoned_at_qr' &&
+          existing.primaryLead.status !== 'abandoned_at_qr' &&
+          existing.primaryLead.status !== 'free_trial_claimed'
+        ) {
           existing.primaryLead = lead;
         }
       }
@@ -846,7 +880,70 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
     return Array.from(map.values());
   }, [ghostLeads]);
 
-  const approvedOrders = orders.filter((o) => o.status === 'approved');
+  // Counts for sub-filters
+  const freeTrialCount = useMemo(() => {
+    return groupedGhostLeads.filter(
+      (g) =>
+        g.latestStatus === 'free_trial_claimed' ||
+        isFreeTrialLead(g.primaryLead) ||
+        g.attempts.some(isFreeTrialLead)
+    ).length;
+  }, [groupedGhostLeads]);
+
+  const abandonedQrCount = useMemo(() => {
+    return groupedGhostLeads.filter((g) => g.latestStatus === 'abandoned_at_qr').length;
+  }, [groupedGhostLeads]);
+
+  const keystrokeCount = useMemo(() => {
+    return groupedGhostLeads.filter(
+      (g) =>
+        g.latestStatus === 'unsubmitted_keystroke' &&
+        !isFreeTrialLead(g.primaryLead) &&
+        !g.attempts.some(isFreeTrialLead)
+    ).length;
+  }, [groupedGhostLeads]);
+
+  const filteredGroupedGhosts = useMemo(() => {
+    if (ghostFilter === 'all') return groupedGhostLeads;
+    if (ghostFilter === 'free_trial') {
+      return groupedGhostLeads.filter(
+        (g) =>
+          g.latestStatus === 'free_trial_claimed' ||
+          isFreeTrialLead(g.primaryLead) ||
+          g.attempts.some(isFreeTrialLead)
+      );
+    }
+    if (ghostFilter === 'abandoned_qr') {
+      return groupedGhostLeads.filter((g) => g.latestStatus === 'abandoned_at_qr');
+    }
+    if (ghostFilter === 'keystroke') {
+      return groupedGhostLeads.filter(
+        (g) =>
+          g.latestStatus === 'unsubmitted_keystroke' &&
+          !isFreeTrialLead(g.primaryLead) &&
+          !g.attempts.some(isFreeTrialLead)
+      );
+    }
+    return groupedGhostLeads;
+  }, [groupedGhostLeads, ghostFilter]);
+
+  const filteredRawGhostLeads = useMemo(() => {
+    if (ghostFilter === 'all') return ghostLeads;
+    if (ghostFilter === 'free_trial') {
+      return ghostLeads.filter(isFreeTrialLead);
+    }
+    if (ghostFilter === 'abandoned_qr') {
+      return ghostLeads.filter((l) => l.status === 'abandoned_at_qr');
+    }
+    if (ghostFilter === 'keystroke') {
+      return ghostLeads.filter(
+        (l) => l.status === 'unsubmitted_keystroke' && !isFreeTrialLead(l)
+      );
+    }
+    return ghostLeads;
+  }, [ghostLeads, ghostFilter]);
+
+  const approvedOrders = orders.filter((o) => o.status === 'approved' && (o.amountINR || 0) > 0);
   const upgradeIntentOrders = orders.filter(
     (o) => (o.upgradeTelemetry?.viewsCount || 0) > 0 || (o.upgradeTelemetry?.clicksCount || 0) > 0
   );
@@ -1213,19 +1310,25 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
 
           <div className="p-3.5 sm:p-5 rounded-2xl bg-[#0a0f1d] border border-white/10">
             <div className="flex items-center justify-between text-white/50 text-[11px] sm:text-xs font-mono mb-1">
-              <span>GHOST & ABANDONED</span>
+              <span>GHOST &amp; FREE LEADS</span>
               <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-400" />
             </div>
             <div className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-purple-300 flex items-baseline gap-1.5 flex-wrap">
               <span>{groupedGhostLeads.length}</span>
-              {ghostLeads.length > groupedGhostLeads.length && (
+              {freeTrialCount > 0 ? (
+                <span className="text-[11px] font-mono text-emerald-400 font-bold">
+                  ({freeTrialCount} free)
+                </span>
+              ) : ghostLeads.length > groupedGhostLeads.length ? (
                 <span className="text-[11px] font-mono text-amber-300 font-bold">
                   ({ghostLeads.length} ev)
                 </span>
-              )}
+              ) : null}
             </div>
             <div className="text-[9px] sm:text-[10px] text-purple-300/80 mt-1 font-mono">
-              Unique high-intent leads
+              {freeTrialCount > 0
+                ? `${freeTrialCount} claimed sample · ${groupedGhostLeads.length - freeTrialCount} dropped`
+                : 'Unique high-intent leads'}
             </div>
           </div>
 
@@ -1287,7 +1390,14 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
             }`}
           >
             <User className="w-4 h-4" />
-            <span>Ghost & Abandoned ({groupedGhostLeads.length})</span>
+            <span>
+              Ghost &amp; Free Leads ({groupedGhostLeads.length})
+              {freeTrialCount > 0 && (
+                <span className="ml-1.5 text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 font-mono">
+                  {freeTrialCount} free
+                </span>
+              )}
+            </span>
           </button>
 
           <button
@@ -1774,13 +1884,18 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
             <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h2 className="text-base font-bold text-white flex items-center gap-2 flex-wrap">
-                  <span>Ghost & Abandoned Leads (Meta Ads ROI)</span>
+                  <span>Ghost &amp; Free Leads (Marketing &amp; ROI)</span>
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 font-bold">
                     {groupedGhostLeads.length} Unique Leads · {ghostLeads.length} Total Events
                   </span>
+                  {freeTrialCount > 0 && (
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
+                      🎁 {freeTrialCount} Free Trial Claimed
+                    </span>
+                  )}
                 </h2>
                 <p className="text-xs text-white/50">
-                  Users who typed their details in Step 1 or reached QR code. Repeat interactions by the same customer are unified with intent multipliers (x2, x3).
+                  Visitors who copied free sample prompts or dropped off during checkout. Repeat interactions are unified with intent multipliers (x2, x3).
                 </p>
               </div>
 
@@ -1799,7 +1914,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                         : 'text-zinc-400 hover:text-white'
                     }`}
                   >
-                    Grouped Users (x2, x3)
+                    Grouped Users ({filteredGroupedGhosts.length})
                   </button>
                   <button
                     type="button"
@@ -1813,7 +1928,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                         : 'text-zinc-400 hover:text-white'
                     }`}
                   >
-                    Raw Stream ({ghostLeads.length})
+                    Raw Stream ({filteredRawGhostLeads.length})
                   </button>
                 </div>
 
@@ -1838,18 +1953,25 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                       sound.playClick();
                       const csvContent =
                         ghostViewMode === 'grouped'
-                          ? 'data:text/csv;charset=utf-8,Name,Email,Phone,Plan,HighestIntentStage,Attempts,LastSeen\n' +
+                          ? 'data:text/csv;charset=utf-8,Name,Email,Phone,Role,Plan,HighestIntentStage,Attempts,LastSeen\n' +
                             groupedGhostLeads
                               .map(
                                 (g) =>
-                                  `"${g.name}","${g.email}","${g.phone}","${g.highestTierName}","${
-                                    g.latestStatus === 'abandoned_at_qr' ? 'Abandoned at QR' : 'Typed (Unsubmitted)'
+                                  `"${g.name}","${g.email}","${g.phone}","${g.role || 'Unspecified'}","${g.highestTierName}","${
+                                    g.latestStatus === 'free_trial_claimed'
+                                      ? 'Free Trial Claimed'
+                                      : g.latestStatus === 'abandoned_at_qr'
+                                      ? 'Abandoned at QR'
+                                      : 'Typed (Unsubmitted)'
                                   }","${g.attemptCount}","${g.latestCreatedAt}"`
                               )
                               .join('\n')
-                          : 'data:text/csv;charset=utf-8,Name,Email,Phone,Plan,CapturedAt\n' +
+                          : 'data:text/csv;charset=utf-8,Name,Email,Phone,Role,Plan,CapturedAt\n' +
                             ghostLeads
-                              .map((l) => `"${l.name}","${l.email}","${l.phone}","${l.tierName}","${l.createdAt}"`)
+                              .map(
+                                (l) =>
+                                  `"${l.name}","${l.email}","${l.phone}","${l.role || 'Unspecified'}","${l.tierName}","${l.createdAt}"`
+                              )
                               .join('\n');
 
                       const encodedUri = encodeURI(csvContent);
@@ -1868,6 +1990,81 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                   </button>
                 )}
               </div>
+            </div>
+
+            {/* Sub-Filter Pill Bar: All Leads / Free Prompts / QR Drop-offs / Keystrokes */}
+            <div className="flex items-center gap-2 mb-5 overflow-x-auto pb-1 no-scrollbar">
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playClick();
+                  setGhostFilter('all');
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-mono transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                  ghostFilter === 'all'
+                    ? 'bg-purple-600 text-white font-bold shadow-md shadow-purple-600/30'
+                    : 'bg-white/5 text-zinc-400 hover:text-white border border-white/10'
+                }`}
+              >
+                <span>All Leads</span>
+                <span className="px-1.5 py-0.2 rounded-full bg-black/40 text-[10px]">
+                  {groupedGhostLeads.length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playClick();
+                  setGhostFilter('free_trial');
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-mono transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                  ghostFilter === 'free_trial'
+                    ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/30'
+                    : 'bg-emerald-950/30 text-emerald-300 hover:text-emerald-200 border border-emerald-500/30'
+                }`}
+              >
+                <span>🎁 Free Prompts</span>
+                <span className="px-1.5 py-0.2 rounded-full bg-emerald-500/30 text-emerald-200 text-[10px] font-bold">
+                  {freeTrialCount}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playClick();
+                  setGhostFilter('abandoned_qr');
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-mono transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                  ghostFilter === 'abandoned_qr'
+                    ? 'bg-purple-700 text-white font-bold shadow-md shadow-purple-700/30'
+                    : 'bg-white/5 text-zinc-400 hover:text-white border border-white/10'
+                }`}
+              >
+                <span>⚡ QR Drop-offs</span>
+                <span className="px-1.5 py-0.2 rounded-full bg-black/40 text-[10px]">
+                  {abandonedQrCount}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playClick();
+                  setGhostFilter('keystroke');
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-mono transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                  ghostFilter === 'keystroke'
+                    ? 'bg-blue-600 text-white font-bold shadow-md shadow-blue-600/30'
+                    : 'bg-white/5 text-zinc-400 hover:text-white border border-white/10'
+                }`}
+              >
+                <span>⌨️ Keystrokes</span>
+                <span className="px-1.5 py-0.2 rounded-full bg-black/40 text-[10px]">
+                  {keystrokeCount}
+                </span>
+              </button>
             </div>
 
             {/* 100% Free Automated Resend Drip Follow-up Engine Banner */}
@@ -1971,13 +2168,30 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                   As soon as visitors enter their email or phone in the checkout modal, they will be tracked here.
                 </p>
               </div>
+            ) : filteredGroupedGhosts.length === 0 && ghostViewMode === 'grouped' ? (
+              <div className="py-16 text-center rounded-2xl bg-[#090914] border border-white/5 text-white/40">
+                <Sparkles className="w-8 h-8 text-zinc-500 mx-auto mb-2" />
+                <p className="text-xs text-zinc-400 font-mono">No leads match the selected filter ({ghostFilter}).</p>
+                <button
+                  type="button"
+                  onClick={() => setGhostFilter('all')}
+                  className="mt-3 text-xs text-blue-400 hover:underline font-mono"
+                >
+                  View All Leads ({groupedGhostLeads.length}) &rarr;
+                </button>
+              </div>
             ) : ghostViewMode === 'grouped' ? (
               /* ==============================================================
                   MODE 1: GROUPED BY UNIQUE CUSTOMER (WITH x2, x3 BADGES)
                  ============================================================== */
               <div className="divide-y divide-white/5 rounded-2xl bg-[#090914] border border-white/10 overflow-hidden">
-                {groupedGhostLeads.map((group) => {
+                {filteredGroupedGhosts.map((group) => {
                   const isExpanded = expandedGhostKeys.has(group.key);
+                  const isFreeLead =
+                    group.latestStatus === 'free_trial_claimed' ||
+                    isFreeTrialLead(group.primaryLead) ||
+                    group.attempts.some(isFreeTrialLead);
+
                   return (
                     <div
                       key={group.key}
@@ -2003,15 +2217,34 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                             )}
 
                             {/* Highest Funnel Status */}
-                            <span
-                              className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
-                                group.latestStatus === 'abandoned_at_qr'
-                                  ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30 font-semibold'
-                                  : 'bg-zinc-800 text-zinc-300 border border-zinc-700'
-                              }`}
-                            >
-                              {group.latestStatus === 'abandoned_at_qr' ? 'Abandoned at QR' : 'Typed (Unsubmitted)'}
-                            </span>
+                            {isFreeLead ? (
+                              <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold flex items-center gap-1 shadow-sm shadow-emerald-500/20">
+                                <span>🎁 Free Prompt Copied (1/1 Claimed)</span>
+                              </span>
+                            ) : (
+                              <span
+                                className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
+                                  group.latestStatus === 'abandoned_at_qr'
+                                    ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30 font-semibold'
+                                    : 'bg-zinc-800 text-zinc-300 border border-zinc-700'
+                                }`}
+                              >
+                                {group.latestStatus === 'abandoned_at_qr'
+                                  ? 'Abandoned at QR'
+                                  : 'Typed (Unsubmitted)'}
+                              </span>
+                            )}
+
+                            {/* Discipline / Role Badge */}
+                            {group.role && (
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-500/15 text-blue-300 border border-blue-500/30 font-semibold flex items-center gap-1">
+                                {group.role === 'Student'
+                                  ? '🎓 Student'
+                                  : group.role === 'Freelancer'
+                                  ? '💼 Freelancer'
+                                  : '🏢 Agency Owner'}
+                              </span>
+                            )}
 
                             {/* Drip Status */}
                             <span
@@ -2072,7 +2305,9 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                           {group.phone && (
                             <a
                               href={`https://wa.me/91${group.phone.replace(/\D/g, '')}?text=${encodeURIComponent(
-                                `Hey ${group.name || 'there'}! Saw you were checking out the ${group.highestTierName} on APEX3D Vault. Did you face any UPI issue? Here to help!`
+                                isFreeLead
+                                  ? `Hey ${group.name || 'there'}! 🚀 Saw you tested the "${group.highestTierName || '3D Architecture'}" prompt on APEX3D Vault.\n\nHow did your render go? If you want instant access to all 500+ commercial 3D blueprints and Three.js starters, we have an exclusive ₹49 Sprint Pass or ₹299 Lifetime VIP today: https://3dwebprompts-vineb.vercel.app/#pricing\n\nNeed any help setting it up?`
+                                  : `Hey ${group.name || 'there'}! Saw you were checking out the ${group.highestTierName} on APEX3D Vault. Did you face any UPI issue? Here to help!`
                               )}`}
                               target="_blank"
                               rel="noopener noreferrer"
@@ -2126,30 +2361,44 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                           <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">
                             Customer Journey & Attempt Log ({group.attempts.length} Touchpoints):
                           </div>
-                          {group.attempts.map((att, attIdx) => (
-                            <div
-                              key={att.id || attIdx}
-                              className="flex items-center justify-between text-[11px] py-1 border-b border-white/5 last:border-0 flex-wrap gap-2"
-                            >
-                              <div className="flex items-center gap-2">
-                                <span className="text-zinc-500">#{attIdx + 1}</span>
-                                <span
-                                  className={`px-1.5 py-0.2 rounded text-[10px] font-mono ${
-                                    att.status === 'abandoned_at_qr'
-                                      ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
-                                      : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
-                                  }`}
-                                >
-                                  {att.status === 'abandoned_at_qr' ? 'Abandoned at QR' : 'Typed (Unsubmitted)'}
-                                </span>
-                                <span className="text-white/80">{att.tierName}</span>
-                                <span className="text-blue-400 font-bold">₹{att.amountINR}</span>
+                          {group.attempts.map((att, attIdx) => {
+                            const isAttFree = isFreeTrialLead(att) || att.status === ('free_trial_claimed' as any);
+                            return (
+                              <div
+                                key={att.id || attIdx}
+                                className="flex items-center justify-between text-[11px] py-1 border-b border-white/5 last:border-0 flex-wrap gap-2"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span className="text-zinc-500">#{attIdx + 1}</span>
+                                  <span
+                                    className={`px-1.5 py-0.2 rounded text-[10px] font-mono ${
+                                      isAttFree
+                                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold'
+                                        : att.status === 'abandoned_at_qr'
+                                        ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                                        : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
+                                    }`}
+                                  >
+                                    {isAttFree
+                                      ? '🎁 Free Sample Copied'
+                                      : att.status === 'abandoned_at_qr'
+                                      ? 'Abandoned at QR'
+                                      : 'Typed (Unsubmitted)'}
+                                  </span>
+                                  {att.role && (
+                                    <span className="text-[9px] px-1 py-0.2 rounded bg-blue-500/10 text-blue-300 border border-blue-500/20">
+                                      {att.role}
+                                    </span>
+                                  )}
+                                  <span className="text-white/80">{att.tierName}</span>
+                                  <span className="text-blue-400 font-bold">₹{att.amountINR}</span>
+                                </div>
+                                <div className="text-zinc-500 text-[10px]">
+                                  {new Date(att.updatedAt || att.createdAt || 0).toLocaleString()}
+                                </div>
                               </div>
-                              <div className="text-zinc-500 text-[10px]">
-                                {new Date(att.updatedAt || att.createdAt || 0).toLocaleString()}
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </div>
@@ -2161,96 +2410,118 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                   MODE 2: RAW EVENT STREAM (INDIVIDUAL ATTEMPTS)
                  ============================================================== */
               <div className="divide-y divide-white/5 rounded-2xl bg-[#090914] border border-white/10 overflow-hidden">
-                {ghostLeads.map((lead) => (
-                  <div
-                    key={lead.id}
-                    className="p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-white/[0.02]"
-                  >
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold text-white">{lead.name || 'Anonymous Visitor'}</span>
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                          {lead.status === 'unsubmitted_keystroke' ? 'Typed (Unsubmitted)' : 'Abandoned at QR'}
-                        </span>
-                        <span
-                          className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
-                            lead.followupStage === 2
-                              ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+                {filteredRawGhostLeads.map((lead) => {
+                  const isLeadFree = isFreeTrialLead(lead) || lead.status === ('free_trial_claimed' as any);
+                  return (
+                    <div
+                      key={lead.id}
+                      className="p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-white/[0.02]"
+                    >
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-semibold text-white">{lead.name || 'Anonymous Visitor'}</span>
+                          <span
+                            className={`text-[10px] font-mono px-2 py-0.5 rounded ${
+                              isLeadFree
+                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold'
+                                : lead.status === 'unsubmitted_keystroke'
+                                ? 'bg-zinc-800 text-zinc-300 border border-zinc-700'
+                                : 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                            }`}
+                          >
+                            {isLeadFree
+                              ? '🎁 Free Sample Copied'
+                              : lead.status === 'unsubmitted_keystroke'
+                              ? 'Typed (Unsubmitted)'
+                              : 'Abandoned at QR'}
+                          </span>
+                          {lead.role && (
+                            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-300 border border-blue-500/30 font-semibold">
+                              {lead.role === 'Student' ? '🎓 Student' : lead.role === 'Freelancer' ? '💼 Freelancer' : '🏢 Agency Owner'}
+                            </span>
+                          )}
+                          <span
+                            className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
+                              lead.followupStage === 2
+                                ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+                                : lead.followupStage === 1
+                                ? 'bg-blue-500/10 text-blue-300 border-blue-500/30'
+                                : 'bg-zinc-800 text-zinc-400 border-zinc-700'
+                            }`}
+                          >
+                            {lead.followupStage === 2
+                              ? 'Drip: Day 2 Sent'
                               : lead.followupStage === 1
-                              ? 'bg-blue-500/10 text-blue-300 border-blue-500/30'
-                              : 'bg-zinc-800 text-zinc-400 border-zinc-700'
-                          }`}
-                        >
-                          {lead.followupStage === 2
-                            ? 'Drip: Day 2 Sent'
-                            : lead.followupStage === 1
-                            ? 'Drip: Day 1 Sent'
-                            : 'Drip: Pending'}
-                        </span>
-                        <span className="text-xs font-bold text-blue-400 font-mono">
-                          {lead.tierName} (₹{lead.amountINR})
-                        </span>
+                              ? 'Drip: Day 1 Sent'
+                              : 'Drip: Pending'}
+                          </span>
+                          <span className="text-xs font-bold text-blue-400 font-mono">
+                            {lead.tierName} (₹{lead.amountINR})
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-4 text-xs text-white/60 mt-1 font-mono">
+                          <span>{lead.email}</span>
+                          {lead.phone && <span>· +91 {lead.phone}</span>}
+                          <span>· {new Date(lead.createdAt).toLocaleDateString()}</span>
+                        </div>
                       </div>
 
-                      <div className="flex items-center gap-4 text-xs text-white/60 mt-1 font-mono">
-                        <span>{lead.email}</span>
-                        {lead.phone && <span>· {lead.phone}</span>}
-                        <span>· {new Date(lead.createdAt).toLocaleDateString()}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      {lead.phone && (
-                        <a
-                          href={`https://wa.me/91${lead.phone.replace(/\D/g, '')}?text=${encodeURIComponent(
-                            `Hey ${lead.name || 'there'}! Saw you were checking out the ${lead.tierName} on APEX3D Vault. Did you face any UPI issue? Here to help!`
-                          )}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium flex items-center gap-1"
-                        >
-                          <span>WhatsApp Follow-up</span>
-                          <ArrowUpRight className="w-3 h-3" />
-                        </a>
-                      )}
-
-                      <button
-                        type="button"
-                        onClick={() => handleSendRecoveryEmail(lead)}
-                        disabled={sendingLeadEmailId === lead.id}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
-                          sendingLeadEmailId === lead.id
-                            ? 'bg-blue-600/50 text-blue-200 cursor-wait border border-blue-500/30'
-                            : lead.lastFollowupAt
-                            ? 'bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-500/30'
-                            : 'bg-white/5 hover:bg-white/10 text-white border border-white/10'
-                        }`}
-                        title={
-                          lead.lastFollowupAt
-                            ? `Last dispatched on ${new Date(lead.lastFollowupAt).toLocaleString()}`
-                            : 'Dispatch recovery email'
-                        }
-                      >
-                        {sendingLeadEmailId === lead.id ? (
-                          <>
-                            <Loader2 className="w-3 h-3 animate-spin text-blue-400" />
-                            <span>Sending Email...</span>
-                          </>
-                        ) : lead.lastFollowupAt ? (
-                          <>
-                            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                            <span>Re-send Recovery Email</span>
-                          </>
-                        ) : (
-                          <>
-                            <Send className="w-3 h-3" />
-                            <span>Send Recovery Email</span>
-                          </>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {lead.phone && (
+                          <a
+                            href={`https://wa.me/91${lead.phone.replace(/\D/g, '')}?text=${encodeURIComponent(
+                              isLeadFree
+                                ? `Hey ${lead.name || 'there'}! 🚀 Saw you tested the "${lead.tierName || '3D Architecture'}" prompt on APEX3D Vault.\n\nHow did your render go? If you want instant access to all 500+ commercial 3D blueprints and Three.js starters, we have an exclusive ₹49 Sprint Pass or ₹299 Lifetime VIP today: https://3dwebprompts-vineb.vercel.app/#pricing\n\nNeed any help setting it up?`
+                                : `Hey ${lead.name || 'there'}! Saw you were checking out the ${lead.tierName} on APEX3D Vault. Did you face any UPI issue? Here to help!`
+                            )}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium flex items-center gap-1"
+                          >
+                            <span>WhatsApp Follow-up</span>
+                            <ArrowUpRight className="w-3 h-3" />
+                          </a>
                         )}
-                      </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleSendRecoveryEmail(lead)}
+                          disabled={sendingLeadEmailId === lead.id}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
+                            sendingLeadEmailId === lead.id
+                              ? 'bg-blue-600/50 text-blue-200 cursor-wait border border-blue-500/30'
+                              : lead.lastFollowupAt
+                              ? 'bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-500/30'
+                              : 'bg-white/5 hover:bg-white/10 text-white border border-white/10'
+                          }`}
+                          title={
+                            lead.lastFollowupAt
+                              ? `Last dispatched on ${new Date(lead.lastFollowupAt).toLocaleString()}`
+                              : 'Dispatch recovery email'
+                          }
+                        >
+                          {sendingLeadEmailId === lead.id ? (
+                            <>
+                              <Loader2 className="w-3 h-3 animate-spin text-blue-400" />
+                              <span>Sending Email...</span>
+                            </>
+                          ) : lead.lastFollowupAt ? (
+                            <>
+                              <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                              <span>Re-send Recovery Email</span>
+                            </>
+                          ) : (
+                            <>
+                              <Send className="w-3 h-3" />
+                              <span>Send Recovery Email</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
