@@ -70,6 +70,7 @@ import { getEmailValidationError, isDisposableEmail } from '../lib/security';
 import { InvoiceModal } from './InvoiceModal';
 import { LicenseModal } from './LicenseModal';
 import { UpgradeShowcaseModal } from './UpgradeShowcaseModal';
+import { CopyPromptLeadModal } from './CopyPromptLeadModal';
 import { TierId } from './PricingSection';
 
 interface ClientPortalProps {
@@ -194,9 +195,11 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
   const [isUpgradeShowcaseOpen, setIsUpgradeShowcaseOpen] = useState(false);
   const [upgradeTriggerReason, setUpgradeTriggerReason] = useState<'quota_exceeded' | 'manual'>('quota_exceeded');
 
-  // Invoices & License Modals
+  // Invoices, License & Lead Capture Modals
   const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
   const [isLicenseOpen, setIsLicenseOpen] = useState(false);
+  const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
+  const [promptForLeadCapture, setPromptForLeadCapture] = useState<VaultItem | null>(null);
 
   // Daily Usage State (Paid Members)
   const [dailyUsage, setDailyUsage] = useState<number>(0);
@@ -657,6 +660,30 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
         setUpgradeTriggerReason('quota_exceeded');
         setIsUpgradeShowcaseOpen(true);
         showToast('⚠️ Free Trial Limit Reached: 1/1 sample used. Upgrade to unlock 500+ prompts!');
+        return;
+      }
+
+      // 🛡️ User Authentication / Contact Verification Gate:
+      // If user is NOT logged in and doesn't have verified credentials (name, email, phone),
+      // require them to enter their details in the lead modal before copying the 1 free sample!
+      const isUserIdentified = Boolean(
+        isPaidMember ||
+        firebaseUser?.email ||
+        (activeOrder.email &&
+          !activeOrder.email.includes('free_guest') &&
+          !activeOrder.email.includes('@apex3d.local') &&
+          activeOrder.email.includes('@') &&
+          activeOrder.name &&
+          activeOrder.name !== 'Free Trial Member' &&
+          activeOrder.name !== 'Visitor (Prompt Copy Lead)' &&
+          activeOrder.phone &&
+          activeOrder.phone.trim().length >= 7)
+      );
+
+      if (!isUserIdentified) {
+        sound.playClick();
+        setPromptForLeadCapture(prompt);
+        setIsLeadModalOpen(true);
         return;
       }
 
@@ -2568,6 +2595,53 @@ Rules:
           if (onUpgradeClick) {
             onUpgradeClick(tierId);
           }
+        }}
+      />
+
+      {/* 🚀 Lead Capture Modal for Unauthenticated Free Users Copying Prompts */}
+      <CopyPromptLeadModal
+        isOpen={isLeadModalOpen}
+        promptSnippet={promptForLeadCapture?.promptArchitecture || ''}
+        clientTitle={promptForLeadCapture?.title}
+        onClose={() => {
+          setIsLeadModalOpen(false);
+          setPromptForLeadCapture(null);
+        }}
+        onSuccessRedirect={() => {
+          setIsLeadModalOpen(false);
+        }}
+        onLeadSubmitted={(lead) => {
+          if (!promptForLeadCapture) return;
+          const cleanEmail = lead.email.trim().toLowerCase();
+          const cleanPhone = lead.phone.trim();
+          const cleanName = lead.name.trim();
+
+          const upgradedMember: LeadOrder = {
+            id: `USR-${cleanEmail.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8)}`,
+            orderNumber: `MEM-${Date.now().toString().slice(-4)}`,
+            name: cleanName,
+            email: cleanEmail,
+            phone: cleanPhone,
+            tierId: 'member',
+            tierName: 'Free Trial Member (1 Sample Quota)',
+            amountINR: 0,
+            status: 'approved',
+            freeCopiesUsed: 1,
+            lastFreeCopyAt: new Date().toISOString(),
+            copiedPromptIds: [promptForLeadCapture.id],
+            source: 'portal_free_copy_modal',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            approvedAt: new Date().toISOString(),
+          };
+
+          saveOrder(upgradedMember);
+          setActiveOrder(upgradedMember);
+          sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(upgradedMember));
+          setFreeTrialUsage(1);
+          setCopiedId(promptForLeadCapture.id);
+          setTimeout(() => setCopiedId(null), 2500);
+          showToast(`🎉 1/1 Free Sample Copied! Welcome ${cleanName.split(' ')[0]}.`);
         }}
       />
 

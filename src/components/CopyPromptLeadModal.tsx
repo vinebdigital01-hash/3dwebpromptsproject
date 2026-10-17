@@ -13,6 +13,7 @@ interface CopyPromptLeadModalProps {
   clientTitle?: string;
   onClose: () => void;
   onSuccessRedirect: () => void;
+  onLeadSubmitted?: (lead: { name: string; email: string; phone: string; role?: UserRole }) => void;
 }
 
 export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
@@ -21,10 +22,11 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
   clientTitle,
   onClose,
   onSuccessRedirect,
+  onLeadSubmitted,
 }) => {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
+  const [name, setName] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('vineb_user_name') || '' : ''));
+  const [email, setEmail] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('vineb_user_email') || '' : ''));
+  const [phone, setPhone] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('vineb_user_phone') || '' : ''));
   const [role, setRole] = useState<UserRole | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,6 +40,17 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (isOpen && typeof window !== 'undefined') {
+      const cachedN = localStorage.getItem('vineb_user_name');
+      const cachedE = localStorage.getItem('vineb_user_email');
+      const cachedP = localStorage.getItem('vineb_user_phone');
+      if (cachedN && !name) setName(cachedN);
+      if (cachedE && !email) setEmail(cachedE);
+      if (cachedP && !phone) setPhone(cachedP);
+    }
+  }, [isOpen]);
 
   const captureGhost = (source: 'browser_autofill' | 'keystroke' = 'keystroke', overrides?: { email?: string; name?: string; phone?: string }) => {
     const rawEmail = (overrides?.email ?? emailInputRef.current?.value ?? email ?? '').trim().toLowerCase();
@@ -175,6 +188,15 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
 
     // 🔒 Consume free trial copy quota across all multi-layer stores & Cloud Firestore
     incrementFreeTrialCopyUsage(email.trim(), clientTitle || 'Prompt Snippet');
+
+    if (onLeadSubmitted) {
+      onLeadSubmitted({
+        name: name.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+        role: role || undefined,
+      });
+    }
 
     setIsCopiedSuccess(true);
 
