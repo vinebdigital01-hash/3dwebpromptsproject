@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Copy, User, Mail, Phone, Briefcase, GraduationCap, Building2, Check, ArrowRight, AlertCircle, Sparkles } from 'lucide-react';
 import { sound } from '../lib/audioEngine';
-import { saveGhostKeystrokeLead, incrementFreeTrialCopyUsage } from '../lib/leadTracker';
+import { saveOrder, saveGhostKeystrokeLead, incrementFreeTrialCopyUsage, LeadOrder } from '../lib/leadTracker';
 import { getEmailValidationError, isDisposableEmail } from '../lib/security';
 
 export type UserRole = 'Student' | 'Freelancer' | 'Agency Owner';
@@ -52,23 +52,40 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
     }
   }, [isOpen]);
 
-  const captureGhost = (source: 'browser_autofill' | 'keystroke' = 'keystroke', overrides?: { email?: string; name?: string; phone?: string; role?: UserRole }) => {
+  const captureGhost = (
+    source: 'browser_autofill' | 'keystroke' = 'keystroke',
+    overrides?: { email?: string; name?: string; phone?: string; role?: UserRole }
+  ) => {
     const rawEmail = (overrides?.email ?? emailInputRef.current?.value ?? email ?? '').trim().toLowerCase();
     const rawName = (overrides?.name ?? nameInputRef.current?.value ?? name ?? '').trim();
-    const rawPhone = (overrides?.phone ?? phoneInputRef.current?.value ?? phone ?? '').trim();
+    const rawPhone = (overrides?.phone ?? phoneInputRef.current?.value ?? phone ?? '').trim().replace(/\D/g, '');
     const selectedRole = overrides?.role ?? role;
 
-    if (!rawEmail || !rawEmail.includes('@') || !rawEmail.includes('.')) return;
-    if (rawEmail.includes('pending@') || rawEmail.includes('example.com') || isDisposableEmail(rawEmail)) return;
+    // Reject dummy placeholder emails
+    if (
+      rawEmail.includes('free_guest') ||
+      rawEmail.includes('@apex3d.local') ||
+      rawEmail.includes('pending@') ||
+      rawEmail.includes('example.com') ||
+      isDisposableEmail(rawEmail)
+    ) {
+      return;
+    }
 
-    if (rawEmail !== email) setEmail(rawEmail);
+    const hasValidEmail = rawEmail.includes('@') && rawEmail.includes('.');
+    const hasValidPhone = rawPhone.length >= 7;
+
+    // Must have at least email or phone (or if name is typed with either)
+    if (!hasValidEmail && !hasValidPhone) return;
+
+    if (rawEmail && rawEmail !== email) setEmail(rawEmail);
     if (rawName && rawName !== name) setName(rawName);
     if (rawPhone && rawPhone !== phone) setPhone(rawPhone);
 
     saveGhostKeystrokeLead({
-      email: rawEmail,
-      name: rawName || 'Visitor (Prompt Copy Lead)',
-      phone: rawPhone.replace(/\D/g, ''),
+      email: hasValidEmail ? rawEmail : '',
+      name: rawName || (hasValidPhone ? `Visitor (+91 ${rawPhone})` : 'Visitor (Prompt Copy Lead)'),
+      phone: rawPhone,
       role: selectedRole || undefined,
       tierId: 'prompt_copy',
       tierName: clientTitle ? `Free Sample: ${clientTitle}` : 'Free Sample Prompt',
@@ -168,17 +185,42 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
       }
     }
 
-    // Persist lead details to localStorage
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPhone = phone.trim().replace(/\D/g, '');
+    const cleanName = name.trim();
+
+    // 1. Direct master order persistence - guarantees lead is saved regardless of parent state
+    const leadOrder: LeadOrder = {
+      id: `USR-${cleanEmail.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8)}-${Date.now().toString().slice(-4)}`,
+      orderNumber: `MEM-${Date.now().toString().slice(-4)}`,
+      name: cleanName,
+      email: cleanEmail,
+      phone: cleanPhone,
+      role: role || undefined,
+      tierId: 'prompt_copy',
+      tierName: clientTitle ? `Free Sample: ${clientTitle}` : 'Free Sample Prompt',
+      amountINR: 0,
+      status: 'free_trial_claimed',
+      freeCopiesUsed: 1,
+      lastFreeCopyAt: new Date().toISOString(),
+      source: 'portal_free_copy_modal',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    saveOrder(leadOrder);
+
+    // 2. Persist user credentials to browser localStorage
     try {
-      localStorage.setItem('vineb_user_email', email.trim());
-      localStorage.setItem('vineb_user_name', name.trim());
-      localStorage.setItem('vineb_user_phone', phone.trim());
+      localStorage.setItem('vineb_user_email', cleanEmail);
+      localStorage.setItem('vineb_user_name', cleanName);
+      localStorage.setItem('vineb_user_phone', cleanPhone);
 
       const stored = JSON.parse(localStorage.getItem('apex_prompt_leads') || '[]');
       stored.push({
-        name: name.trim(),
-        email: email.trim(),
-        phone: phone.trim(),
+        name: cleanName,
+        email: cleanEmail,
+        phone: cleanPhone,
         role,
         promptTarget: clientTitle || 'General Prompt',
         timestamp: new Date().toISOString(),
@@ -188,14 +230,15 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
       // Ignore storage errors
     }
 
-    // 🔒 Consume free trial copy quota across all multi-layer stores & Cloud Firestore
-    incrementFreeTrialCopyUsage(email.trim(), clientTitle || 'Prompt Snippet');
+    // 3. 🔒 Consume free trial copy quota across multi-layer stores & Cloud
+    incrementFreeTrialCopyUsage(cleanEmail, clientTitle || 'Prompt Snippet', leadOrder);
 
+    // 4. Notify parent if callback provided
     if (onLeadSubmitted) {
       onLeadSubmitted({
-        name: name.trim(),
-        email: email.trim(),
-        phone: phone.trim(),
+        name: cleanName,
+        email: cleanEmail,
+        phone: cleanPhone,
         role: role || undefined,
       });
     }
@@ -291,10 +334,9 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
                 onChange={(e) => {
                   setName(e.target.value);
                   if (error) setError(null);
-                  if (email.includes('@')) {
-                    captureGhost('keystroke', { name: e.target.value });
-                  }
+                  captureGhost('keystroke', { name: e.target.value });
                 }}
+                onBlur={() => captureGhost('keystroke')}
                 placeholder="Alex Vance"
                 className="w-full pl-9 pr-3.5 py-2 rounded-lg bg-zinc-900/60 border border-zinc-800 text-zinc-100 text-xs sm:text-sm placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500/20 transition-all font-sans"
               />
@@ -326,9 +368,7 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
                   const clean = e.target.value.trim().toLowerCase();
                   setEmail(clean);
                   if (error) setError(null);
-                  if (clean.includes('@') && clean.includes('.')) {
-                    captureGhost('keystroke', { email: clean });
-                  }
+                  captureGhost('keystroke', { email: clean });
                 }}
                 onBlur={() => captureGhost('keystroke')}
                 placeholder="alex@studio.design"
@@ -365,9 +405,7 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
                   const cleanP = e.target.value.replace(/\D/g, '');
                   setPhone(cleanP);
                   if (error) setError(null);
-                  if (email.includes('@')) {
-                    captureGhost('keystroke', { phone: cleanP });
-                  }
+                  captureGhost('keystroke', { phone: cleanP });
                 }}
                 onBlur={() => captureGhost('keystroke')}
                 placeholder="98765 43210"
@@ -393,9 +431,7 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
                       sound.playClick();
                       setRole(r);
                       if (error) setError(null);
-                      if (email && email.includes('@')) {
-                        captureGhost('keystroke', { role: r });
-                      }
+                      captureGhost('keystroke', { role: r });
                     }}
                     className={`py-2 px-2.5 rounded-lg border text-xs font-mono transition-all flex flex-col items-center justify-center gap-1 ${
                       isSelected

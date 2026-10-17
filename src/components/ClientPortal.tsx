@@ -1032,14 +1032,16 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                   sound.playSuccess();
                   const cachedEmail = localStorage.getItem('vineb_user_email');
                   const cachedName = localStorage.getItem('vineb_user_name');
+                  const cachedPhone = localStorage.getItem('vineb_user_phone');
                   let guestOrder = cachedEmail ? findApprovedOrder(cachedEmail) : null;
                   if (!guestOrder) {
+                    // Ephemeral guest exploration session; NEVER write dummy orders into the database!
                     guestOrder = {
-                      id: `USR-${Date.now().toString().slice(-6)}`,
-                      orderNumber: `MEM-${Date.now().toString().slice(-4)}`,
-                      name: cachedName || 'Free Trial Member',
-                      email: cachedEmail || 'free_guest@apex3d.local',
-                      phone: '',
+                      id: 'SESSION-GUEST',
+                      orderNumber: 'GUEST',
+                      name: cachedName || 'Guest Explorer',
+                      email: cachedEmail || '',
+                      phone: cachedPhone || '',
                       tierId: 'member',
                       tierName: 'Free Trial Member (1 Sample Quota)',
                       amountINR: 0,
@@ -1048,7 +1050,6 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                       updatedAt: new Date().toISOString(),
                       approvedAt: new Date().toISOString(),
                     };
-                    saveOrder(guestOrder);
                   }
                   setActiveOrder(guestOrder);
                   sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(guestOrder));
@@ -2612,7 +2613,7 @@ Rules:
           setIsLeadModalOpen(false);
         }}
         onLeadSubmitted={(lead) => {
-          if (!promptForLeadCapture) return;
+          const promptTarget = promptForLeadCapture || spotlightPrompt;
           const cleanEmail = lead.email.trim().toLowerCase();
           const cleanPhone = lead.phone.trim();
           const cleanName = lead.name.trim();
@@ -2625,14 +2626,14 @@ Rules:
             phone: cleanPhone,
             role: lead.role,
             tierId: 'prompt_copy',
-            tierName: promptForLeadCapture?.title
-              ? `Free Sample: ${promptForLeadCapture.title}`
+            tierName: promptTarget?.title
+              ? `Free Sample: ${promptTarget.title}`
               : 'Free Sample Prompt',
             amountINR: 0,
             status: 'free_trial_claimed' as any,
             freeCopiesUsed: 1,
             lastFreeCopyAt: new Date().toISOString(),
-            copiedPromptIds: [promptForLeadCapture.id],
+            copiedPromptIds: promptTarget ? [promptTarget.id] : [],
             source: 'portal_free_copy_modal',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
@@ -2643,8 +2644,10 @@ Rules:
           setActiveOrder(upgradedMember);
           sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(upgradedMember));
           setFreeTrialUsage(1);
-          setCopiedId(promptForLeadCapture.id);
-          setTimeout(() => setCopiedId(null), 2500);
+          if (promptTarget) {
+            setCopiedId(promptTarget.id);
+            setTimeout(() => setCopiedId(null), 2500);
+          }
           showToast(`🎉 1/1 Free Sample Copied! Welcome ${cleanName.split(' ')[0]}.`);
         }}
       />

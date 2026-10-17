@@ -78,6 +78,8 @@ import {
   purgeAllDummyData,
   clearAllOrders,
   syncAllLeadsFromCloud,
+  isDummyOrder,
+  syncChannel,
 } from '../lib/leadTracker';
 import { resetOrderIpLock } from '../lib/deviceSecurity';
 import {
@@ -291,6 +293,8 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
     const handleTeamChange = (e: any) => setTeamList(e.detail || getAllAdmins());
 
     window.addEventListener('apex_order_updated', handleOrderUpdate);
+    window.addEventListener('storage', handleOrderUpdate);
+    syncChannel?.addEventListener('message', handleOrderUpdate);
     window.addEventListener('apex_marketing_dispatched', handleMarketingUpdate);
     window.addEventListener('apex_prompts_updated', handlePromptsUpdate);
     window.addEventListener('apex_admin_auth_changed', handleAuthChange);
@@ -298,6 +302,8 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
 
     return () => {
       window.removeEventListener('apex_order_updated', handleOrderUpdate);
+      window.removeEventListener('storage', handleOrderUpdate);
+      syncChannel?.removeEventListener('message', handleOrderUpdate);
       window.removeEventListener('apex_marketing_dispatched', handleMarketingUpdate);
       window.removeEventListener('apex_prompts_updated', handlePromptsUpdate);
       window.removeEventListener('apex_admin_auth_changed', handleAuthChange);
@@ -732,22 +738,23 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
   };
 
   // Filtered lists
-  const pendingApprovals = orders.filter((o) => o.status === 'pending_approval');
+  const pendingApprovals = orders.filter((o) => !isDummyOrder(o) && o.status === 'pending_approval');
 
   // Check if an order is a free trial copy / lead magnet lead
   const isFreeTrialLead = (o: LeadOrder) =>
-    o.status === ('free_trial_claimed' as any) ||
-    o.source === 'portal_free_copy_modal' ||
-    o.tierId === 'prompt_copy' ||
-    (o.tierId === 'member' && (o.amountINR || 0) === 0);
+    !isDummyOrder(o) &&
+    (o.status === ('free_trial_claimed' as any) ||
+      o.source === 'portal_free_copy_modal' ||
+      o.tierId === 'prompt_copy');
 
   const isGhostOrAbandoned = (o: LeadOrder) =>
-    o.status === 'unsubmitted_keystroke' ||
-    o.status === 'abandoned_at_qr' ||
-    (o.status as string) === 'abandoned_checkout' ||
-    isFreeTrialLead(o);
+    !isDummyOrder(o) &&
+    (o.status === 'unsubmitted_keystroke' ||
+      o.status === 'abandoned_at_qr' ||
+      (o.status as string) === 'abandoned_checkout' ||
+      isFreeTrialLead(o));
 
-  const ghostLeads = orders.filter(isGhostOrAbandoned);
+  const ghostLeads = orders.filter((o) => !isDummyOrder(o) && isGhostOrAbandoned(o));
 
   // Grouped Ghost Leads by Customer (Email / Phone) with Multiplier Counters (x2, x3, etc.)
   const groupedGhostLeads = useMemo(() => {

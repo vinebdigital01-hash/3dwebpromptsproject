@@ -191,16 +191,34 @@ const DUMMY_EMAILS = new Set([
  */
 export function isDummyOrder(order?: Partial<LeadOrder> | null): boolean {
   if (!order) return false;
+  const cleanEmail = (order.email || '').toLowerCase().trim();
+  const cleanName = (order.name || '').trim();
+  const cleanId = (order.id || '').trim();
+
+  // 1. Purge auto-generated guest explorers & fake apex3d.local emails
+  if (
+    cleanEmail.includes('free_guest') ||
+    cleanEmail.includes('@apex3d.local') ||
+    cleanEmail.includes('example.com') ||
+    cleanEmail.includes('pending@') ||
+    cleanId.includes('free_guest') ||
+    cleanId === 'SESSION-GUEST' ||
+    cleanName === 'Free Trial Member' ||
+    cleanName === 'Free Trial Visitor'
+  ) {
+    return true;
+  }
+
   if (order.id && DUMMY_ORDER_IDS.has(order.id)) return true;
   if (order.orderNumber && DUMMY_ORDER_NUMBERS.has(order.orderNumber)) return true;
-  if (order.email && DUMMY_EMAILS.has(order.email.toLowerCase().trim())) return true;
+  if (cleanEmail && DUMMY_EMAILS.has(cleanEmail)) return true;
   if (
-    order.name &&
-    (order.name.includes('Vikram Malhotra') ||
-      order.name.includes('Aditya Sen') ||
-      order.name.includes('Rohan Joshi') ||
-      order.name.includes('Kabir Verma') ||
-      order.name.includes('Priya Nambiar'))
+    cleanName &&
+    (cleanName.includes('Vikram Malhotra') ||
+      cleanName.includes('Aditya Sen') ||
+      cleanName.includes('Rohan Joshi') ||
+      cleanName.includes('Kabir Verma') ||
+      cleanName.includes('Priya Nambiar'))
   ) {
     return true;
   }
@@ -219,8 +237,47 @@ export function purgeAllDummyData(): { removedOrdersCount: number } {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
         const cleaned = parsed.filter((o) => !isDummyOrder(o));
-        removedCount = parsed.length - cleaned.length;
+        removedCount += parsed.length - cleaned.length;
         localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
+      }
+    }
+
+    // Clean permanent ghost backup vault
+    const ghostRaw = localStorage.getItem(GHOST_BACKUP_KEY);
+    if (ghostRaw) {
+      const parsed = JSON.parse(ghostRaw);
+      if (Array.isArray(parsed)) {
+        const cleaned = parsed.filter((o) => !isDummyOrder(o));
+        removedCount += parsed.length - cleaned.length;
+        localStorage.setItem(GHOST_BACKUP_KEY, JSON.stringify(cleaned));
+      }
+    }
+
+    // Clean ghost leads key
+    const ghostLeadsRaw = localStorage.getItem(GHOST_STORAGE_KEY);
+    if (ghostLeadsRaw) {
+      const parsed = JSON.parse(ghostLeadsRaw);
+      if (Array.isArray(parsed)) {
+        const cleaned = parsed.filter((o) => !isDummyOrder(o));
+        localStorage.setItem(GHOST_STORAGE_KEY, JSON.stringify(cleaned));
+      }
+    }
+
+    // Clean apex_prompt_leads
+    const promptLeadsRaw = localStorage.getItem('apex_prompt_leads');
+    if (promptLeadsRaw) {
+      const parsed = JSON.parse(promptLeadsRaw);
+      if (Array.isArray(parsed)) {
+        const cleaned = parsed.filter(
+          (pl: any) =>
+            pl &&
+            pl.email &&
+            !pl.email.includes('free_guest') &&
+            !pl.email.includes('@apex3d.local') &&
+            pl.name !== 'Free Trial Member' &&
+            pl.name !== 'Free Trial Visitor'
+        );
+        localStorage.setItem('apex_prompt_leads', JSON.stringify(cleaned));
       }
     }
 
@@ -232,7 +289,9 @@ export function purgeAllDummyData(): { removedOrdersCount: number } {
         const cleanedMkt = parsedMkt.filter(
           (m: any) =>
             !DUMMY_EMAILS.has((m.recipientEmail || '').toLowerCase().trim()) &&
-            !DUMMY_ORDER_NUMBERS.has(m.orderNumber || '')
+            !DUMMY_ORDER_NUMBERS.has(m.orderNumber || '') &&
+            !(m.recipientEmail || '').includes('free_guest') &&
+            !(m.recipientEmail || '').includes('@apex3d.local')
         );
         localStorage.setItem('apex3d_marketing_campaigns_db', JSON.stringify(cleanedMkt));
       }
@@ -304,6 +363,7 @@ export function getAllOrders(): LeadOrder[] {
           promptLeads.forEach((pl: any) => {
             if (pl && pl.email) {
               const cleanEmail = pl.email.trim().toLowerCase();
+              if (isDummyOrder({ email: cleanEmail, name: pl.name })) return;
               const existing = orders.find(
                 (o) => o.email && o.email.toLowerCase() === cleanEmail
               );
@@ -344,15 +404,54 @@ export function getAllOrders(): LeadOrder[] {
   }
 }
 
+// Cross-tab and Cross-Window Real-time Broadcast Bus
+export const syncChannel =
+  typeof window !== 'undefined' && 'BroadcastChannel' in window
+    ? new BroadcastChannel('apex3d_vault_bus')
+    : null;
+
+if (syncChannel) {
+  syncChannel.onmessage = (event) => {
+    try {
+      if (event.data?.type === 'apex_order_updated') {
+        window.dispatchEvent(new CustomEvent('apex_order_updated', { detail: event.data.order }));
+      }
+    } catch {
+      // ignore
+    }
+  };
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (event) => {
+    if (event.key === STORAGE_KEY || event.key === GHOST_STORAGE_KEY || event.key === GHOST_BACKUP_KEY) {
+      window.dispatchEvent(new CustomEvent('apex_order_updated', { detail: null }));
+    }
+  });
+
+  // Run dummy purge on browser init to clean any lingering fake records
+  try {
+    purgeAllDummyData();
+  } catch {
+    // ignore
+  }
+}
+
 /**
- * Save or update an order (Optimistic local cache + Direct Firebase Firestore sync)
+ * Save or update an order (Optimistic local cache + Direct Firebase Firestore sync + Serverless Relay)
  */
 export function saveOrder(order: LeadOrder): void {
   if (typeof window === 'undefined' || !order) return;
+  // Never save dummy or guest orders to storage
+  if (isDummyOrder(order)) return;
+
   try {
     const orders = getAllOrders();
     const existingIndex = orders.findIndex(
-      (o) => o.id === order.id || (o.email && o.email.toLowerCase() === order.email.toLowerCase() && o.status !== 'approved')
+      (o) =>
+        o.id === order.id ||
+        (o.email && order.email && o.email.toLowerCase() === order.email.toLowerCase() && o.status !== 'approved') ||
+        (o.phone && order.phone && o.phone.replace(/\D/g, '') === order.phone.replace(/\D/g, '') && o.status !== 'approved')
     );
 
     if (existingIndex >= 0) {
@@ -376,8 +475,20 @@ export function saveOrder(order: LeadOrder): void {
       console.debug('Firebase Firestore saveOrder notice:', err);
     });
 
-    // 3. Dispatch browser event for open components
+    // 3. Serverless lead relay & email notification dispatch
+    if (typeof fetch !== 'undefined') {
+      fetch('/api/sync-lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(order),
+      }).catch(() => {});
+    }
+
+    // 4. Dispatch browser event for current tab
     window.dispatchEvent(new CustomEvent('apex_order_updated', { detail: order }));
+
+    // 5. Broadcast to other open browser tabs/windows
+    syncChannel?.postMessage({ type: 'apex_order_updated', order });
   } catch (err) {
     console.error('Failed to save order:', err);
   }
@@ -427,14 +538,11 @@ export function initFirestoreSync(): () => void {
 }
 
 /**
- * Actively pull and merge all real orders and ghost leads from Cloud Database
+ * Actively pull and merge all real orders and ghost leads from Cloud Database and Serverless Relay
  */
 export async function syncAllLeadsFromCloud(): Promise<LeadOrder[]> {
   if (typeof window === 'undefined') return [];
   try {
-    const cloudOrders = await fetchAllCloudOrdersAndGhostLeads();
-    const cleanCloud = cloudOrders.filter((o) => !isDummyOrder(o));
-
     const local = getAllOrders();
     const mergedMap = new Map<string, LeadOrder>();
 
@@ -442,14 +550,41 @@ export async function syncAllLeadsFromCloud(): Promise<LeadOrder[]> {
       if (o.id && !isDummyOrder(o)) mergedMap.set(o.id, o);
     });
 
-    cleanCloud.forEach((o) => {
-      if (o.id && !isDummyOrder(o)) {
-        const existing = mergedMap.get(o.id);
-        if (!existing || new Date(o.updatedAt || 0) >= new Date(existing.updatedAt || 0)) {
-          mergedMap.set(o.id, o);
+    // 1. Query Firestore
+    try {
+      const cloudOrders = await fetchAllCloudOrdersAndGhostLeads();
+      const cleanCloud = cloudOrders.filter((o) => !isDummyOrder(o));
+      cleanCloud.forEach((o) => {
+        if (o.id && !isDummyOrder(o)) {
+          const existing = mergedMap.get(o.id);
+          if (!existing || new Date(o.updatedAt || 0) >= new Date(existing.updatedAt || 0)) {
+            mergedMap.set(o.id, o);
+          }
+        }
+      });
+    } catch (fsErr) {
+      console.debug('Firestore sync fallback notice:', fsErr);
+    }
+
+    // 2. Query Serverless Relay API (/api/sync-lead)
+    try {
+      const relayRes = await fetch('/api/sync-lead');
+      if (relayRes.ok) {
+        const data = await relayRes.json();
+        if (data && Array.isArray(data.leads)) {
+          data.leads.forEach((l: any) => {
+            if (l && l.id && !isDummyOrder(l)) {
+              const existing = mergedMap.get(l.id);
+              if (!existing || new Date(l.updatedAt || 0) >= new Date(existing.updatedAt || 0)) {
+                mergedMap.set(l.id, l);
+              }
+            }
+          });
         }
       }
-    });
+    } catch {
+      // serverless relay fetch fallback ignored
+    }
 
     const merged = Array.from(mergedMap.values());
     merged.sort(
@@ -475,9 +610,10 @@ if (typeof window !== 'undefined') {
 /**
  * 👻 Ghost Keystroke & Autofill Capture Engine:
  * Saves lead details in real-time as user types or when browser autofills form!
+ * Handles Email, Phone (>=7 digits), Name, Role.
  */
 export function saveGhostKeystrokeLead(data: {
-  email: string;
+  email?: string;
   name?: string;
   phone?: string;
   role?: string;
@@ -486,18 +622,41 @@ export function saveGhostKeystrokeLead(data: {
   amountINR: number;
   source?: 'browser_autofill' | 'keystroke' | 'checkout_submit' | 'lead_magnet' | 'prompt_copy' | string;
 }): void {
-  if (!data.email || typeof window === 'undefined') return;
-  const cleanEmail = data.email.trim().toLowerCase();
-  if (!cleanEmail.includes('@') || !cleanEmail.includes('.')) return;
-  if (isDummyOrder(data)) return;
+  if (typeof window === 'undefined') return;
+  const cleanPhone = (data.phone || '').trim().replace(/\D/g, '');
+  const rawEmail = (data.email || '').trim().toLowerCase();
 
-  const orderId = `GHOST-${cleanEmail.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10)}-${data.tierId}`;
+  // Reject dummy / guest emails
+  if (
+    rawEmail.includes('free_guest') ||
+    rawEmail.includes('@apex3d.local') ||
+    rawEmail.includes('example.com') ||
+    rawEmail.includes('pending@') ||
+    data.name === 'Free Trial Member' ||
+    data.name === 'Free Trial Visitor'
+  ) {
+    return;
+  }
+
+  // Must have at least a valid email or a valid 7+ digit phone
+  const hasValidEmail = rawEmail.includes('@') && rawEmail.includes('.');
+  const hasValidPhone = cleanPhone.length >= 7;
+
+  if (!hasValidEmail && !hasValidPhone) return;
+
+  const cleanEmail = hasValidEmail ? rawEmail : `lead_${cleanPhone}@phone.vault`;
+  if (isDummyOrder({ ...data, email: cleanEmail })) return;
+
+  const orderId = hasValidEmail
+    ? `GHOST-${cleanEmail.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10)}-${data.tierId}`
+    : `GHOST-PH-${cleanPhone}-${data.tierId}`;
+
   const ghostOrder: LeadOrder = {
     id: orderId,
     orderNumber: generateOrderNumber(),
-    name: data.name?.trim() || 'Visitor (Unsubmitted)',
-    email: cleanEmail,
-    phone: data.phone?.trim() ? data.phone.replace(/\D/g, '') : '',
+    name: data.name?.trim() || (hasValidPhone ? `Visitor (+91 ${cleanPhone})` : 'Visitor (Unsubmitted)'),
+    email: hasValidEmail ? cleanEmail : '',
+    phone: cleanPhone,
     role: data.role?.trim(),
     tierId: data.tierId,
     tierName: data.tierName,
@@ -517,9 +676,14 @@ export function saveGhostKeystrokeLead(data: {
   try {
     const rawGhost = localStorage.getItem(GHOST_BACKUP_KEY);
     const ghostList: LeadOrder[] = rawGhost ? JSON.parse(rawGhost) : [];
-    const idx = ghostList.findIndex((g) => g.id === ghostOrder.id || g.email === ghostOrder.email);
+    const idx = ghostList.findIndex(
+      (g) =>
+        g.id === ghostOrder.id ||
+        (hasValidEmail && g.email && g.email.toLowerCase() === cleanEmail) ||
+        (hasValidPhone && g.phone && g.phone.replace(/\D/g, '') === cleanPhone)
+    );
     if (idx >= 0) {
-      ghostList[idx] = ghostOrder;
+      ghostList[idx] = { ...ghostList[idx], ...ghostOrder };
     } else {
       ghostList.unshift(ghostOrder);
     }
@@ -976,15 +1140,17 @@ export function incrementFreeTrialCopyUsage(
     };
     saveOrder(updated);
   } else {
-    // Record as prompt_copy ghost lead with freeCopiesUsed: 1
-    saveGhostKeystrokeLead({
-      email: userIdentifier.includes('@') ? userIdentifier : `free_${cleanId}@apex3d.local`,
-      name: 'Free Trial Visitor',
-      tierId: 'member',
-      tierName: 'Free Trial Member (1 Sample Quota)',
-      amountINR: 0,
-      source: 'prompt_copy',
-    });
+    // Only record if valid email provided; never generate fake @apex3d.local orders
+    if (userIdentifier && userIdentifier.includes('@') && !userIdentifier.includes('@apex3d.local')) {
+      saveGhostKeystrokeLead({
+        email: userIdentifier,
+        name: 'Visitor (Prompt Copy)',
+        tierId: 'prompt_copy',
+        tierName: promptId ? `Free Sample: ${promptId}` : 'Free Sample Prompt',
+        amountINR: 0,
+        source: 'prompt_copy',
+      });
+    }
   }
 
   // 5. Dedicated Cloud Quota record in Firestore
