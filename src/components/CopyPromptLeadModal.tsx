@@ -180,7 +180,7 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
   };
 
   const modalContent = (
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 sm:p-6 select-none animate-role-fade-in">
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-3 sm:p-6 select-none animate-role-fade-in">
       {/* Click outside backdrop with hardware blur */}
       <div
         className="fixed inset-0 bg-black/85 backdrop-blur-md transition-opacity"
@@ -191,7 +191,7 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
       />
 
       {/* Modal Dialog Plate - Precision Obsidian Surface */}
-      <div className="relative w-full max-w-lg rounded-2xl bg-[#08080c] border border-white/10 p-6 sm:p-8 text-white z-10 shadow-[0_24px_64px_-12px_rgba(0,0,0,0.85)] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] max-h-[92vh] overflow-y-auto">
+      <div className="relative w-full max-w-lg rounded-2xl bg-[#08080c] border border-white/10 p-4 sm:p-7 text-white z-10 shadow-[0_24px_64px_-12px_rgba(0,0,0,0.85)] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] max-h-[92dvh] overflow-y-auto">
         {/* Subtle Top Ambient Refraction Line */}
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-blue-500/40 to-transparent pointer-events-none" />
 
@@ -201,7 +201,7 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
             sound.playClick();
             onClose();
           }}
-          className="absolute top-5 right-5 w-8 h-8 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 hover:border-white/20 text-zinc-400 hover:text-white transition-all flex items-center justify-center"
+          className="absolute top-4 right-4 sm:top-5 sm:right-5 w-8 h-8 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 hover:border-white/20 text-zinc-400 hover:text-white transition-all flex items-center justify-center cursor-pointer"
           aria-label="Close modal"
         >
           <X className="w-4 h-4" />

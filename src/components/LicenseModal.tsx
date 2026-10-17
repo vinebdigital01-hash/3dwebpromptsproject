@@ -72,28 +72,28 @@ export const LicenseModal: React.FC<LicenseModalProps> = ({ order, isOpen, onClo
       <div className="relative w-full max-w-2xl bg-[#090912] border border-amber-500/30 rounded-2xl shadow-2xl overflow-hidden my-auto text-white">
         
         {/* Modal Top Bar */}
-        <div className="no-print flex items-center justify-between px-6 py-4 border-b border-white/10 bg-[#0d0d18]">
-          <div className="flex items-center gap-2">
-            <Award className="w-4 h-4 text-amber-400" />
-            <span className="text-xs font-mono font-semibold uppercase tracking-wider text-amber-300">
-              Commercial License Certificate // {licenseKey}
+        <div className="no-print flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-white/10 bg-[#0d0d18] gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Award className="w-4 h-4 text-amber-400 shrink-0" />
+            <span className="text-xs font-mono font-semibold uppercase tracking-wider text-amber-300 truncate max-w-[140px] xs:max-w-[220px] sm:max-w-none">
+              License // {licenseKey}
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
               onClick={handlePrint}
-              className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold flex items-center gap-1.5 transition-colors"
+              className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span>Print Certificate</span>
+              <span><span className="hidden xs:inline">Print </span>Certificate</span>
             </button>
             <button
               onClick={() => {
                 sound.playClick();
                 onClose();
               }}
-              className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+              className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
               aria-label="Close"
             >
               <X className="w-4 h-4" />
@@ -102,7 +102,7 @@ export const LicenseModal: React.FC<LicenseModalProps> = ({ order, isOpen, onClo
         </div>
 
         {/* Certificate Body (Guilloche Aesthetic) */}
-        <div id="printable-commercial-license" className="p-6 sm:p-10 relative">
+        <div id="printable-commercial-license" className="p-4 sm:p-8 lg:p-10 relative">
           {/* Subtle Ambient Background Watermark */}
           <div className="absolute inset-4 rounded-xl border-2 border-dashed border-amber-500/20 pointer-events-none" />
 

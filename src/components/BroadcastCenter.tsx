@@ -325,20 +325,20 @@ export const BroadcastCenter: React.FC<BroadcastCenterProps> = ({ adminEmail, sh
           </div>
 
           {/* Quick Metrics Bar */}
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="p-3.5 rounded-xl bg-black/40 border border-white/10 text-center min-w-[100px]">
-              <div className="text-xs font-mono text-zinc-400">Total Contacts</div>
-              <div className="text-2xl font-bold font-mono text-white">{audienceAll.length}</div>
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 w-full sm:w-auto shrink-0">
+            <div className="p-2.5 sm:p-3.5 rounded-xl bg-black/40 border border-white/10 text-center min-w-[70px] sm:min-w-[100px]">
+              <div className="text-[10px] sm:text-xs font-mono text-zinc-400">Total Contacts</div>
+              <div className="text-xl sm:text-2xl font-bold font-mono text-white">{audienceAll.length}</div>
             </div>
-            <div className="p-3.5 rounded-xl bg-emerald-950/30 border border-emerald-500/30 text-center min-w-[100px]">
-              <div className="text-xs font-mono text-emerald-400">Paid VIPs</div>
-              <div className="text-2xl font-bold font-mono text-emerald-300">
+            <div className="p-2.5 sm:p-3.5 rounded-xl bg-emerald-950/30 border border-emerald-500/30 text-center min-w-[70px] sm:min-w-[100px]">
+              <div className="text-[10px] sm:text-xs font-mono text-emerald-400">Paid VIPs</div>
+              <div className="text-xl sm:text-2xl font-bold font-mono text-emerald-300">
                 {audiencePaid.length}
               </div>
             </div>
-            <div className="p-3.5 rounded-xl bg-cyan-950/30 border border-cyan-500/30 text-center min-w-[100px]">
-              <div className="text-xs font-mono text-cyan-400">Free Leads</div>
-              <div className="text-2xl font-bold font-mono text-cyan-300">
+            <div className="p-2.5 sm:p-3.5 rounded-xl bg-cyan-950/30 border border-cyan-500/30 text-center min-w-[70px] sm:min-w-[100px]">
+              <div className="text-[10px] sm:text-xs font-mono text-cyan-400">Free Leads</div>
+              <div className="text-xl sm:text-2xl font-bold font-mono text-cyan-300">
                 {audienceLeads.length}
               </div>
             </div>
@@ -550,9 +550,9 @@ export const BroadcastCenter: React.FC<BroadcastCenterProps> = ({ adminEmail, sh
       </div>
 
       {/* 3. Composer Studio & Live Preview Side-by-Side */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 sm:gap-8 items-start">
         {/* Left Column: Editor & Controls (7 Cols) */}
-        <div className="xl:col-span-7 bg-[#0b0c16] border border-white/10 rounded-2xl p-6 space-y-6">
+        <div className="xl:col-span-7 bg-[#0b0c16] border border-white/10 rounded-2xl p-4 sm:p-6 space-y-6">
           {/* Header & Meta Inputs */}
           <div className="space-y-4">
             <div>
@@ -789,7 +789,7 @@ export const BroadcastCenter: React.FC<BroadcastCenterProps> = ({ adminEmail, sh
 
         {/* Right Column: Live Dual-View Real-Time Preview (5 Cols) */}
         <div className="xl:col-span-5 space-y-4">
-          <div className="bg-[#0b0c16] border border-white/10 rounded-2xl p-5 space-y-4">
+          <div className="bg-[#0b0c16] border border-white/10 rounded-2xl p-4 sm:p-5 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-white/10">
               <div className="flex items-center gap-2">
                 <Eye className="w-4 h-4 text-cyan-400" />
@@ -899,8 +899,8 @@ export const BroadcastCenter: React.FC<BroadcastCenterProps> = ({ adminEmail, sh
             No broadcast campaigns sent yet. Ready for your first transmission!
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+          <div className="overflow-x-auto no-scrollbar">
+            <table className="min-w-[650px] w-full text-left text-xs">
               <thead className="bg-white/5 text-zinc-400 font-mono uppercase text-[10px]">
                 <tr>
                   <th className="p-3">Dispatched Date</th>

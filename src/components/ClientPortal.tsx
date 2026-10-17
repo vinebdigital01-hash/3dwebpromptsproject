@@ -683,14 +683,14 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
         <div className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_0%,rgba(4,4,7,0.8)_100%)] pointer-events-none" />
 
         {/* Minimal Monolithic Top Nav */}
-        <header className="border-b border-white/[0.08] px-6 py-4 relative z-10">
+        <header className="border-b border-white/[0.08] px-4 sm:px-6 py-3.5 sm:py-4 relative z-10">
           <div className="max-w-6xl mx-auto flex items-center justify-between">
             <button
               onClick={() => {
                 sound.playClick();
                 onBackToSite();
               }}
-              className="text-xs font-mono text-zinc-400 hover:text-white transition-colors flex items-center gap-1.5 uppercase tracking-widest"
+              className="text-xs font-mono text-zinc-400 hover:text-white transition-colors flex items-center gap-1.5 uppercase tracking-widest cursor-pointer"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
               <span>Index</span>
@@ -698,7 +698,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
 
             <div className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-[11px] font-mono tracking-[0.2em] text-zinc-400 uppercase">
+              <span className="text-[10px] sm:text-[11px] font-mono tracking-[0.16em] sm:tracking-[0.2em] text-zinc-400 uppercase">
                 APEX3D // ENCLAVE ACCESS
               </span>
             </div>
@@ -706,8 +706,8 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
         </header>
 
         {/* Access Terminal Form with Firebase Auth */}
-        <main className="flex-1 flex items-center justify-center px-4 py-10 relative z-10">
-          <div className="w-full max-w-md p-6 sm:p-8 rounded-2xl bg-[#09090e] border border-white/[0.09] shadow-[0_24px_64px_-12px_rgba(0,0,0,0.8),inset_0_1px_0_0_rgba(255,255,255,0.06)] relative">
+        <main className="flex-1 flex items-center justify-center px-3 sm:px-4 py-6 sm:py-10 relative z-10">
+          <div className="w-full max-w-md p-5 sm:p-8 rounded-2xl bg-[#09090e] border border-white/[0.09] shadow-[0_24px_64px_-12px_rgba(0,0,0,0.8),inset_0_1px_0_0_rgba(255,255,255,0.06)] relative">
             
             {/* Header */}
             <div className="mb-5">
@@ -1073,40 +1073,40 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
         <div className="max-w-[1400px] mx-auto px-4 sm:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4">
           
           {/* Left Entity Identity */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
             <button
               onClick={() => {
                 sound.playClick();
                 onBackToSite();
               }}
-              className="px-2.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-zinc-400 hover:text-white transition-colors text-[11px] font-mono uppercase tracking-wider flex items-center gap-1 border border-white/[0.06]"
+              className="px-2.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-zinc-400 hover:text-white transition-colors text-[11px] font-mono uppercase tracking-wider flex items-center gap-1 border border-white/[0.06] shrink-0"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
               <span>Back</span>
             </button>
 
-            <div className="h-4 w-[1px] bg-white/[0.08]" />
+            <div className="hidden sm:block h-4 w-[1px] bg-white/[0.08]" />
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
               {firebaseUser?.photoURL ? (
                 <img
                   src={firebaseUser.photoURL}
                   alt={activeOrder.name}
-                  className="w-8 h-8 rounded-full border border-white/20 object-cover shadow-sm"
+                  className="w-8 h-8 rounded-full border border-white/20 object-cover shadow-sm shrink-0"
                 />
               ) : (
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center font-mono font-bold text-xs shadow-md shadow-blue-500/20 text-white">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center font-mono font-bold text-xs shadow-md shadow-blue-500/20 text-white shrink-0">
                   {activeOrder.name.slice(0, 2).toUpperCase()}
                 </div>
               )}
 
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-white tracking-tight uppercase">
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-xs font-bold text-white tracking-tight uppercase truncate max-w-[110px] sm:max-w-[180px]">
                     {activeOrder.name}
                   </span>
                   <span
-                    className={`text-[10px] font-mono px-2 py-0.5 rounded border uppercase tracking-widest font-bold ${
+                    className={`text-[9px] sm:text-[10px] font-mono px-1.5 py-0.5 rounded border uppercase tracking-wider font-bold whitespace-nowrap ${
                       activeOrder.tierId === 'lifetime'
                         ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
                         : activeOrder.tierId === 'day_pass'
@@ -1118,24 +1118,24 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                   </span>
 
                   {firebaseUser && (
-                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/[0.06] text-zinc-400 border border-white/[0.08]">
+                    <span className="hidden xs:inline-block text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/[0.06] text-zinc-400 border border-white/[0.08]">
                       {firebaseUser.providerData?.[0]?.providerId === 'google.com'
                         ? 'Google'
                         : firebaseUser.providerData?.[0]?.providerId === 'github.com'
                         ? 'GitHub'
-                        : 'Email Auth'}
+                        : 'Email'}
                     </span>
                   )}
                 </div>
-                <div className="text-[10px] font-mono text-zinc-500 flex items-center gap-2">
+                <div className="text-[10px] font-mono text-zinc-500 flex items-center gap-1.5 truncate">
                   {isPaidMember ? (
-                    <span className="text-amber-300 font-bold">{activeOrder.licenseKey}</span>
+                    <span className="text-amber-300 font-bold truncate max-w-[120px]">{activeOrder.licenseKey}</span>
                   ) : (
-                    <span className="text-zinc-500 italic">No License Issued (Free Account)</span>
+                    <span className="text-zinc-500 italic">Free Account</span>
                   )}
                   <span>·</span>
                   <span className={!isPaidMember ? 'text-blue-400' : 'text-emerald-400'}>
-                    {!isPaidMember ? 'Free Trial (1 Lifetime Sample)' : 'Verified Commercial Licensee'}
+                    {!isPaidMember ? '1 Sample Quota' : 'Verified Licensee'}
                   </span>
                 </div>
               </div>
@@ -1143,7 +1143,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
           </div>
 
           {/* Right Action Matrix */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
             {!isPaidMember && (
               <>
                 <button
@@ -1151,10 +1151,10 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                     sound.playClick();
                     setIsLinkLicenseModalOpen(true);
                   }}
-                  className="px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 hover:text-amber-200 text-[11px] font-mono uppercase tracking-wider flex items-center gap-1.5 border border-amber-500/30 transition-colors shadow-sm cursor-pointer"
+                  className="px-2.5 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 hover:text-amber-200 text-[10px] sm:text-[11px] font-mono uppercase tracking-wider flex items-center gap-1.5 border border-amber-500/30 transition-colors shadow-sm cursor-pointer whitespace-nowrap"
                 >
-                  <Key className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Link Commercial Key</span>
+                  <Key className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400" />
+                  <span>Link <span className="hidden xs:inline">License </span>Key</span>
                 </button>
 
                 <button
@@ -1163,9 +1163,9 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                     setUpgradeTriggerReason('manual');
                     setIsUpgradeShowcaseOpen(true);
                   }}
-                  className="px-3 py-1.5 rounded-lg bg-white hover:bg-zinc-200 text-black text-[11px] font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-md shadow-white/10 cursor-pointer"
+                  className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-white hover:bg-zinc-200 text-black text-[10px] sm:text-[11px] font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-md shadow-white/10 cursor-pointer whitespace-nowrap"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-black" />
+                  <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-black" />
                   <span>Upgrade VIP</span>
                 </button>
               </>
@@ -1182,10 +1182,10 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                   setIsUpgradeShowcaseOpen(true);
                 }
               }}
-              className="px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white text-[11px] font-mono uppercase tracking-wider flex items-center gap-1.5 border border-white/[0.08] transition-colors cursor-pointer"
+              className="px-2.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white text-[10px] sm:text-[11px] font-mono uppercase tracking-wider flex items-center gap-1.5 border border-white/[0.08] transition-colors cursor-pointer whitespace-nowrap"
             >
-              <FileText className="w-3.5 h-3.5 text-blue-400" />
-              <span>Official Invoice</span>
+              <FileText className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-400" />
+              <span><span className="hidden sm:inline">Official </span>Invoice</span>
             </button>
 
             <button
@@ -1199,15 +1199,15 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                   setIsUpgradeShowcaseOpen(true);
                 }
               }}
-              className="px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white text-[11px] font-mono uppercase tracking-wider flex items-center gap-1.5 border border-white/[0.08] transition-colors cursor-pointer"
+              className="px-2.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white text-[10px] sm:text-[11px] font-mono uppercase tracking-wider flex items-center gap-1.5 border border-white/[0.08] transition-colors cursor-pointer whitespace-nowrap"
             >
-              <Award className="w-3.5 h-3.5 text-amber-400" />
-              <span>Commercial License</span>
+              <Award className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400" />
+              <span>License<span className="hidden sm:inline"> Certificate</span></span>
             </button>
 
             <button
               onClick={handleLogout}
-              className="p-1.5 rounded-lg bg-white/[0.04] hover:bg-red-500/20 text-zinc-500 hover:text-red-400 border border-white/[0.06] transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg bg-white/[0.04] hover:bg-red-500/20 text-zinc-500 hover:text-red-400 border border-white/[0.06] transition-colors cursor-pointer shrink-0"
               title="Terminate Session"
             >
               <LogOut className="w-3.5 h-3.5" />
@@ -1278,15 +1278,15 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
 
       {/* 3. WORKSTATION MODULE NAVIGATION */}
       <div className="border-b border-white/[0.08] bg-[#060609]">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-8 flex items-center justify-between">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-8 flex items-center justify-between gap-4">
           
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4 sm:gap-6 overflow-x-auto no-scrollbar whitespace-nowrap py-1">
             <button
               onClick={() => {
                 sound.playClick();
                 setActiveTab('vault');
               }}
-              className={`py-3 text-[11px] font-mono uppercase tracking-[0.16em] border-b-2 flex items-center gap-2 transition-all ${
+              className={`py-3 text-[11px] font-mono uppercase tracking-[0.16em] border-b-2 flex items-center gap-2 transition-all shrink-0 ${
                 activeTab === 'vault'
                   ? 'border-white text-white font-bold'
                   : 'border-transparent text-zinc-500 hover:text-zinc-300'
@@ -1301,7 +1301,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                 sound.playClick();
                 setActiveTab('boilerplates');
               }}
-              className={`py-3 text-[11px] font-mono uppercase tracking-[0.16em] border-b-2 flex items-center gap-2 transition-all ${
+              className={`py-3 text-[11px] font-mono uppercase tracking-[0.16em] border-b-2 flex items-center gap-2 transition-all shrink-0 ${
                 activeTab === 'boilerplates'
                   ? 'border-white text-white font-bold'
                   : 'border-transparent text-zinc-500 hover:text-zinc-300'
@@ -1316,7 +1316,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                 sound.playClick();
                 setActiveTab('license');
               }}
-              className={`py-3 text-[11px] font-mono uppercase tracking-[0.16em] border-b-2 flex items-center gap-2 transition-all ${
+              className={`py-3 text-[11px] font-mono uppercase tracking-[0.16em] border-b-2 flex items-center gap-2 transition-all shrink-0 ${
                 activeTab === 'license'
                   ? 'border-white text-white font-bold'
                   : 'border-transparent text-zinc-500 hover:text-zinc-300'
@@ -1333,7 +1333,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                   setUpgradeTriggerReason('manual');
                   setIsUpgradeShowcaseOpen(true);
                 }}
-                className="py-3 text-[11px] font-mono uppercase tracking-[0.16em] flex items-center gap-1.5 text-amber-400 hover:text-amber-300 transition-all font-bold cursor-pointer"
+                className="py-3 text-[11px] font-mono uppercase tracking-[0.16em] flex items-center gap-1.5 text-amber-400 hover:text-amber-300 transition-all font-bold cursor-pointer shrink-0"
               >
                 <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
                 <span>Unlock VIP All-Access</span>
@@ -1345,7 +1345,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
           </div>
 
           {activeTab === 'vault' && (
-            <div className="hidden sm:flex items-center gap-1.5 p-1 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+            <div className="flex items-center gap-1 p-1 rounded-lg bg-white/[0.03] border border-white/[0.06] shrink-0">
               <button
                 onClick={() => setViewMode('grid')}
                 className={`p-1.5 rounded text-xs transition-colors ${
@@ -1384,7 +1384,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
               <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-white/[0.08]">
                 
                 {/* Left 7 Cols: Cinematic Video Monitor */}
-                <div className="lg:col-span-7 p-6 sm:p-8 flex flex-col justify-between bg-black/50 relative">
+                <div className="lg:col-span-7 p-4 sm:p-6 lg:p-8 flex flex-col justify-between bg-black/50 relative">
                   <div>
                     <div className="flex items-center justify-between text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-3">
                       <span>STUDIO MONITOR // 1080P PRORES SHADER</span>
@@ -1412,19 +1412,19 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                       )}
 
                       {/* Video / Animated Media Floating Overlay */}
-                      <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between z-10">
+                      <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-2 z-10 flex-wrap">
                         {!isMediaImage(spotlightPrompt.videoUrl) ? (
                           <button
                             onClick={toggleSpotlightPlay}
-                            className="px-3 py-1.5 rounded-lg bg-black/75 hover:bg-black text-white text-[11px] font-mono border border-white/20 backdrop-blur-md transition-all flex items-center gap-1.5"
+                            className="px-3 py-1.5 rounded-lg bg-black/75 hover:bg-black text-white text-[10px] sm:text-[11px] font-mono border border-white/20 backdrop-blur-md transition-all flex items-center gap-1.5 cursor-pointer"
                           >
                             {isSpotlightPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
-                            <span>{isSpotlightPlaying ? 'Pause Canvas' : 'Play Canvas'}</span>
+                            <span>{isSpotlightPlaying ? 'Pause' : 'Play Canvas'}</span>
                           </button>
                         ) : (
-                          <span className="px-3 py-1.5 rounded-lg bg-black/75 text-emerald-400 text-[10px] font-mono border border-emerald-500/30 backdrop-blur-md flex items-center gap-1.5">
+                          <span className="px-2.5 py-1.5 rounded-lg bg-black/75 text-emerald-400 text-[10px] font-mono border border-emerald-500/30 backdrop-blur-md flex items-center gap-1.5">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                            <span>ANIMATED WEBP // ACTIVE</span>
+                            <span>ANIMATED // ACTIVE</span>
                           </span>
                         )}
 
@@ -1433,7 +1433,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                             sound.playClick();
                             setInspectingPrompt(spotlightPrompt);
                           }}
-                          className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-mono border border-white/20 backdrop-blur-md transition-all flex items-center gap-1.5"
+                          className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[10px] sm:text-[11px] font-mono border border-white/20 backdrop-blur-md transition-all flex items-center gap-1.5 cursor-pointer"
                         >
                           <Maximize2 className="w-3 h-3" />
                           <span>Fullscreen Inspector</span>
@@ -1451,7 +1451,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                 </div>
 
                 {/* Right 5 Cols: Blueprint Telemetry & Code Action */}
-                <div className="lg:col-span-5 p-6 sm:p-8 flex flex-col justify-between bg-[#08080c]">
+                <div className="lg:col-span-5 p-4 sm:p-6 lg:p-8 flex flex-col justify-between bg-[#08080c]">
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-2">
                       <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-blue-400 font-bold">
@@ -1462,7 +1462,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                       </span>
                     </div>
 
-                    <h2 className="text-xl font-bold tracking-tight text-white">
+                    <h2 className="text-lg sm:text-xl font-bold tracking-tight text-white">
                       {spotlightPrompt.title}
                     </h2>
                     <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
@@ -1470,7 +1470,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                     </p>
 
                     {/* Capabilities */}
-                    <div className="mt-5 space-y-2">
+                    <div className="mt-4 sm:mt-5 space-y-1.5 sm:space-y-2">
                       <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
                         ARCHITECTURAL SPECIFICATIONS:
                       </div>
@@ -1483,7 +1483,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                     </div>
 
                     {/* Tested Models */}
-                    <div className="mt-5 pt-4 border-t border-white/[0.06]">
+                    <div className="mt-4 sm:mt-5 pt-3 sm:pt-4 border-t border-white/[0.06]">
                       <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-2">
                         CALIBRATED AI ENGINES:
                       </div>
@@ -1491,7 +1491,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                         {spotlightPrompt.testedModels.map((m) => (
                           <span
                             key={m}
-                            className="text-[10px] font-mono px-2.5 py-1 rounded bg-white/[0.04] text-zinc-300 border border-white/[0.08]"
+                            className="text-[10px] font-mono px-2 py-0.5 sm:px-2.5 sm:py-1 rounded bg-white/[0.04] text-zinc-300 border border-white/[0.08]"
                           >
                             {m}
                           </span>
@@ -1502,7 +1502,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                     {/* Free Prompt Syntax Direct Preview Box for Spotlight */}
                     {spotlightPrompt.allowFreeTrialCopy && (
                       <div className="mt-4 p-3 rounded-xl bg-black/60 border border-emerald-500/30">
-                        <div className="flex items-center justify-between text-[10px] font-mono text-emerald-400 mb-1.5">
+                        <div className="flex items-center justify-between text-[10px] font-mono text-emerald-400 mb-1.5 flex-wrap gap-1">
                           <span className="flex items-center gap-1 font-bold">
                             <Sparkles className="w-3 h-3 text-emerald-400" />
                             <span>FREE SAMPLE PROMPT ARCHITECTURE</span>
@@ -1519,10 +1519,10 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                   </div>
 
                   {/* Actions */}
-                  <div className="mt-6 pt-4 border-t border-white/[0.08] flex items-center gap-3">
+                  <div className="mt-5 sm:mt-6 pt-4 border-t border-white/[0.08] flex items-stretch sm:items-center gap-2.5 sm:gap-3 flex-col xs:flex-row">
                     <button
                       onClick={() => handleCopyPrompt(spotlightPrompt)}
-                      className={`flex-1 py-3 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 active:scale-[0.98] ${
+                      className={`flex-1 py-3 px-4 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 active:scale-[0.98] cursor-pointer ${
                         copiedId === spotlightPrompt.id
                           ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20'
                           : !isPaidMember && !spotlightPrompt.allowFreeTrialCopy
@@ -1567,10 +1567,11 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                         sound.playClick();
                         setInspectingPrompt(spotlightPrompt);
                       }}
-                      className="px-4 py-3 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] text-white text-xs font-mono transition-colors"
+                      className="px-4 py-3 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] text-white text-xs font-mono transition-colors flex items-center justify-center cursor-pointer shrink-0"
                       title="Inspect Raw Architecture"
                     >
                       <Code2 className="w-4 h-4 text-zinc-300" />
+                      <span className="xs:hidden ml-2">Inspect Code</span>
                     </button>
                   </div>
                 </div>
@@ -1881,8 +1882,8 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                 MODE B: VAULT LEDGER (STRIPE / LINEAR STYLE TABLE)
                ------------------------------------------------------------- */}
             {viewMode === 'ledger' && (
-              <div className="rounded-xl border border-white/[0.08] bg-[#09090e] overflow-hidden">
-                <table className="w-full text-left border-collapse font-mono text-xs">
+              <div className="rounded-xl border border-white/[0.08] bg-[#09090e] overflow-hidden overflow-x-auto no-scrollbar">
+                <table className="min-w-[640px] w-full text-left border-collapse font-mono text-xs">
                   <thead>
                     <tr className="border-b border-white/[0.08] bg-white/[0.02] text-[10px] text-zinc-500 uppercase tracking-widest">
                       <th className="py-3 px-4">Ref</th>
@@ -2235,16 +2236,16 @@ Rules:
 
       {/* 5. LIGHTBOX / FULLSCREEN INSPECTOR (STUDIO SPLIT-SCREEN) */}
       {inspectingPrompt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/90 backdrop-blur-xl animate-role-fade-in overflow-y-auto">
-          <div className="relative w-full max-w-5xl bg-[#09090e] border border-white/[0.12] rounded-2xl shadow-2xl overflow-hidden text-white my-auto flex flex-col max-h-[92vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-6 bg-black/90 backdrop-blur-xl animate-role-fade-in overflow-y-auto">
+          <div className="relative w-full max-w-5xl bg-[#09090e] border border-white/[0.12] rounded-2xl shadow-2xl overflow-hidden text-white my-auto flex flex-col max-h-[92dvh]">
             
             {/* Top Bar */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.08] bg-[#0c0c12]">
-              <div className="flex items-center gap-3">
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/[0.06] text-zinc-300 border border-white/[0.08] uppercase">
+            <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-white/[0.08] bg-[#0c0c12] gap-3">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/[0.06] text-zinc-300 border border-white/[0.08] uppercase shrink-0">
                   {inspectingPrompt.category}
                 </span>
-                <h2 className="text-sm sm:text-base font-bold text-white tracking-tight truncate max-w-md">
+                <h2 className="text-xs sm:text-base font-bold text-white tracking-tight truncate min-w-0 flex-1">
                   {inspectingPrompt.title}
                 </h2>
               </div>
@@ -2254,7 +2255,7 @@ Rules:
                   sound.playClick();
                   setInspectingPrompt(null);
                 }}
-                className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.08] transition-colors"
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.08] transition-colors shrink-0 cursor-pointer"
                 aria-label="Close Inspector"
               >
                 <X className="w-5 h-5" />
@@ -2265,7 +2266,7 @@ Rules:
             <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 overflow-y-auto divide-y lg:divide-y-0 lg:divide-x divide-white/[0.08]">
               
               {/* Left Column: High-Res 3D Video Player */}
-              <div className="p-6 flex flex-col justify-between bg-black/60">
+              <div className="p-4 sm:p-6 flex flex-col justify-between bg-black/60">
                 <div>
                   <div className="relative aspect-video w-full rounded-xl overflow-hidden border border-white/[0.08] shadow-2xl bg-black">
                     {isMediaImage(inspectingPrompt.videoUrl) ? (
@@ -2327,7 +2328,7 @@ Rules:
               </div>
 
               {/* Right Column: Code & Production Architecture Syntax */}
-              <div className="p-6 flex flex-col justify-between bg-[#08080c]">
+              <div className="p-4 sm:p-6 flex flex-col justify-between bg-[#08080c]">
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-xs font-mono uppercase text-zinc-300 font-semibold flex items-center gap-1.5">
