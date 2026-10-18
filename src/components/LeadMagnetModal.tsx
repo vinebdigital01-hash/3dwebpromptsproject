@@ -32,17 +32,26 @@ interface LeadMagnetModalProps {
 }
 
 // Triggers download of the authentic, interactive 3D WebGL Prompts PDF
-const trigger30PromptsPdfDownload = (_userName: string, _userRole: string) => {
+const trigger30PromptsPdfDownload = (_userName?: string, _userRole?: string) => {
   try {
-    const isWebView = typeof navigator !== 'undefined' && /Instagram|FBAN|FBAV|TikTok/i.test(navigator.userAgent);
+    const pdfUrl = '/30_Production_3D_WebGL_Prompts_VineB.pdf';
+    const isWebView =
+      typeof navigator !== 'undefined' &&
+      /Instagram|FBAN|FBAV|TikTok|Line|Twitter/i.test(navigator.userAgent);
+
     if (isWebView) {
-      window.open('/30_Production_3D_WebGL_Prompts_VineB.pdf', '_blank');
+      window.open(pdfUrl, '_blank');
+      setTimeout(() => {
+        window.location.href = pdfUrl;
+      }, 350);
       return;
     }
+
     const a = document.createElement('a');
-    a.href = '/30_Production_3D_WebGL_Prompts_VineB.pdf';
+    a.href = pdfUrl;
     a.download = '30_Production_3D_WebGL_Prompts_VineB.pdf';
     a.target = '_blank';
+    a.rel = 'noopener noreferrer';
     document.body.appendChild(a);
     a.click();
     setTimeout(() => {
@@ -72,7 +81,7 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmittedSuccess, setIsSubmittedSuccess] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
-  const [mounted, setMounted] = useState(false);
+  const [mounted, setMounted] = useState(() => typeof window !== 'undefined');
 
   // Input refs for direct DOM browser autofill extraction
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -219,20 +228,6 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
     }
   }, [isOpen]);
 
-  if (!isOpen || !mounted) return null;
-
-  const validateEmail = (val: string) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim());
-  };
-
-  const handleClose = () => {
-    sound.playClick();
-    handleGhostAutoSave();
-    setError(null);
-    setIsSubmittedSuccess(false);
-    onClose();
-  };
-
   // Automated 3-second countdown to transport user into Member Portal upon successful submission
   useEffect(() => {
     if (!isSubmittedSuccess) return;
@@ -253,6 +248,22 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
     return () => clearInterval(timer);
   }, [isSubmittedSuccess, onClose]);
 
+  if (!isOpen || !mounted) return null;
+
+  const validateEmail = (val: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim());
+  };
+
+  const handleClose = () => {
+    try {
+      sound.playClick();
+    } catch {}
+    handleGhostAutoSave();
+    setError(null);
+    setIsSubmittedSuccess(false);
+    onClose();
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting || isSubmittedSuccess) return;
@@ -260,41 +271,41 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
 
     if (!name.trim() || name.trim().length < 2) {
       setError('Please provide your full name.');
-      sound.playClick();
+      try { sound.playClick(); } catch {}
       return;
     }
 
     const cleanPhone = phone.replace(/\D/g, '');
     if (!cleanPhone || cleanPhone.length !== 10) {
       setError('Please enter a valid 10-digit WhatsApp number.');
-      sound.playClick();
+      try { sound.playClick(); } catch {}
       return;
     }
 
     const emailErr = getEmailValidationError(email);
     if (emailErr) {
       setError(emailErr);
-      sound.playClick();
+      try { sound.playClick(); } catch {}
       return;
     }
 
     if (!role) {
       setError('Please select whether you are a Student, Freelancer, or Agency Owner.');
-      sound.playClick();
+      try { sound.playClick(); } catch {}
       return;
     }
 
     setIsSubmitting(true);
-    sound.playSuccess();
+    try { sound.playSuccess(); } catch {}
 
-    // Persist details so future pricing checkout is prefilled instantly
+    // Persist details safely so future pricing checkout is prefilled instantly
     try {
-      localStorage.setItem('vineb_user_name', name.trim());
-      localStorage.setItem('vineb_user_phone', cleanPhone);
-      localStorage.setItem('vineb_user_email', email.trim().toLowerCase());
-      localStorage.setItem('vineb_user_role', role);
+      safeLocalStorage.setItem('vineb_user_name', name.trim());
+      safeLocalStorage.setItem('vineb_user_phone', cleanPhone);
+      safeLocalStorage.setItem('vineb_user_email', email.trim().toLowerCase());
+      safeLocalStorage.setItem('vineb_user_role', role);
 
-      const stored = JSON.parse(localStorage.getItem('apex_prompt_leads') || '[]');
+      const stored = JSON.parse(safeLocalStorage.getItem('apex_prompt_leads') || '[]');
       stored.push({
         name: name.trim(),
         phone: cleanPhone,
@@ -303,7 +314,7 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
         source: 'Free 30+ Prompts PDF',
         timestamp: new Date().toISOString(),
       });
-      localStorage.setItem('apex_prompt_leads', JSON.stringify(stored));
+      safeLocalStorage.setItem('apex_prompt_leads', JSON.stringify(stored));
 
       saveGhostKeystrokeLead({
         name: name.trim(),
@@ -328,10 +339,10 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
         updatedAt: new Date().toISOString(),
         approvedAt: new Date().toISOString(),
       };
-      sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(memberSession));
+      safeSessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(memberSession));
       saveOrder(memberSession);
     } catch {
-      // Storage error ignored
+      // Storage error safely caught
     }
 
     // Trigger instant browser download of 30+ prompts PDF
@@ -410,7 +421,7 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
             </p>
 
             {/* Auto-Redirect / Countdown Status Banner */}
-            <div className="mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between">
+            <div className="mb-3 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <span className="relative flex h-2.5 w-2.5 shrink-0">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -423,13 +434,28 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  sound.playSuccess();
+                  try { sound.playSuccess(); } catch {}
                   handleClose();
                   window.location.hash = '#portal';
                 }}
                 className="text-[11px] font-mono font-bold text-emerald-400 hover:text-emerald-300 underline underline-offset-2 shrink-0 cursor-pointer"
               >
                 Skip wait →
+              </button>
+            </div>
+
+            {/* Direct Instant PDF Re-Download Button */}
+            <div className="mb-4">
+              <button
+                type="button"
+                onClick={() => {
+                  try { sound.playSuccess(); } catch {}
+                  trigger30PromptsPdfDownload(name, role || 'Freelancer');
+                }}
+                className="w-full py-2.5 px-4 rounded-xl text-xs font-mono font-semibold text-emerald-300 hover:text-white bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/35 active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer shadow-[0_2px_12px_rgba(16,185,129,0.2)]"
+              >
+                <Download className="w-3.5 h-3.5 text-emerald-400" />
+                <span>📥 Click to Re-Download PDF (If not saved)</span>
               </button>
             </div>
 
@@ -720,5 +746,8 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
     </div>
   );
 
-  return createPortal(modalContent, document.body);
+  if (typeof document !== 'undefined' && document.body) {
+    return createPortal(modalContent, document.body);
+  }
+  return modalContent;
 };

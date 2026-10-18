@@ -166,7 +166,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onUnlockClick, onLeadMagnetClick
             {/* Free Sample Prompt Lead Magnet */}
             <button
               onClick={() => {
-                sound.playClick();
+                try { sound.playClick(); } catch {}
                 onLeadMagnetClick();
               }}
               className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-mono text-emerald-300 hover:text-white bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 transition-all cursor-pointer"
