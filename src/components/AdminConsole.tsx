@@ -83,6 +83,7 @@ import {
   purgeAllLeadsPermanently,
   deleteApprovedOrderPermanently,
   isDummyOrder,
+  isLeadDeleted,
   syncChannel,
 } from '../lib/leadTracker';
 import { resetOrderIpLock } from '../lib/deviceSecurity';
@@ -257,7 +258,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
 
     // Actively pull from Cloud Database in the background and update state
     syncAllLeadsFromCloud().then((synced) => {
-      if (synced && synced.length > 0) {
+      if (Array.isArray(synced)) {
         setOrders(synced);
       }
     });
@@ -290,7 +291,13 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
     }
 
     // Listen for real-time updates
-    const handleOrderUpdate = () => loadData();
+    const handleOrderUpdate = (e?: any) => {
+      if (e?.detail && Array.isArray(e.detail)) {
+        setOrders(e.detail);
+      } else {
+        loadData();
+      }
+    };
     const handleMarketingUpdate = () => setMarketingHistory(getAllMarketingDispatches());
     const handlePromptsUpdate = () => setPromptsList(getAllVaultPrompts());
     const handleAuthChange = (e: any) => setSession(e.detail || null);
@@ -817,12 +824,13 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
 
   const isGhostOrAbandoned = (o: LeadOrder) =>
     !isDummyOrder(o) &&
+    !isLeadDeleted(o) &&
     (o.status === 'unsubmitted_keystroke' ||
       o.status === 'abandoned_at_qr' ||
       (o.status as string) === 'abandoned_checkout' ||
       isFreeTrialLead(o));
 
-  const ghostLeads = orders.filter((o) => !isDummyOrder(o) && isGhostOrAbandoned(o));
+  const ghostLeads = orders.filter((o) => !isDummyOrder(o) && !isLeadDeleted(o) && isGhostOrAbandoned(o));
 
   // Grouped Ghost Leads by Customer (Email / Phone) with Multiplier Counters (x2, x3, etc.)
   const groupedGhostLeads = useMemo(() => {
@@ -1018,9 +1026,9 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
     return ghostLeads;
   }, [ghostLeads, ghostFilter]);
 
-  const approvedOrders = orders.filter((o) => o.status === 'approved' && (o.amountINR || 0) > 0);
+  const approvedOrders = orders.filter((o) => !isLeadDeleted(o) && !isDummyOrder(o) && o.status === 'approved' && (o.amountINR || 0) > 0);
   const upgradeIntentOrders = orders.filter(
-    (o) => (o.upgradeTelemetry?.viewsCount || 0) > 0 || (o.upgradeTelemetry?.clicksCount || 0) > 0
+    (o) => !isLeadDeleted(o) && ((o.upgradeTelemetry?.viewsCount || 0) > 0 || (o.upgradeTelemetry?.clicksCount || 0) > 0)
   );
 
   // Stats

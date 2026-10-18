@@ -326,6 +326,17 @@ export function clearAllOrders(): void {
  */
 const GHOST_BACKUP_KEY = 'apex3d_ghost_vault_permanent';
 const DELETED_LEADS_KEY = 'apex3d_deleted_leads_v1';
+const PURGED_ALL_AT_KEY = 'apex3d_purged_all_at_v1';
+
+export function getGlobalPurgedAt(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(PURGED_ALL_AT_KEY) || null;
+}
+
+export function setGlobalPurgedAt(timestamp: string): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(PURGED_ALL_AT_KEY, timestamp);
+}
 
 export function getDeletedLeadKeys(): Set<string> {
   if (typeof window === 'undefined') return new Set();
@@ -339,7 +350,7 @@ export function getDeletedLeadKeys(): Set<string> {
   }
 }
 
-export function markLeadKeysDeleted(keys: string[]): void {
+export function markLeadKeysDeleted(keys: string[], purgedAt?: string): void {
   if (typeof window === 'undefined') return;
   try {
     const current = getDeletedLeadKeys();
@@ -347,11 +358,25 @@ export function markLeadKeysDeleted(keys: string[]): void {
       if (k && k.trim()) current.add(k.trim().toLowerCase());
     });
     localStorage.setItem(DELETED_LEADS_KEY, JSON.stringify(Array.from(current)));
+    if (purgedAt) {
+      setGlobalPurgedAt(purgedAt);
+    }
   } catch {}
 }
 
 export function isLeadDeleted(order: Partial<LeadOrder>): boolean {
   if (!order) return true;
+  if ((order as any).isDeleted) return true;
+  if (order.status === ('deleted_purged' as any)) return true;
+
+  const purgedAllAt = getGlobalPurgedAt();
+  if (purgedAllAt) {
+    const itemTime = new Date(order.createdAt || order.updatedAt || 0).getTime();
+    if (itemTime <= new Date(purgedAllAt).getTime()) {
+      return true;
+    }
+  }
+
   const deletedKeys = getDeletedLeadKeys();
   if (order.id && deletedKeys.has(order.id.toLowerCase())) return true;
   if (order.email && deletedKeys.has(order.email.trim().toLowerCase())) return true;
@@ -540,18 +565,18 @@ export function initFirestoreSync(): () => void {
 
   return subscribeToFirestoreOrders((cloudOrders) => {
     try {
-      const cleanCloud = cloudOrders.filter((o) => !isDummyOrder(o));
-      const local = getAllOrders();
+      const cleanCloud = cloudOrders.filter((o) => !isDummyOrder(o) && !isLeadDeleted(o));
+      const local = getAllOrders().filter((o) => !isLeadDeleted(o));
       const mergedMap = new Map<string, LeadOrder>();
 
-      // 1. Keep local non-dummy orders
+      // 1. Keep local non-dummy non-deleted orders
       local.forEach((o) => {
-        if (o.id && !isDummyOrder(o)) mergedMap.set(o.id, o);
+        if (o.id && !isDummyOrder(o) && !isLeadDeleted(o)) mergedMap.set(o.id, o);
       });
 
       // 2. Merge cloud orders
       cleanCloud.forEach((o) => {
-        if (o.id && !isDummyOrder(o)) {
+        if (o.id && !isDummyOrder(o) && !isLeadDeleted(o)) {
           const existing = mergedMap.get(o.id);
           if (!existing || new Date(o.updatedAt || 0) >= new Date(existing.updatedAt || 0)) {
             mergedMap.set(o.id, o);
@@ -559,7 +584,7 @@ export function initFirestoreSync(): () => void {
         }
       });
 
-      const merged = Array.from(mergedMap.values());
+      const merged = Array.from(mergedMap.values()).filter((o) => !isLeadDeleted(o));
       merged.sort(
         (a, b) =>
           new Date(b.updatedAt || b.createdAt || 0).getTime() -
@@ -608,6 +633,9 @@ export async function syncAllLeadsFromCloud(): Promise<LeadOrder[]> {
       const relayRes = await fetch('/api/sync-lead');
       if (relayRes.ok) {
         const data = await relayRes.json();
+        if (data && data.purgedAllAt) {
+          setGlobalPurgedAt(new Date(data.purgedAllAt).toISOString());
+        }
         if (data && Array.isArray(data.leads)) {
           data.leads.forEach((l: any) => {
             if (l && l.id && !isDummyOrder(l) && !isLeadDeleted(l)) {
@@ -645,20 +673,21 @@ export async function syncAllLeadsFromCloud(): Promise<LeadOrder[]> {
 export async function deleteLeadPermanently(leadId: string, email?: string, phone?: string): Promise<void> {
   if (typeof window === 'undefined') return;
   try {
-    const keysToBlacklist = [leadId];
-    if (email) keysToBlacklist.push(email.trim().toLowerCase());
-    if (phone) keysToBlacklist.push(phone.trim().replace(/\D/g, ''));
-    markLeadKeysDeleted(keysToBlacklist);
-
     const cleanEmail = (email || '').trim().toLowerCase();
     const cleanPhone = (phone || '').trim().replace(/\D/g, '');
+    const cleanId = (leadId || '').trim();
+
+    const keysToBlacklist = [cleanId];
+    if (cleanEmail) keysToBlacklist.push(cleanEmail);
+    if (cleanPhone) keysToBlacklist.push(cleanPhone);
+    markLeadKeysDeleted(keysToBlacklist);
 
     const purgePredicate = (item: any) => {
       if (!item) return false;
-      const itemId = item.id;
+      const itemId = (item.id || '').trim();
       const itemEmail = (item.email || '').trim().toLowerCase();
       const itemPhone = (item.phone || '').trim().replace(/\D/g, '');
-      if (itemId && itemId === leadId) return true;
+      if (cleanId && itemId === cleanId) return true;
       if (cleanEmail && itemEmail === cleanEmail) return true;
       if (cleanPhone && itemPhone === cleanPhone) return true;
       return false;
@@ -677,14 +706,14 @@ export async function deleteLeadPermanently(leadId: string, email?: string, phon
       } catch {}
     });
 
-    // Remove from Firestore
-    deleteOrderFromFirestore(leadId).catch(() => {});
+    // Remove from Firestore & record in Cloud Firestore blacklist
+    await deleteOrderFromFirestore(cleanId, cleanEmail, cleanPhone);
     if (cleanEmail || cleanPhone) {
-      deleteMatchingOrdersFromFirestore(cleanEmail, cleanPhone).catch(() => {});
+      await deleteMatchingOrdersFromFirestore(cleanEmail, cleanPhone);
     }
 
     // Remove from Relay API
-    fetch(`/api/sync-lead?id=${encodeURIComponent(leadId)}&email=${encodeURIComponent(cleanEmail)}&phone=${encodeURIComponent(cleanPhone)}`, {
+    await fetch(`/api/sync-lead?id=${encodeURIComponent(cleanId)}&email=${encodeURIComponent(cleanEmail)}&phone=${encodeURIComponent(cleanPhone)}`, {
       method: 'DELETE',
     }).catch(() => {});
 
@@ -710,6 +739,9 @@ export async function deleteLeadGroupPermanently(leads: LeadOrder[]): Promise<vo
 export async function purgeAllLeadsPermanently(): Promise<void> {
   if (typeof window === 'undefined') return;
   try {
+    const nowIso = new Date().toISOString();
+    setGlobalPurgedAt(nowIso);
+
     const orders = getAllOrders();
     const allKeys: string[] = [];
     orders.forEach((o) => {
@@ -717,7 +749,7 @@ export async function purgeAllLeadsPermanently(): Promise<void> {
       if (o.email) allKeys.push(o.email.trim().toLowerCase());
       if (o.phone) allKeys.push(o.phone.trim().replace(/\D/g, ''));
     });
-    markLeadKeysDeleted(allKeys);
+    markLeadKeysDeleted(allKeys, nowIso);
 
     [STORAGE_KEY, GHOST_STORAGE_KEY, GHOST_BACKUP_KEY, 'apex_prompt_leads', 'apex3d_marketing_campaigns_db'].forEach((k) => {
       try {
@@ -725,9 +757,9 @@ export async function purgeAllLeadsPermanently(): Promise<void> {
       } catch {}
     });
 
-    purgeAllOrdersFromFirestore().catch(() => {});
+    await purgeAllOrdersFromFirestore();
 
-    fetch('/api/sync-lead?all=true', { method: 'DELETE' }).catch(() => {});
+    await fetch('/api/sync-lead?all=true', { method: 'DELETE' }).catch(() => {});
 
     window.dispatchEvent(new CustomEvent('apex_order_updated', { detail: [] }));
     window.dispatchEvent(new CustomEvent('apex_marketing_dispatched', { detail: [] }));

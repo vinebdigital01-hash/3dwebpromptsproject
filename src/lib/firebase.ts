@@ -110,13 +110,64 @@ export async function saveOrderToFirestore(order: any): Promise<void> {
 }
 
 /**
+ * Global Firestore Cloud Blacklist & Purge Tracker
+ * Collection: 'app_metadata', Doc: 'deleted_leads'
+ */
+export async function fetchCloudDeletedMetadata(): Promise<{ keys: string[]; purgedAllAt?: string }> {
+  if (typeof window === 'undefined') return { keys: [] };
+  try {
+    const snap = await getDoc(doc(db, 'app_metadata', 'deleted_leads')).catch(() => null);
+    if (snap && snap.exists()) {
+      const data = snap.data();
+      return {
+        keys: Array.isArray(data.keys) ? data.keys : [],
+        purgedAllAt: data.purgedAllAt || undefined,
+      };
+    }
+  } catch (err) {
+    console.debug('Failed to fetch cloud deleted metadata:', err);
+  }
+  return { keys: [] };
+}
+
+export async function recordDeletedLeadsToFirestore(keys: string[], purgedAll?: boolean): Promise<void> {
+  if (typeof window === 'undefined') return;
+  try {
+    const cleanKeys = keys.filter(Boolean).map((k) => k.trim().toLowerCase());
+    const existing = await fetchCloudDeletedMetadata();
+    const mergedKeys = Array.from(new Set([...existing.keys, ...cleanKeys]));
+
+    const payload: any = {
+      keys: mergedKeys,
+      updatedAt: new Date().toISOString(),
+    };
+    if (purgedAll) {
+      payload.purgedAllAt = new Date().toISOString();
+      payload.keys = [];
+    }
+
+    await setDoc(doc(db, 'app_metadata', 'deleted_leads'), payload, { merge: true });
+  } catch (err) {
+    console.debug('Failed to record deleted leads to firestore:', err);
+  }
+}
+
+/**
  * Delete an order from Firestore
  */
-export async function deleteOrderFromFirestore(orderId: string): Promise<void> {
+export async function deleteOrderFromFirestore(orderId: string, email?: string, phone?: string): Promise<void> {
   if (typeof window === 'undefined' || !orderId) return;
   try {
+    const keys = [orderId];
+    if (email) keys.push(email);
+    if (phone) keys.push(phone);
+    await recordDeletedLeadsToFirestore(keys);
+
     await deleteDoc(doc(db, 'orders', orderId)).catch(() => {});
     await deleteDoc(doc(db, 'ghost_leads', orderId)).catch(() => {});
+
+    await setDoc(doc(db, 'orders', orderId), { isDeleted: true, status: 'deleted_purged' }, { merge: true }).catch(() => {});
+    await setDoc(doc(db, 'ghost_leads', orderId), { isDeleted: true, status: 'deleted_purged' }, { merge: true }).catch(() => {});
   } catch (err) {
     console.debug('Cloud deleteOrder error:', err);
   }
@@ -130,6 +181,10 @@ export async function deleteMatchingOrdersFromFirestore(email?: string, phone?: 
   try {
     const cleanEmail = (email || '').trim().toLowerCase();
     const cleanPhone = (phone || '').trim().replace(/\D/g, '');
+    const keys: string[] = [];
+    if (cleanEmail) keys.push(cleanEmail);
+    if (cleanPhone) keys.push(cleanPhone);
+    if (keys.length > 0) await recordDeletedLeadsToFirestore(keys);
 
     for (const collName of ['orders', 'ghost_leads']) {
       try {
@@ -143,6 +198,7 @@ export async function deleteMatchingOrdersFromFirestore(email?: string, phone?: 
             (cleanPhone && docPhone === cleanPhone)
           ) {
             await deleteDoc(doc(db, collName, docSnap.id)).catch(() => {});
+            await setDoc(doc(db, collName, docSnap.id), { isDeleted: true, status: 'deleted_purged' }, { merge: true }).catch(() => {});
           }
         }
       } catch {}
@@ -158,11 +214,21 @@ export async function deleteMatchingOrdersFromFirestore(email?: string, phone?: 
 export async function purgeAllOrdersFromFirestore(): Promise<void> {
   if (typeof window === 'undefined') return;
   try {
+    // 1. Record global purge timestamp in Cloud Firestore
+    const purgeTime = new Date().toISOString();
+    await setDoc(doc(db, 'app_metadata', 'deleted_leads'), {
+      purgedAllAt: purgeTime,
+      keys: [],
+      updatedAt: purgeTime,
+    }, { merge: true }).catch(() => {});
+
+    // 2. Wipe/Mark all documents across 'orders' and 'ghost_leads'
     for (const collName of ['orders', 'ghost_leads']) {
       try {
         const snap = await getDocs(collection(db, collName));
         for (const docSnap of snap.docs) {
           await deleteDoc(doc(db, collName, docSnap.id)).catch(() => {});
+          await setDoc(doc(db, collName, docSnap.id), { isDeleted: true, status: 'deleted_purged' }, { merge: true }).catch(() => {});
         }
       } catch {}
     }
@@ -177,9 +243,23 @@ export async function purgeAllOrdersFromFirestore(): Promise<void> {
 export function subscribeToFirestoreOrders(callback: (orders: any[]) => void): Unsubscribe {
   try {
     const masterMap = new Map<string, any>();
+    let cloudDeletedKeys = new Set<string>();
+    let cloudPurgedAllAt: number = 0;
 
     const dispatchMerged = () => {
-      const list = Array.from(masterMap.values());
+      const list = Array.from(masterMap.values()).filter((item) => {
+        if (!item || item.isDeleted || item.status === 'deleted_purged') return false;
+        const itemTime = new Date(item.updatedAt || item.createdAt || 0).getTime();
+        if (cloudPurgedAllAt > 0 && itemTime <= cloudPurgedAllAt) return false;
+        const id = (item.id || '').trim();
+        const email = (item.email || '').trim().toLowerCase();
+        const phone = (item.phone || '').trim().replace(/\D/g, '');
+        if (id && cloudDeletedKeys.has(id)) return false;
+        if (email && cloudDeletedKeys.has(email)) return false;
+        if (phone && cloudDeletedKeys.has(phone)) return false;
+        return true;
+      });
+
       list.sort((a, b) => {
         const timeA = new Date(a.updatedAt || a.createdAt || 0).getTime();
         const timeB = new Date(b.updatedAt || b.createdAt || 0).getTime();
@@ -187,6 +267,24 @@ export function subscribeToFirestoreOrders(callback: (orders: any[]) => void): U
       });
       callback(list);
     };
+
+    // 0. Listen to 'app_metadata/deleted_leads'
+    const unsubMetadata = onSnapshot(
+      doc(db, 'app_metadata', 'deleted_leads'),
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.data();
+          if (Array.isArray(data.keys)) {
+            cloudDeletedKeys = new Set(data.keys.map((k: string) => k.toLowerCase()));
+          }
+          if (data.purgedAllAt) {
+            cloudPurgedAllAt = new Date(data.purgedAllAt).getTime();
+          }
+          dispatchMerged();
+        }
+      },
+      (err) => console.debug('Metadata snapshot error:', err)
+    );
 
     // 1. Listen to 'orders'
     const unsubOrders = onSnapshot(
@@ -220,6 +318,7 @@ export function subscribeToFirestoreOrders(callback: (orders: any[]) => void): U
     );
 
     return () => {
+      unsubMetadata();
       unsubOrders();
       unsubGhosts();
     };
@@ -234,6 +333,10 @@ export function subscribeToFirestoreOrders(callback: (orders: any[]) => void): U
  */
 export async function fetchAllCloudOrdersAndGhostLeads(): Promise<any[]> {
   try {
+    const meta = await fetchCloudDeletedMetadata();
+    const cloudDeletedKeys = new Set((meta.keys || []).map((k: string) => k.toLowerCase()));
+    const cloudPurgedAllAt = meta.purgedAllAt ? new Date(meta.purgedAllAt).getTime() : 0;
+
     const masterMap = new Map<string, any>();
 
     // 1. Get orders collection
@@ -259,7 +362,19 @@ export async function fetchAllCloudOrdersAndGhostLeads(): Promise<any[]> {
       });
     }
 
-    const list = Array.from(masterMap.values());
+    const list = Array.from(masterMap.values()).filter((item) => {
+      if (!item || item.isDeleted || item.status === 'deleted_purged') return false;
+      const itemTime = new Date(item.updatedAt || item.createdAt || 0).getTime();
+      if (cloudPurgedAllAt > 0 && itemTime <= cloudPurgedAllAt) return false;
+      const id = (item.id || '').trim();
+      const email = (item.email || '').trim().toLowerCase();
+      const phone = (item.phone || '').trim().replace(/\D/g, '');
+      if (id && cloudDeletedKeys.has(id)) return false;
+      if (email && cloudDeletedKeys.has(email)) return false;
+      if (phone && cloudDeletedKeys.has(phone)) return false;
+      return true;
+    });
+
     list.sort((a, b) => {
       const timeA = new Date(a.updatedAt || a.createdAt || 0).getTime();
       const timeB = new Date(b.updatedAt || b.createdAt || 0).getTime();

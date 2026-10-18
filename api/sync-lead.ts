@@ -1,5 +1,7 @@
 // Vercel Serverless Function: Real-time Lead Relay, Cross-Device Sync & Admin Alerts
 export const memoryLeads: any[] = [];
+export const deletedLeadKeys = new Set<string>();
+export let globalPurgedAt = 0;
 
 export default async function handler(req: any, res: any) {
   // CORS Headers
@@ -16,63 +18,40 @@ export default async function handler(req: any, res: any) {
   }
 
   if (req.method === 'GET') {
-    if (memoryLeads.length === 0) {
-      // Auto-recover captured leads from Resend log so Laptop admin immediately syncs
-      const resendKey = Buffer.from('cmVfYWhqanZ0QjdfQzd6RHJyNGRDSHByZ3daY3pSN05QQ2J4', 'base64').toString('utf-8');
-      const token = process.env.RESEND_API_KEY || process.env.VITE_RESEND_API_KEY || resendKey;
-      try {
-        const mailRes = await fetch('https://api.resend.com/emails?limit=100', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (mailRes.ok) {
-          const data = await mailRes.json();
-          const emails = data.data || [];
-          const leadEmails = emails.filter((e: any) => e.subject && e.subject.includes('[NEW LEAD]'));
-          const seen = new Set<string>();
+    // Filter out any purged or deleted leads
+    const activeLeads = memoryLeads.filter((item) => {
+      if (!item) return false;
+      const itemId = (item.id || '').trim();
+      const itemEmail = (item.email || '').trim().toLowerCase();
+      const itemPhone = (item.phone || '').trim().replace(/\D/g, '');
+      const itemTime = new Date(item.createdAt || item.updatedAt || 0).getTime();
 
-          for (const item of leadEmails) {
-            const match = item.subject.match(/\[NEW LEAD\]\s*(.*?)\s*\((.*?)\)\s*-\s*\+91\s*(.*)/);
-            if (match) {
-              const name = match[1].trim();
-              const role = match[2].trim();
-              const phone = match[3].trim().replace(/\D/g, '');
-              const key = (phone || name).toLowerCase();
-              if (key && !seen.has(key)) {
-                seen.add(key);
-                memoryLeads.push({
-                  id: `LEAD-${item.id.slice(0, 8)}`,
-                  orderNumber: `MEM-${item.id.slice(-4)}`,
-                  name: name || 'Visitor',
-                  email: '',
-                  phone,
-                  role,
-                  tierName: 'Free Sample Prompt',
-                  amountINR: 0,
-                  status: 'free_trial_claimed',
-                  source: 'cloud_sync_relay',
-                  createdAt: item.created_at || new Date().toISOString(),
-                  updatedAt: item.created_at || new Date().toISOString(),
-                });
-              }
-            }
-          }
-        }
-      } catch (e) {
-        console.debug('Cloud sync recovery fallback error:', e);
-      }
-    }
-    return res.status(200).json({ leads: memoryLeads });
+      if (globalPurgedAt > 0 && itemTime <= globalPurgedAt) return false;
+      if (itemId && deletedLeadKeys.has(itemId)) return false;
+      if (itemEmail && deletedLeadKeys.has(itemEmail)) return false;
+      if (itemPhone && deletedLeadKeys.has(itemPhone)) return false;
+      return true;
+    });
+
+    return res.status(200).json({ leads: activeLeads, purgedAllAt: globalPurgedAt });
   }
 
   if (req.method === 'DELETE') {
     const { id, all, email, phone } = req.query;
     if (all === 'true' || req.body?.all === true) {
+      globalPurgedAt = Date.now();
       memoryLeads.length = 0;
-      return res.status(200).json({ success: true, message: 'All leads purged from relay.' });
+      deletedLeadKeys.clear();
+      return res.status(200).json({ success: true, message: 'All leads purged from relay.', purgedAllAt: globalPurgedAt });
     }
+
     const cleanEmail = (typeof email === 'string' ? email : '').trim().toLowerCase();
     const cleanPhone = (typeof phone === 'string' ? phone : '').trim().replace(/\D/g, '');
     const cleanId = (typeof id === 'string' ? id : '').trim();
+
+    if (cleanId) deletedLeadKeys.add(cleanId);
+    if (cleanEmail) deletedLeadKeys.add(cleanEmail);
+    if (cleanPhone) deletedLeadKeys.add(cleanPhone);
 
     for (let i = memoryLeads.length - 1; i >= 0; i--) {
       const item = memoryLeads[i];
@@ -113,8 +92,14 @@ export default async function handler(req: any, res: any) {
       return res.status(400).json({ message: 'Email or phone required' });
     }
 
+    // Check if this lead was deleted
+    const leadId = lead.id || `LEAD-${Date.now().toString().slice(-6)}`;
+    if (deletedLeadKeys.has(leadId) || (email && deletedLeadKeys.has(email)) || (phone && deletedLeadKeys.has(phone))) {
+      return res.status(200).json({ status: 'ignored_deleted' });
+    }
+
     const leadRecord = {
-      id: lead.id || `LEAD-${Date.now().toString().slice(-6)}`,
+      id: leadId,
       orderNumber: lead.orderNumber || `MEM-${Date.now().toString().slice(-4)}`,
       name: name || 'Visitor',
       email,
