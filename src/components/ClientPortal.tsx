@@ -602,9 +602,32 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
       order = findApprovedOrder(loginInput);
     }
     if (!order) {
+      const cleanEmail = loginInput.trim().toLowerCase();
+      if (cleanEmail.includes('@') && cleanEmail.includes('.') && !isDisposableEmail(cleanEmail)) {
+        // Auto-provision authenticated Free Member session for this registered email
+        const memberOrder: LeadOrder = {
+          id: `USR-${cleanEmail.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8)}`,
+          orderNumber: `MEM-${Date.now().toString().slice(-4)}`,
+          name: cleanEmail.split('@')[0],
+          email: cleanEmail,
+          phone: '',
+          tierId: 'member',
+          tierName: 'Free Trial Member (1 Sample Quota)',
+          amountINR: 0,
+          status: 'approved',
+          source: 'portal_email_login',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          approvedAt: new Date().toISOString(),
+        };
+        saveOrder(memberOrder);
+        order = memberOrder;
+      }
+    }
+    if (!order) {
       sound.playError();
       setLoginError(
-        'Credentials unverified. Ensure you have entered your exact License Key (e.g. LIC-VIP-84K2-91Q7) or registered phone/email.'
+        'Credentials unverified. Ensure you have entered your exact registered email or License Key (e.g. LIC-VIP-84K2-91Q7).'
       );
       return;
     }
@@ -624,6 +647,8 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
     setDailyUsage(getDailyCopyUsage(finalOrder.licenseKey || '', finalOrder));
     if (bindCheck.boundIp) {
       showToast(`Device Bound // IP: ${bindCheck.boundIp} (${bindCheck.boundLocation || 'Studio'})`);
+    } else {
+      showToast(`Authenticated // ${finalOrder.email || finalOrder.name}`);
     }
   };
 
@@ -989,31 +1014,31 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
               </button>
             </form>
 
-            {/* Divider: License Key Direct Access */}
+            {/* Divider: Registered Email or License Key Direct Access */}
             <div className="relative my-4">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-white/[0.08]" />
               </div>
               <div className="relative flex justify-center text-[10px] font-mono uppercase tracking-widest">
-                <span className="bg-[#09090e] px-2 text-zinc-500">Or Commercial Key</span>
+                <span className="bg-[#09090e] px-2 text-zinc-400 font-semibold">Registered Email or License Key</span>
               </div>
             </div>
 
-            {/* Direct Commercial Key Form */}
+            {/* Direct Registered Email / Commercial Key Form */}
             <form onSubmit={handleLogin} className="space-y-2">
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={loginInput}
                   onChange={(e) => setLoginInput(e.target.value)}
-                  placeholder="LIC-VIP-XXXX-XXXX"
-                  className="flex-1 px-3.5 py-2 rounded-xl bg-black/60 border border-white/[0.12] text-xs font-mono text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-300 transition-colors tracking-wider"
+                  placeholder="Enter registered email or LIC-VIP-XXXX"
+                  className="flex-1 px-3.5 py-2 rounded-xl bg-black/60 border border-white/[0.12] text-xs font-mono text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-300 transition-colors tracking-wider"
                 />
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] text-white text-xs font-mono font-bold border border-white/[0.12] transition-colors whitespace-nowrap cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-mono font-bold border border-emerald-400 transition-colors whitespace-nowrap cursor-pointer shadow-[0_2px_12px_rgba(16,185,129,0.3)]"
                 >
-                  Unlock
+                  Unlock Access →
                 </button>
               </div>
               {loginError && (

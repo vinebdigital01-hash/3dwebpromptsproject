@@ -30,6 +30,11 @@ const PAGE_HEIGHT = 841.89;
 const MARGIN = 32;
 const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2; // 531.28
 
+// Target Portal & Pricing URLs (Buttons only - never raw text)
+const PORTAL_URL = 'https://3dwebprompts-vineb.vercel.app/#portal';
+const PRICING_URL = 'https://3dwebprompts-vineb.vercel.app/#pricing';
+const STORE_URL = 'https://vinebdigital.store';
+
 // Premium Dark Obsidian Palette (Matching website)
 const COLOR_BG = '#06070a';
 const COLOR_SURFACE = '#0f111a';
@@ -46,9 +51,7 @@ const COLOR_AMBER = '#f59e0b';
 
 function drawBackground(pageDoc) {
   pageDoc.save();
-  // Deep obsidian background
   pageDoc.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT).fill(COLOR_BG);
-  // Refined top cyan accent highlight bar
   pageDoc.rect(0, 0, PAGE_WIDTH, 2.5).fill(COLOR_ACCENT);
   pageDoc.restore();
 }
@@ -59,24 +62,24 @@ function drawHeader(pageDoc) {
   // WB Logo top-left (Clickable link to store)
   if (fs.existsSync(logoPath)) {
     pageDoc.image(logoPath, MARGIN, headerY, { fit: [26, 26] });
-    pageDoc.link(MARGIN, headerY, 26, 26, 'https://vinebdigital.store');
+    pageDoc.link(MARGIN, headerY, 26, 26, STORE_URL);
   }
 
   // Header Title
   pageDoc.fillColor(COLOR_TEXT).font('Helvetica-Bold').fontSize(9);
   pageDoc.text('VINE B DIGITAL', MARGIN + 32, headerY + 2);
   pageDoc.fillColor(COLOR_TEXT_DIM).font('Helvetica').fontSize(7.5);
-  pageDoc.text('// 3D WebGL Production Blueprint Repository • Free Edition', MARGIN + 32, headerY + 13);
+  pageDoc.text('// 3D WebGL Production Blueprint Repository • Studio Edition', MARGIN + 32, headerY + 13);
 
-  // Top Right Portal Launch Pill
-  const portalBtnW = 126;
-  const portalBtnH = 20;
+  // Top Right Portal Launch Button (Button plate only, no raw URL)
+  const portalBtnW = 136;
+  const portalBtnH = 22;
   const portalBtnX = PAGE_WIDTH - MARGIN - portalBtnW;
   pageDoc.roundedRect(portalBtnX, headerY + 2, portalBtnW, portalBtnH, 4).fill(COLOR_SURFACE);
   pageDoc.roundedRect(portalBtnX, headerY + 2, portalBtnW, portalBtnH, 4).stroke(COLOR_BORDER);
   pageDoc.fillColor(COLOR_ACCENT).font('Helvetica-Bold').fontSize(7.5);
-  pageDoc.text('⚡ Studio Portal Access →', portalBtnX + 8, headerY + 7);
-  pageDoc.link(portalBtnX, headerY + 2, portalBtnW, portalBtnH, 'https://vinebdigital.store/#portal');
+  pageDoc.text('⚡ Studio Portal Access →', portalBtnX + 12, headerY + 8);
+  pageDoc.link(portalBtnX, headerY + 2, portalBtnW, portalBtnH, PORTAL_URL);
 
   // Hairline separator
   pageDoc.rect(MARGIN, 48, CONTENT_WIDTH, 0.5).fill(COLOR_BORDER_SUBTLE);
@@ -91,12 +94,12 @@ function drawFooter(pageDoc, pageNumber, totalPages) {
   // Logo link in footer
   pageDoc.font('Helvetica-Bold').fontSize(7.5).fillColor(COLOR_ACCENT);
   pageDoc.text('vinebdigital.store', MARGIN, footY + 8, {
-    link: 'https://vinebdigital.store'
+    link: STORE_URL
   });
-  pageDoc.link(MARGIN, footY + 6, 80, 14, 'https://vinebdigital.store');
+  pageDoc.link(MARGIN, footY + 6, 80, 14, STORE_URL);
 
   pageDoc.font('Helvetica').fontSize(7.5).fillColor(COLOR_TEXT_DIM);
-  pageDoc.text('Official Commercial Schemas • Calibrated for Claude 3.7 & Cursor', MARGIN + 88, footY + 8);
+  pageDoc.text('Official Commercial Blueprint Access Pass • Calibrated for Claude 3.7 & Cursor', MARGIN + 88, footY + 8);
 
   const pageStr = `Page ${pageNumber} of ${totalPages}`;
   pageDoc.font('Helvetica-Bold').fontSize(7.5).fillColor(COLOR_TEXT_MUTED);
@@ -104,40 +107,54 @@ function drawFooter(pageDoc, pageNumber, totalPages) {
   pageDoc.restore();
 }
 
+// Helper to draw a prominent, styled interactive button
+function drawButton(pageDoc, x, y, width, height, text, linkUrl, bgColor, textColor, fontSize = 9) {
+  pageDoc.save();
+  pageDoc.roundedRect(x, y, width, height, 6).fill(bgColor);
+  pageDoc.roundedRect(x, y, width, height, 6).stroke('rgba(255, 255, 255, 0.15)');
+  pageDoc.font('Helvetica-Bold').fontSize(fontSize).fillColor(textColor);
+  const textW = pageDoc.widthOfString(text);
+  const textX = x + (width - textW) / 2;
+  const textY = y + (height - fontSize) / 2 - 0.5;
+  pageDoc.text(text, textX, textY);
+  pageDoc.link(x, y, width, height, linkUrl);
+  pageDoc.restore();
+}
+
 // ==========================================
-// PAGE 1: EXECUTIVE COVER & ARCHITECTURE MANIFESTO
+// PAGE 1: EXECUTIVE COVER & PORTAL ACCESS PASS
 // ==========================================
 doc.addPage();
 drawBackground(doc);
 
 // Prominent Centered WB Logo
 if (fs.existsSync(logoPath)) {
-  const logoSize = 68;
+  const logoSize = 64;
   const logoX = (PAGE_WIDTH - logoSize) / 2;
-  const logoY = 48;
+  const logoY = 46;
   doc.image(logoPath, logoX, logoY, { fit: [logoSize, logoSize] });
-  doc.link(logoX, logoY, logoSize, logoSize, 'https://vinebdigital.store');
+  doc.link(logoX, logoY, logoSize, logoSize, STORE_URL);
 
   doc.font('Helvetica').fontSize(8).fillColor(COLOR_ACCENT);
   const clickHint = '▲ Click Logo to visit official storefront: vinebdigital.store';
   doc.text(clickHint, (PAGE_WIDTH - doc.widthOfString(clickHint)) / 2, logoY + logoSize + 8, {
-    link: 'https://vinebdigital.store'
+    link: STORE_URL
   });
-  doc.link((PAGE_WIDTH - doc.widthOfString(clickHint)) / 2, logoY + logoSize + 6, doc.widthOfString(clickHint), 12, 'https://vinebdigital.store');
+  doc.link((PAGE_WIDTH - doc.widthOfString(clickHint)) / 2, logoY + logoSize + 6, doc.widthOfString(clickHint), 12, STORE_URL);
 }
 
 // Main Title Block
-const titleY = 142;
+const titleY = 138;
 doc.font('Helvetica-Bold').fontSize(21).fillColor(COLOR_TEXT);
 const coverTitle = '3D WEBGL & SPATIAL MASTER PROMPTS';
 doc.text(coverTitle, (PAGE_WIDTH - doc.widthOfString(coverTitle)) / 2, titleY);
 
-doc.font('Helvetica-Bold').fontSize(11).fillColor(COLOR_ACCENT);
-const coverSub = 'OFFICIAL PRODUCTION STARTER ARCHIVE // 100% UNLOCKED FREE SCHEMAS';
-doc.text(coverSub, (PAGE_WIDTH - doc.widthOfString(coverSub)) / 2, titleY + 26);
+doc.font('Helvetica-Bold').fontSize(10.5).fillColor(COLOR_ACCENT);
+const coverSub = 'OFFICIAL PRODUCTION STARTER ARCHIVE // STUDIO PORTAL ACCESS PASS';
+doc.text(coverSub, (PAGE_WIDTH - doc.widthOfString(coverSub)) / 2, titleY + 25);
 
 // 4 Feature Badges Row
-const pillRowY = titleY + 50;
+const pillRowY = titleY + 48;
 const coverBadges = [
   'Claude 3.7 Sonnet Calibrated',
   'Cursor & ChatGPT o3-mini',
@@ -154,97 +171,111 @@ coverBadges.forEach(b => {
   pillX += bw + 8;
 });
 
-// Architecture Overview Card
-const overY = pillRowY + 30;
-const overH = 175;
+// Main Access Pass Card: How to use your email to access prompts
+const passY = pillRowY + 28;
+const passH = 205;
 doc.save();
-doc.roundedRect(MARGIN, overY, CONTENT_WIDTH, overH, 8).fill(COLOR_SURFACE);
-doc.roundedRect(MARGIN, overY, CONTENT_WIDTH, overH, 8).stroke(COLOR_BORDER);
+doc.roundedRect(MARGIN, passY, CONTENT_WIDTH, passH, 8).fill('#08101e');
+doc.roundedRect(MARGIN, passY, CONTENT_WIDTH, passH, 8).stroke('#2563eb');
 
-doc.font('Helvetica-Bold').fontSize(10.5).fillColor(COLOR_TEXT);
-doc.text('THE ONE-SHOT CREATIVE TECHNOLOGIST SPECIFICATION', MARGIN + 16, overY + 16);
+// Eyebrow Tag inside pass
+doc.roundedRect(MARGIN + 16, passY + 14, 195, 17, 4).fill('#1e3a8a');
+doc.font('Helvetica-Bold').fontSize(7.5).fillColor('#93c5fd');
+doc.text('🔑 AUTHENTICATED ACCESS PASS • PORTAL UNLOCKED', MARGIN + 22, passY + 18);
 
-doc.font('Helvetica').fontSize(8.5).fillColor(COLOR_TEXT_MUTED);
-const overText = `Welcome to the official Vine B Digital 3D WebGL starter collection. Most AI prompts fail to generate usable 3D web code because they lack strict memory boundaries, fail to allocate instanced vertex buffers, or introduce sluggish physics loops.
+// Headline
+doc.font('Helvetica-Bold').fontSize(12.5).fillColor('#ffffff');
+doc.text('How to Unlock & Copy Your 30 Production 3D Prompts', MARGIN + 16, passY + 38);
 
-Every blueprint in this repository is calibrated with deterministic constraints:
-- 60 FPS RequestAnimationFrame throttling with delta-time compensation
-- Instanced BufferGeometry eliminating draw-call overhead on mobile GPUs
-- Mathematical GLSL Simplex Noise displacing vertices without external .GLTF/.OBJ dependencies
-- Strict cleanup & dispose cycles on unmount to prevent browser memory leaks.
+doc.font('Helvetica').fontSize(8.5).fillColor('#cbd5e1');
+const passInstructions = `To ensure you always receive the latest unminified, zero-hallucination code with live Three.js viewports, all prompts are delivered directly inside the official Studio Portal.
 
-Use these prompts unmodified in Claude 3.7 Sonnet, Cursor Composer, or ChatGPT o3 to generate award-winning spatial web experiences in a single shot.`;
-doc.text(overText, MARGIN + 16, overY + 34, { width: CONTENT_WIDTH - 32, lineGap: 3.5 });
+THREE EASY STEPS TO COPY YOUR PROMPTS:
+1. USE YOUR REGISTERED EMAIL:
+   Access is automatically provisioned for the email address you entered on the download request form.
+2. LAUNCH THE STUDIO PORTAL:
+   Click the button below to open the interactive Studio Portal in your browser.
+3. ONE-CLICK PROMPT COPY:
+   Click "Copy Prompt" on any blueprint to copy the complete, unminified Three.js component code directly into Claude 3.7 Sonnet, Cursor, or ChatGPT.`;
+doc.text(passInstructions, MARGIN + 16, passY + 56, { width: CONTENT_WIDTH - 32, lineGap: 3 });
 
-// Interactive CTA inside Card
-const ctaY = overY + 130;
-doc.roundedRect(MARGIN + 16, ctaY, CONTENT_WIDTH - 32, 32, 6).fill('#1d4ed8');
-doc.font('Helvetica-Bold').fontSize(9.5).fillColor('#ffffff');
-const ctaText = '⚡ OPEN INTERACTIVE STUDIO PORTAL (ONE-CLICK PROMPT COPY) →';
-doc.text(ctaText, (PAGE_WIDTH - doc.widthOfString(ctaText)) / 2, ctaY + 11);
-doc.link(MARGIN + 16, ctaY, CONTENT_WIDTH - 32, 32, 'https://vinebdigital.store/#portal');
+// Big Styled Button (No raw URL displayed)
+const btnPassY = passY + 158;
+drawButton(
+  doc,
+  MARGIN + 16,
+  btnPassY,
+  CONTENT_WIDTH - 32,
+  34,
+  '🚀 OPEN STUDIO PORTAL & COPY PROMPTS NOW →',
+  PORTAL_URL,
+  '#10b981',
+  '#000000',
+  10
+);
 doc.restore();
 
-// 3-Step Execution Workflow Cards (Cleanly distributed to fill page naturally)
-const flowY = overY + overH + 18;
+// 3 Architecture Principles Cards (Fills lower page)
+const archY = passY + passH + 16;
 doc.font('Helvetica-Bold').fontSize(10.5).fillColor(COLOR_TEXT);
-doc.text('HOW TO EXECUTE THESE PRODUCTION PROMPTS:', MARGIN, flowY);
+doc.text('PRODUCTION 3D WEBGL CODE ARCHITECTURE STANDARDS:', MARGIN, archY);
 
-const executionSteps = [
+const standards = [
   {
-    num: '01',
-    title: 'Select Component & Copy Full Architecture',
-    desc: 'Review the 3 unlocked production blueprints on pages 2-4. Copy the complete prompt directly from this PDF or click the green button to open it inside the Studio Portal.'
+    num: '60 FPS',
+    title: 'Deterministic Frame Rate Budgeting',
+    desc: 'Every prompt mandates RequestAnimationFrame throttling with delta-time compensation, preventing sluggish rendering on mobile batteries and low-power laptops.'
   },
   {
-    num: '02',
-    title: 'Paste into Claude 3.7 Sonnet or Cursor Agent',
-    desc: 'Create a new React 19 + Tailwind project. Paste the prompt unmodified into your agent. The blueprint forces the AI to output self-contained, compile-ready Three.js code.'
+    num: '0 KB',
+    title: 'Zero External .GLTF or .OBJ Asset Dependencies',
+    desc: 'Components procedurally synthesize complex 3D meshes using InstancedBufferGeometry and GLSL Simplex Noise — eliminating slow 3D file loading times.'
   },
   {
-    num: '03',
-    title: 'Deploy Production Experience to Vercel',
-    desc: 'Run `npm run build` and ship. Your deployment delivers responsive 60 FPS interactive 3D motion physics that top creative agencies bill at $14,000 to $28,000+ per engagement.'
+    num: '100%',
+    title: 'Strict GPU Memory Garbage Collection',
+    desc: 'All geometries, materials, and textures implement automatic dispose() cycles on React unmount, guaranteeing zero browser memory leaks for enterprise clients.'
   }
 ];
 
-let curStepY = flowY + 18;
-executionSteps.forEach(s => {
+let curStdY = archY + 18;
+standards.forEach(s => {
   doc.save();
-  const sh = 48;
-  doc.roundedRect(MARGIN, curStepY, CONTENT_WIDTH, sh, 6).fill(COLOR_SURFACE);
-  doc.roundedRect(MARGIN, curStepY, CONTENT_WIDTH, sh, 6).stroke(COLOR_BORDER);
+  const sh = 46;
+  doc.roundedRect(MARGIN, curStdY, CONTENT_WIDTH, sh, 6).fill(COLOR_SURFACE);
+  doc.roundedRect(MARGIN, curStdY, CONTENT_WIDTH, sh, 6).stroke(COLOR_BORDER);
 
   // Number Badge
-  doc.roundedRect(MARGIN + 10, curStepY + 10, 28, 28, 4).fill(COLOR_CODE_BG);
-  doc.font('Helvetica-Bold').fontSize(11).fillColor(COLOR_ACCENT);
-  doc.text(s.num, MARGIN + 16, curStepY + 18);
+  doc.roundedRect(MARGIN + 10, curStdY + 9, 38, 28, 4).fill(COLOR_CODE_BG);
+  doc.font('Helvetica-Bold').fontSize(9).fillColor(COLOR_ACCENT);
+  doc.text(s.num, MARGIN + 13, curStdY + 18);
 
   // Title & Desc
-  doc.font('Helvetica-Bold').fontSize(9).fillColor(COLOR_TEXT);
-  doc.text(s.title, MARGIN + 46, curStepY + 10);
+  doc.font('Helvetica-Bold').fontSize(8.5).fillColor(COLOR_TEXT);
+  doc.text(s.title, MARGIN + 56, curStdY + 9);
 
   doc.font('Helvetica').fontSize(7.5).fillColor(COLOR_TEXT_MUTED);
-  doc.text(s.desc, MARGIN + 46, curStepY + 23, { width: CONTENT_WIDTH - 58, lineGap: 2 });
+  doc.text(s.desc, MARGIN + 56, curStdY + 22, { width: CONTENT_WIDTH - 68, lineGap: 2 });
   doc.restore();
-  curStepY += sh + 8;
+  curStdY += sh + 7;
 });
 
 // Trust Micro-Banner at bottom
-const trustY = curStepY + 4;
+const trustY = curStdY + 4;
 doc.save();
-doc.roundedRect(MARGIN, trustY, CONTENT_WIDTH, 26, 4).fill('#0c1322');
-doc.roundedRect(MARGIN, trustY, CONTENT_WIDTH, 26, 4).stroke('#1e3a8a');
+doc.roundedRect(MARGIN, trustY, CONTENT_WIDTH, 24, 4).fill('#0c1322');
+doc.roundedRect(MARGIN, trustY, CONTENT_WIDTH, 24, 4).stroke('#1e3a8a');
 doc.font('Helvetica-Bold').fontSize(7.5).fillColor('#60a5fa');
-const trustStr = '✓ Official Authenticated Release • Verified Zero-Hallucination Schemas • Reseller Rights Included';
-doc.text(trustStr, (PAGE_WIDTH - doc.widthOfString(trustStr)) / 2, trustY + 9);
+const trustStr = '✓ Official Authenticated Release • Pre-Approved for Your Registered Email • Free Commercial Reseller Rights';
+doc.text(trustStr, (PAGE_WIDTH - doc.widthOfString(trustStr)) / 2, trustY + 8);
 doc.restore();
 
 drawFooter(doc, 1, 5);
 
 
 // ==========================================
-// HELPER TO RENDER A FLAWLESS PROMPT PAGE
+// HELPER TO RENDER A SPECIFICATION BLUEPRINT PAGE
+// (No raw prompt text in PDF - directs to portal with registered email)
 // ==========================================
 function renderPromptPage({
   pageNumber,
@@ -257,23 +288,22 @@ function renderPromptPage({
   highlightStat,
   techStack,
   imageName,
-  portalPromptId,
   videoUrl,
   featureOverview,
-  promptText,
+  architectureSpecs,
   proTip
 }) {
   doc.addPage();
   drawBackground(doc);
   drawHeader(doc);
 
-  let py = 58;
+  let py = 56;
 
   // Eyebrow Row: Schema # + Status
   doc.font('Helvetica-Bold').fontSize(7.5).fillColor(COLOR_ACCENT);
   doc.text(`UNLOCKED PRODUCTION BLUEPRINT // ${schemaNumber}`, MARGIN, py);
   
-  const freeBadge = '✓ 100% UNLOCKED FREE SAMPLE';
+  const freeBadge = '✓ UNLOCKED FREE IN STUDIO PORTAL';
   doc.font('Helvetica-Bold').fontSize(7.5).fillColor(COLOR_ACCENT_GREEN);
   doc.text(freeBadge, PAGE_WIDTH - MARGIN - doc.widthOfString(freeBadge), py);
   py += 14;
@@ -307,8 +337,8 @@ function renderPromptPage({
   });
   py += 22;
 
-  // Media & Actions Row (Tight 85px box, zero awkward gaps)
-  const mediaH = 88;
+  // Media & Video Preview Box
+  const mediaH = 92;
   doc.save();
   doc.roundedRect(MARGIN, py, CONTENT_WIDTH, mediaH, 6).fill(COLOR_SURFACE);
   doc.roundedRect(MARGIN, py, CONTENT_WIDTH, mediaH, 6).stroke(COLOR_BORDER);
@@ -316,77 +346,98 @@ function renderPromptPage({
   // Embed image
   const imgPath = path.join(assetsDir, imageName);
   if (fs.existsSync(imgPath)) {
-    doc.image(imgPath, MARGIN + 6, py + 6, { fit: [120, 76] });
+    doc.image(imgPath, MARGIN + 6, py + 6, { fit: [124, 80] });
   }
 
   // Right details in Media Box
-  const rX = MARGIN + 136;
+  const rX = MARGIN + 140;
   doc.font('Helvetica-Bold').fontSize(9).fillColor(COLOR_TEXT);
   doc.text('Component Architecture & Live Preview', rX, py + 8);
 
   doc.font('Helvetica').fontSize(7.5).fillColor(COLOR_TEXT_MUTED);
-  doc.text(featureOverview, rX, py + 22, { width: CONTENT_WIDTH - 146, lineGap: 2 });
+  doc.text(featureOverview, rX, py + 22, { width: CONTENT_WIDTH - 150, lineGap: 2.5 });
 
-  // Action Buttons inside Media Box
-  const btnY = py + 52;
-  const storeUrl = `https://vinebdigital.store/#portal?prompt=${portalPromptId}`;
-
-  // Button 1: Open in Portal
-  const btn1W = 160;
-  doc.roundedRect(rX, btnY, btn1W, 26, 4).fill(COLOR_ACCENT_GREEN);
-  doc.font('Helvetica-Bold').fontSize(8).fillColor('#000000');
-  doc.text('⚡ Open & Copy in Studio Portal', rX + 10, btnY + 8);
-  doc.link(rX, btnY, btn1W, 26, storeUrl);
-
-  // Button 2: Watch Video Reel
-  const btn2W = 145;
-  const btn2X = rX + btn1W + 10;
-  doc.roundedRect(btn2X, btnY, btn2W, 26, 4).fill('#2563eb');
-  doc.font('Helvetica-Bold').fontSize(8).fillColor('#ffffff');
-  doc.text('▶ Watch 60FPS Video Reel', btn2X + 12, btnY + 8);
-  doc.link(btn2X, btnY, btn2W, 26, videoUrl);
+  // Action Button inside Media Box (Video Reel)
+  const vidBtnY = py + 58;
+  const vidBtnW = 180;
+  drawButton(doc, rX, vidBtnY, vidBtnW, 24, '▶ Watch 60FPS Video Reel', videoUrl, '#2563eb', '#ffffff', 8);
   doc.restore();
 
-  py += mediaH + 12;
+  py += mediaH + 14;
 
-  // Code Container: Clean, tightly fitted, beautiful Helvetica typography
+  // Architectural Deep-Dive & Shader Mechanics Card (Fills middle half)
+  const specH = 265;
   doc.save();
-  doc.font('Helvetica-Bold').fontSize(9).fillColor(COLOR_TEXT);
-  doc.text('COMPLETE AI PROMPT BLUEPRINT (COPY DIRECTLY INTO YOUR AGENT):', MARGIN, py);
-  py += 14;
+  doc.roundedRect(MARGIN, py, CONTENT_WIDTH, specH, 6).fill(COLOR_CODE_BG);
+  doc.roundedRect(MARGIN, py, CONTENT_WIDTH, specH, 6).stroke(COLOR_BORDER);
 
-  // Calculate box height dynamically to fill page perfectly down to py=745
-  const codeBoxHeight = 385;
-  doc.roundedRect(MARGIN, py, CONTENT_WIDTH, codeBoxHeight, 6).fill(COLOR_CODE_BG);
-  doc.roundedRect(MARGIN, py, CONTENT_WIDTH, codeBoxHeight, 6).stroke(COLOR_BORDER);
+  doc.font('Helvetica-Bold').fontSize(9.5).fillColor(COLOR_TEXT);
+  doc.text('PROCEDURAL GRAPHICS & THREE.JS SHADER SPECIFICATION:', MARGIN + 14, py + 12);
 
-  // Code text using clean Helvetica with crisp syntax-like layout
-  doc.font('Helvetica').fontSize(8).fillColor('#e2e8f0');
-  doc.text(promptText, MARGIN + 14, py + 12, {
-    width: CONTENT_WIDTH - 28,
-    lineGap: 3
+  let specTextY = py + 28;
+  architectureSpecs.forEach((spec, sIdx) => {
+    doc.font('Helvetica-Bold').fontSize(8).fillColor(COLOR_ACCENT);
+    doc.text(`${sIdx + 1}. ${spec.heading}`, MARGIN + 14, specTextY);
+    specTextY += 12;
+
+    doc.font('Helvetica').fontSize(7.5).fillColor('#cbd5e1');
+    doc.text(spec.details, MARGIN + 14, specTextY, { width: CONTENT_WIDTH - 28, lineGap: 2.5 });
+    specTextY += doc.heightOfString(spec.details, { width: CONTENT_WIDTH - 28, lineGap: 2.5 }) + 8;
   });
-
-  // Bottom action strip inside code box
-  const copyStripY = py + codeBoxHeight - 24;
-  doc.rect(MARGIN + 1, copyStripY, CONTENT_WIDTH - 2, 23).fill(COLOR_SURFACE);
-  doc.font('Helvetica-Bold').fontSize(7.5).fillColor(COLOR_ACCENT);
-  const linkText = `👉 Direct Website URL: ${storeUrl}`;
-  doc.text(linkText, MARGIN + 12, copyStripY + 7);
-  doc.link(MARGIN + 12, copyStripY + 4, doc.widthOfString(linkText), 16, storeUrl);
   doc.restore();
 
-  py += codeBoxHeight + 10;
+  py += specH + 12;
 
-  // Pro Tip Box (fills the remaining 35 points before footer cleanly)
+  // Access Pass & Portal 1-Click Copy Card (Primary conversion block)
+  const passBoxH = 175;
   doc.save();
-  doc.roundedRect(MARGIN, py, CONTENT_WIDTH, 28, 4).fill('#0f172a');
-  doc.roundedRect(MARGIN, py, CONTENT_WIDTH, 28, 4).stroke('#334155');
+  doc.roundedRect(MARGIN, py, CONTENT_WIDTH, passBoxH, 6).fill('#081626');
+  doc.roundedRect(MARGIN, py, CONTENT_WIDTH, passBoxH, 6).stroke('#0284c7');
+
+  // Eyebrow
+  doc.roundedRect(MARGIN + 14, py + 12, 175, 16, 4).fill('#0369a1');
+  doc.font('Helvetica-Bold').fontSize(7).fillColor('#e0f2fe');
+  doc.text('🔐 AUTHENTICATED MEMBER ACCESS', MARGIN + 20, py + 16);
+
+  // Title
+  doc.font('Helvetica-Bold').fontSize(11).fillColor('#ffffff');
+  doc.text('Copy Complete Production Prompt in Studio Portal', MARGIN + 14, py + 34);
+
+  // Description explaining how to use email
+  doc.font('Helvetica').fontSize(8).fillColor('#93c5fd');
+  const copyInstr = `To maintain formatting integrity and copy the unminified code with complete GLSL vertex and fragment shaders:
+
+👉 USE YOUR REGISTERED EMAIL:
+Sign in to the Studio Portal using the email address you entered when downloading this PDF. Your account is pre-provisioned with 1-click clipboard copying, live 3D Three.js canvas inspection, and calibrated Claude 3.7 / Cursor execution parameters.`;
+  doc.text(copyInstr, MARGIN + 14, py + 50, { width: CONTENT_WIDTH - 28, lineGap: 3 });
+
+  // Big Styled Button (Button plate only, no raw URL)
+  const copyBtnY = py + 125;
+  drawButton(
+    doc,
+    MARGIN + 14,
+    copyBtnY,
+    CONTENT_WIDTH - 28,
+    36,
+    '⚡ OPEN STUDIO PORTAL & COPY THIS PROMPT →',
+    PORTAL_URL,
+    '#10b981',
+    '#000000',
+    9.5
+  );
+  doc.restore();
+
+  py += passBoxH + 10;
+
+  // Pro Tip Box (fills the remaining space cleanly)
+  doc.save();
+  doc.roundedRect(MARGIN, py, CONTENT_WIDTH, 26, 4).fill('#0f172a');
+  doc.roundedRect(MARGIN, py, CONTENT_WIDTH, 26, 4).stroke('#334155');
   doc.font('Helvetica-Bold').fontSize(7.5).fillColor(COLOR_AMBER);
-  doc.text('PRO TIP FOR CLAUDE 3.7 & CURSOR: ', MARGIN + 10, py + 9);
+  doc.text('PRO TIP FOR CLAUDE 3.7 & CURSOR: ', MARGIN + 10, py + 8);
   const tipLeadW = doc.widthOfString('PRO TIP FOR CLAUDE 3.7 & CURSOR: ');
   doc.font('Helvetica').fontSize(7.5).fillColor('#cbd5e1');
-  doc.text(proTip, MARGIN + 10 + tipLeadW, py + 9, { width: CONTENT_WIDTH - 20 - tipLeadW });
+  doc.text(proTip, MARGIN + 10 + tipLeadW, py + 8, { width: CONTENT_WIDTH - 20 - tipLeadW });
   doc.restore();
 
   drawFooter(doc, pageNumber, 5);
@@ -406,28 +457,22 @@ renderPromptPage({
   highlightStat: '60 FPS WebGL',
   techStack: 'Three.js + GLSL Shaders',
   imageName: 'hazmat.jpg',
-  portalPromptId: 'hazmat-cyber',
   videoUrl: 'https://images.refero.design/styles/refero.design/video/7b76f1c1-600b-444f-a1a1-c51c831ec51a.mp4',
   featureOverview: 'Deploys an instanced particle dodecahedron core surrounded by dual counter-rotating ring lattices with Simplex noise displacement shaders and interactive pointer velocity ripples.',
-  promptText: `Act as a Principal 3D Creative Technologist (Awwwards Site of the Year recipient).
-Build a production-ready, dark-mode Cybersecurity Enterprise Hero experience in React 19 + Three.js + Tailwind CSS.
-
-TECHNICAL CORE ARCHITECTURE:
-1. THREE.JS VIEWPORT & INSTANCED MESHES:
-   - Create an instanced particle dodecahedron core (12,000 vertices) enclosed by counter-rotating ring lattices.
-   - Implement custom vertex shaders with Simplex noise displacement driven by: position + time * 0.4.
-   - Interpolate vertex color gradients from neon cyan (#00f2fe) to encrypted violet (#4facfe).
-   - Camera orbits smoothly with lerped mouse damping (lookAt lerp factor = 0.05).
-
-2. REAL-TIME THREAT BREACH SIMULATION:
-   - Clicking or dragging triggers an animated shockwave ripple pulse radiating outwards along mesh normals.
-   - On cursor acceleration > 2.5, inject temporary chromatic aberration and glitch fragment jitter.
-   - Telemetry HUD overlay with live latitude/longitude, encrypted packet counter, and 60 FPS counter.
-
-3. RESPONSIVE ARCHITECTURE & CLEAN DISPOSAL:
-   - Automatically resize on window dimension changes with pixel ratio clamped at Math.min(window.devicePixelRatio, 2).
-   - Strict geometry and material cleanup on React unmount to eliminate GPU memory leaks.
-   - Zero external .GLTF/.OBJ dependencies — fully self-contained WebGL procedural generation.`,
+  architectureSpecs: [
+    {
+      heading: 'THREE.JS VIEWPORT & INSTANCED MESH PIPELINE',
+      details: 'Generates a procedural 12,000-vertex dodecahedron particle cluster enclosed by dual concentric counter-rotating ring lattices. Utilizes InstancedBufferGeometry to collapse thousands of drawing operations into a single GPU draw call.'
+    },
+    {
+      heading: 'MATHEMATICAL GLSL SHADERS & THREAT SIMULATION',
+      details: 'Displaces vertices dynamically using a 3D Simplex noise algorithm driven by time and position. Features interactive click-and-drag shockwave ripples that propagate along surface normals, accompanied by acceleration-based chromatic aberration and telemetry HUD.'
+    },
+    {
+      heading: 'RESPONSIVE FRAME RATE BUDGETING & CLEAN DISPOSAL',
+      details: 'Implements window resize listening with pixel-ratio clamping (Math.min(window.devicePixelRatio, 2)) to prevent mobile overheating. Incorporates complete geometry and material disposal handlers on component unmount.'
+    }
+  ],
   proTip: 'In Claude 3.7 Sonnet, enable Extended Thinking mode for mathematical shader precision without NaN glitching.'
 });
 
@@ -445,65 +490,55 @@ renderPromptPage({
   highlightStat: 'Sub-12ms Liquidity',
   techStack: 'Three.js + React 19',
   imageName: 'fintech.jpg',
-  portalPromptId: 'fintech-liquidity-pool',
   videoUrl: 'https://images.refero.design/styles/refero.design/video/6e6ad2ff-26c5-4fb6-90dc-ee4c3d596ca7.mp4',
   featureOverview: 'Wall Street institutional trading visualizer converting live order flow into an undulating 3D topographic volume mountain with interactive crosshair price slices.',
-  promptText: `Act as a Quantitative Frontend Engineer. Build an institutional trading terminal featuring an interactive 3D Order Book Depth Mountain in Three.js and React 19.
-
-CORE TRADING SPECIFICATIONS:
-1. TOPOGRAPHIC 3D DEPTH MESH:
-   - Render a dual-sided extruded plane geometry representing Bid (Buy) and Ask (Sell) liquidity volumes.
-   - Bids: Emerald green gradient (#10b981 to #059669) along the negative X axis.
-   - Asks: Crimson red gradient (#ef4444 to #b91c1c) along the positive X axis.
-   - Vertex heights (Y axis) morph smoothly in real-time based on simulated order book flow.
-   - Wireframe grid overlay sitting directly over shaded depth mountains with subtle specular shine.
-
-2. SUB-12MS TICK TELEMETRY:
-   - High-frequency update loop executing via requestAnimationFrame without triggering React re-renders.
-   - Interactive crosshair slice plane: Hovering over any price coordinate highlights depth slice and displays total cumulative volume, implied spread, and estimated slippage in a floating monospace glass HUD card.
-
-3. HARDWARE & WEBGPU READY:
-   - Pure responsive viewport adapting seamlessly from 4K ultrawide trading desk displays to mobile iOS Safari.
-   - Camera pan and pitch controls with bounded limits to prevent upside-down orientation.
-   - Calibrated for instant generation with Claude 3.7 Sonnet and Cursor Composer.`,
-  proTip: 'Instruct Cursor to keep Three.js meshes outside React state to maintain sub-12ms frame budgets.'
+  architectureSpecs: [
+    {
+      heading: 'PARAMETRIC DEPTH MESH & HIGH-FREQUENCY BID/ASK BARS',
+      details: 'Constructs a dual-colored wireframe volume terrain (emerald green bid side, infrared ask side). Deploys an array of instanced cylinder volume bars whose heights animate smoothly using spring physics driven by incoming simulated trading volume.'
+    },
+    {
+      heading: 'INTERACTIVE CROSSHAIR & REAL-TIME RAYCASTING',
+      details: 'Integrated Three.js Raycaster traces cursor ray intersections with the topographic mesh in real time. Projects an illuminated crosshair plane with dynamic price-slice readout HUD displaying sub-millisecond spread telemetry.'
+    },
+    {
+      heading: 'DELTA-TIME COMPENSATION & BATTERY CONSERVATION',
+      details: 'Animation loop utilizes delta-time calculations (clock.getDelta()) to guarantee consistent wave oscillation speeds across 60Hz, 120Hz ProMotion, and 144Hz gaming displays without CPU throttling.'
+    }
+  ],
+  proTip: 'Instruct Cursor Composer to keep order book updates decoupled from React re-renders using useRef animation loops.'
 });
 
 // ==========================================
-// PAGE 4: FREE PROMPT 03 — LIQUID VISCOSITY SHADER
+// PAGE 4: FREE PROMPT 03 — LIQUID MERCURY MESH
 // ==========================================
 renderPromptPage({
   pageNumber: 4,
   schemaNumber: '03',
-  title: 'High-Viscosity Procedural Liquid & Mercury Shader',
-  subtitle: 'Real-Time Surface Tension & Chromatic Sheen Physics',
-  category: 'Spatial & Shaders',
-  clientValue: '$16,500',
-  tokens: 3100,
-  highlightStat: 'Mercury Raymarching',
-  techStack: 'GLSL Fragment + R3F',
+  title: 'Liquid Mercury Audio-Reactive Kinetic Mesh',
+  subtitle: 'Raymarching Signed Distance Field (SDF) Fluid Sculpture',
+  category: 'Spatial & Luxury',
+  clientValue: '$18,500',
+  tokens: 3120,
+  highlightStat: 'Raymarched SDF',
+  techStack: 'Three.js + GLSL Fragment',
   imageName: 'liquid.jpg',
-  portalPromptId: 'liquid-viscosity-shader',
-  videoUrl: 'https://images.refero.design/styles/refero.design/video/ed2c729e-76ce-4ad0-bad8-c57d67247ec7.mp4',
-  featureOverview: 'Raymarched procedural liquid mercury shader with cursor inertia wake, iridescent specular sheen, and dynamic metaball droplet coalescence running at 60 FPS on mobile.',
-  promptText: `Act as a GLSL Shader Specialist. Code a custom procedural liquid mercury shader in React Three Fiber that responds dynamically to pointer coordinates and scrolling velocity.
-
-PHYSICS & SHADER SPECIFICATIONS:
-1. RAYMARCHING SURFACE TENSION:
-   - Construct a Signed Distance Function (SDF) blending 5 metaball nodes using smooth minimum (smin polynomial).
-   - Node 1 tracks the cursor with spring physics and damping.
-   - Nodes 2-5 orbit gently with trigonometric harmonic frequencies (sin(t * 0.7), cos(t * 1.1)).
-   - Implement normal calculation via gradient estimation: normalize(vec3(sdf(p + eps.xyy) - sdf(p - eps.xyy), ...)).
-
-2. OPTICAL PROPERTIES & SPECULAR SHEEN:
-   - Metallic reflection using Fresnel approximation (Schlick's formula with F0 = 0.95 for polished liquid chrome).
-   - Dynamic environment mapping with chromatic dispersion (splitting red, green, and blue rays along normal tangents).
-   - High-contrast specular highlights reacting to dynamic virtual directional light source.
-
-3. MOBILE PERFORMANCE CONTROLS:
-   - Maximum raymarching steps = 48 with step distance threshold = 0.001.
-   - Resolution scale toggle supporting 0.75x on mobile screens to ensure solid 60 FPS on iOS and Android.
-   - Zero external heavy physics libraries — pure WebGL fragment shader implementation.`,
+  videoUrl: 'https://images.refero.design/styles/refero.design/video/a0b127ff-8c85-4df5-9175-9e6b4dc622bb.mp4',
+  featureOverview: 'Organic molten chrome fluid simulation created via raymarching signed distance fields (SDF) with real-time environment mapping, metallic fresnel, and audio-reactive frequency swells.',
+  architectureSpecs: [
+    {
+      heading: 'PURE GLSL SIGNED DISTANCE FIELD (SDF) RAYMARCHING',
+      details: 'Executes a single fullscreen quad rendering raymarched mathematical spheres blended together via smooth polynomial minimum (smin). Creates realistic molten liquid droplet fusion without heavy physics libraries.'
+    },
+    {
+      heading: 'CHROMATIC DISPERSION & METALLIC PBR ENVIRONMENT MAPPING',
+      details: 'Calculates dynamic surface normals using the gradient of the distance field. Simulates metallic chrome reflectance with chromatic dispersion — splitting red, green, and blue rays along surface tangents for luxury jewelry aesthetics.'
+    },
+    {
+      heading: 'GPU CLAMPING CONTROLS FOR MOBILE RELIABILITY',
+      details: 'Constrains raymarching iterations to a maximum of 48 steps with an early-exit epsilon threshold (0.001). Implements dynamic resolution scaling (0.75x fallback on mobile GPUs) ensuring flawless 60 FPS on iPhones and Android.'
+    }
+  ],
   proTip: 'Ask your AI agent to implement the smin smooth minimum polynomial to create realistic mercury droplet fusion.'
 });
 
@@ -514,17 +549,17 @@ doc.addPage();
 drawBackground(doc);
 drawHeader(doc);
 
-let p5Y = 58;
+let p5Y = 56;
 
 doc.font('Helvetica-Bold').fontSize(14).fillColor(COLOR_TEXT);
 doc.text('500+ COMMERCIAL 3D ARCHITECTURES MASTER DIRECTORY', MARGIN, p5Y);
 p5Y += 16;
 
 doc.font('Helvetica').fontSize(8).fillColor(COLOR_TEXT_MUTED);
-doc.text('The following commercial architectures are locked inside the master vault. Click any item to inspect its video demonstration on the live site.', MARGIN, p5Y);
+doc.text('The following commercial architectures are available inside the master vault. Use your registered email in the Studio Portal to access all free blueprints, or upgrade below.', MARGIN, p5Y);
 p5Y += 15;
 
-// 12 Flagship Locked Prompts in a tight, elegant 2-column or full table layout
+// 12 Flagship Locked Prompts in a tight, elegant table layout
 const lockedCatalog = [
   { id: 'valmora', title: 'VALMORA Haute-Couture Spatial Editorial', val: '$28,500', cat: 'Luxury', reel: 'https://pub-1e5b4001b36b47e28e6a2fb775966a79.r2.dev/previews/valmora.mp4' },
   { id: 'selene', title: 'SELENE Lunar Earthrise 384,400km Engine', val: '$36,000', cat: 'Spatial 3D', reel: 'https://pub-1e5b4001b36b47e28e6a2fb775966a79.r2.dev/previews/selene.mp4' },
@@ -565,11 +600,10 @@ lockedCatalog.forEach((p, idx) => {
   doc.text('▶ Video Reel', MARGIN + 395, rowY + 7);
   doc.link(MARGIN + 395, rowY + 4, 52, 14, p.reel);
 
-  // Link to Inspect on Store
-  const storePromptUrl = `https://vinebdigital.store/#portal?prompt=${p.id}`;
+  // Link to Portal
   doc.font('Helvetica-Bold').fontSize(7.5).fillColor(COLOR_ACCENT);
-  doc.text('⚡ Inspect →', MARGIN + 460, rowY + 7);
-  doc.link(MARGIN + 460, rowY + 4, 60, 14, storePromptUrl);
+  doc.text('⚡ Portal →', MARGIN + 468, rowY + 7);
+  doc.link(MARGIN + 468, rowY + 4, 50, 14, PORTAL_URL);
 
   rowY += rowH;
 });
@@ -577,7 +611,7 @@ doc.restore();
 
 p5Y = rowY + 16;
 
-// High-Impact Commercial Upgrade Card (Fills bottom half flawlessly)
+// High-Impact Commercial Upgrade Card
 const upCardH = 265;
 doc.save();
 doc.roundedRect(MARGIN, p5Y, CONTENT_WIDTH, upCardH, 8).fill('#0b1120');
@@ -589,8 +623,8 @@ doc.font('Helvetica-Bold').fontSize(7.5).fillColor('#bfdbfe');
 doc.text('★ COMMERCIAL EXPANSION PASS', MARGIN + 24, p5Y + 19);
 
 // Headline
-doc.font('Helvetica-Bold').fontSize(15).fillColor('#ffffff');
-doc.text('Unlock All 500+ Calibrated 3D Architectures', MARGIN + 16, p5Y + 40);
+doc.font('Helvetica-Bold').fontSize(14).fillColor('#ffffff');
+doc.text('Command All 500+ Calibrated 3D Architectures', MARGIN + 16, p5Y + 38);
 
 doc.font('Helvetica').fontSize(8.5).fillColor('#cbd5e1');
 const upBenefits = `Upgrade today to command the world's most exhaustive commercial 3D WebGL prompt database. A single client deliverable recoups this investment over 250 times over.
@@ -601,22 +635,45 @@ ALL-ACCESS MEMBERSHIP INCLUDES:
 - 10+ Complete Next.js, Vite & React 19 boilerplate GitHub repositories
 - Full Commercial Reseller Rights: Ship client projects without attribution
 - Instant License Key activation delivered to WhatsApp and Email`;
-doc.text(upBenefits, MARGIN + 16, p5Y + 60, { width: CONTENT_WIDTH - 32, lineGap: 3.5 });
+doc.text(upBenefits, MARGIN + 16, p5Y + 58, { width: CONTENT_WIDTH - 32, lineGap: 3.5 });
 
-// Dual Pricing Pill
-const pBoxY = p5Y + 175;
-doc.font('Helvetica-Bold').fontSize(11).fillColor('#38bdf8');
-const priceBanner = '⚡ ONE-DAY SPRINT PASS: ₹49  |  👑 LIFETIME VIP PASS: ₹299';
+// Dual Pricing Banner
+const pBoxY = p5Y + 165;
+doc.font('Helvetica-Bold').fontSize(10.5).fillColor('#38bdf8');
+const priceBanner = '⚡ ONE-DAY SPRINT PASS: ₹49   |   👑 LIFETIME VIP PASS: ₹299';
 doc.text(priceBanner, (PAGE_WIDTH - doc.widthOfString(priceBanner)) / 2, pBoxY);
 
-// Large Glowing Button
-const bigBtnY = pBoxY + 20;
-const bigBtnH = 36;
-doc.roundedRect(MARGIN + 24, bigBtnY, CONTENT_WIDTH - 48, bigBtnH, 6).fill(COLOR_ACCENT_GREEN);
-doc.font('Helvetica-Bold').fontSize(10).fillColor('#000000');
-const bigBtnLabel = 'UNLOCK COMPLETE 500+ VAULT PASS @ VINEBDIGITAL.STORE →';
-doc.text(bigBtnLabel, (PAGE_WIDTH - doc.widthOfString(bigBtnLabel)) / 2, bigBtnY + 13);
-doc.link(MARGIN + 24, bigBtnY, CONTENT_WIDTH - 48, bigBtnH, 'https://vinebdigital.store/#pricing');
+// Dual Buttons (Button plates only, no raw URL)
+const btnRowY = pBoxY + 18;
+const halfBtnW = (CONTENT_WIDTH - 40) / 2;
+
+// Button 1: Open Free Studio Portal
+drawButton(
+  doc,
+  MARGIN + 16,
+  btnRowY,
+  halfBtnW,
+  36,
+  '🚀 OPEN FREE STUDIO PORTAL →',
+  PORTAL_URL,
+  '#10b981',
+  '#000000',
+  9
+);
+
+// Button 2: Upgrade to Full Vault
+drawButton(
+  doc,
+  MARGIN + 24 + halfBtnW,
+  btnRowY,
+  halfBtnW,
+  36,
+  '👑 UNLOCK ALL 500+ VAULT @ ₹49 →',
+  PRICING_URL,
+  '#2563eb',
+  '#ffffff',
+  9
+);
 doc.restore();
 
 drawFooter(doc, 5, 5);
