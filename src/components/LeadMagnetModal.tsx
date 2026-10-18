@@ -18,7 +18,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { sound } from '../lib/audioEngine';
-import { saveGhostKeystrokeLead, LeadOrder } from '../lib/leadTracker';
+import { saveOrder, saveGhostKeystrokeLead, LeadOrder } from '../lib/leadTracker';
 import { sendInstantLeadMagnetOrAbandonedEmail } from '../lib/resendEmail';
 import { getEmailValidationError, isDisposableEmail } from '../lib/security';
 
@@ -399,6 +399,7 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
         approvedAt: new Date().toISOString(),
       };
       sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(memberSession));
+      saveOrder(memberSession);
     } catch {
       // Storage error ignored
     }

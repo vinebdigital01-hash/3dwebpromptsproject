@@ -1411,6 +1411,7 @@ export function recordUpgradeModalView(
 
     orders[index] = updatedOrder;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
+    saveOrderToFirestore(updatedOrder).catch(() => {});
     window.dispatchEvent(new CustomEvent('apex_order_updated', { detail: updatedOrder }));
   } catch (err) {
     console.error('Failed to record upgrade modal view:', err);
@@ -1460,6 +1461,7 @@ export function recordUpgradeTierSelection(identifier: string, tierId: string): 
 
     orders[index] = updatedOrder;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
+    saveOrderToFirestore(updatedOrder).catch(() => {});
     window.dispatchEvent(new CustomEvent('apex_order_updated', { detail: updatedOrder }));
   } catch (err) {
     console.error('Failed to record upgrade tier selection:', err);
@@ -1512,6 +1514,7 @@ export function recordUpgradeCtaClick(identifier: string, tierId: string): void 
 
     orders[index] = updatedOrder;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
+    saveOrderToFirestore(updatedOrder).catch(() => {});
     window.dispatchEvent(new CustomEvent('apex_order_updated', { detail: updatedOrder }));
   } catch (err) {
     console.error('Failed to record upgrade CTA click:', err);
@@ -1556,6 +1559,7 @@ export function recordUpgradeModalDismiss(identifier: string, tierId?: string): 
 
     orders[index] = updatedOrder;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
+    saveOrderToFirestore(updatedOrder).catch(() => {});
     window.dispatchEvent(new CustomEvent('apex_order_updated', { detail: updatedOrder }));
   } catch (err) {
     console.error('Failed to record upgrade modal dismiss:', err);
