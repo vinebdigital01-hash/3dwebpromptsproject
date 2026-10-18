@@ -455,10 +455,18 @@ export const Hero: React.FC<HeroProps> = ({ onUnlockClick, onTerminalClick, onFr
           {/* Primary CTA: Free 30+ Prompts PDF Lead Magnet */}
           <button
             onClick={() => {
-              sound.playSuccess();
-              onFreeDownloadClick();
+              try {
+                sound.playSuccess();
+              } catch {}
+              if (typeof onFreeDownloadClick === 'function') {
+                onFreeDownloadClick();
+              }
             }}
-            onMouseEnter={() => sound.playHover()}
+            onMouseEnter={() => {
+              try {
+                sound.playHover();
+              } catch {}
+            }}
             className="group relative inline-flex items-center justify-center gap-2.5 px-6 sm:px-8 py-3.5 sm:py-4 rounded-full text-sm sm:text-base font-bold text-white bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 transition-all duration-200 active:scale-95 shadow-[0_0_24px_rgba(59,130,246,0.5)] ring-1 ring-blue-400/50 overflow-hidden cursor-pointer"
           >
             <Gift className="w-4 h-4 text-emerald-300 animate-pulse" />

@@ -6,6 +6,8 @@ interface PreloaderProps {
 
 const WORDS = ['Synthesize', 'Render', 'Command', 'Convert'];
 
+import { safeSessionStorage } from '../lib/safeStorage';
+
 export const Preloader: React.FC<PreloaderProps> = ({ onComplete }) => {
   const [count, setCount] = useState<number>(0);
   const [wordIndex, setWordIndex] = useState<number>(0);
@@ -14,14 +16,14 @@ export const Preloader: React.FC<PreloaderProps> = ({ onComplete }) => {
   useEffect(() => {
     // If coming from Meta Ads or previously visited in this session, bypass preloader for instant 0ms load
     const isAdTraffic = window.location.search.includes('utm_') || window.location.search.includes('fbclid');
-    const hasVisited = sessionStorage.getItem('apex_visited');
+    const hasVisited = safeSessionStorage.getItem('apex_visited');
 
     if (isAdTraffic || hasVisited) {
       onComplete();
       return;
     }
 
-    sessionStorage.setItem('apex_visited', 'true');
+    safeSessionStorage.setItem('apex_visited', 'true');
 
     const startTime = performance.now();
     const duration = 450; // Ultra-snappy 450ms boot sequence

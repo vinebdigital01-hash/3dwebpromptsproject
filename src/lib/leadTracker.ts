@@ -19,7 +19,8 @@ export type OrderStatus =
   | 'abandoned_at_qr'      // User proceeded to QR code but closed without entering UTR
   | 'pending_approval'     // User submitted 12-digit UTR; awaiting admin verification
   | 'approved'             // Admin accepted; account active, invoice generated
-  | 'rejected';            // Admin rejected with reason
+  | 'rejected'             // Admin rejected with reason
+  | 'free_trial_claimed';  // User claimed free sample trial quota
 
 export interface UpgradeEvent {
   timestamp: string;

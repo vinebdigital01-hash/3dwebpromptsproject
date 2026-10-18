@@ -22,6 +22,8 @@ import { AgencyMarquee } from './components/AgencyMarquee';
 import { initAntiScraperShield } from './lib/security';
 import { AdminConsole } from './components/AdminConsole';
 import { ClientPortal } from './components/ClientPortal';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { safeSessionStorage } from './lib/safeStorage';
 
 export default function App() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -53,18 +55,18 @@ export default function App() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  // Automatic popup in 12 seconds (10-15s window) if user is just browsing and has no active intent to checkout yet
+  // Automatic popup in 5 seconds if user is just browsing and has no active intent to checkout yet
   useEffect(() => {
     if (isCheckoutOpen || isAdminMode || isPortalMode) return;
 
     // Check if visitor has already seen or closed the automatic lead magnet in this session
-    const alreadyTriggered = sessionStorage.getItem('vineb_lead_magnet_auto_shown');
+    const alreadyTriggered = safeSessionStorage.getItem('vineb_lead_magnet_auto_shown');
     if (alreadyTriggered) return;
 
     const timer = setTimeout(() => {
       if (!isCheckoutOpen && !isAdminMode && !isPortalMode) {
         setIsLeadMagnetOpen(true);
-        sessionStorage.setItem('vineb_lead_magnet_auto_shown', 'true');
+        safeSessionStorage.setItem('vineb_lead_magnet_auto_shown', 'true');
       }
     }, 5000); // 5 seconds (grabs visitors before mobile bounce)
 
@@ -199,11 +201,13 @@ export default function App() {
       <LiveSalesToasts />
 
       {/* Free Sample Lead Capture Magnet Modal */}
-      <LeadMagnetModal
-        isOpen={isLeadMagnetOpen}
-        onClose={() => setIsLeadMagnetOpen(false)}
-        onSuccessRedirect={handleScrollToPricing}
-      />
+      <ErrorBoundary fallbackTitle="Lead Magnet Notice">
+        <LeadMagnetModal
+          isOpen={isLeadMagnetOpen}
+          onClose={() => setIsLeadMagnetOpen(false)}
+          onSuccessRedirect={handleScrollToPricing}
+        />
+      </ErrorBoundary>
 
       {/* 1-Click Order Bump Checkout Modal ($37 Bump + Instant Fulfillment) */}
       <CheckoutModal

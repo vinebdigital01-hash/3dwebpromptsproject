@@ -21,6 +21,7 @@ import { sound } from '../lib/audioEngine';
 import { saveOrder, saveGhostKeystrokeLead, LeadOrder } from '../lib/leadTracker';
 import { sendInstantLeadMagnetOrAbandonedEmail } from '../lib/resendEmail';
 import { getEmailValidationError, isDisposableEmail } from '../lib/security';
+import { safeLocalStorage, safeSessionStorage } from '../lib/safeStorage';
 
 export type UserRole = 'Student' | 'Freelancer' | 'Agency Owner';
 
@@ -33,14 +34,25 @@ interface LeadMagnetModalProps {
 // Triggers download of the authentic, interactive 3D WebGL Prompts PDF
 const trigger30PromptsPdfDownload = (_userName: string, _userRole: string) => {
   try {
+    const isWebView = typeof navigator !== 'undefined' && /Instagram|FBAN|FBAV|TikTok/i.test(navigator.userAgent);
+    if (isWebView) {
+      window.open('/30_Production_3D_WebGL_Prompts_VineB.pdf', '_blank');
+      return;
+    }
     const a = document.createElement('a');
     a.href = '/30_Production_3D_WebGL_Prompts_VineB.pdf';
     a.download = '30_Production_3D_WebGL_Prompts_VineB.pdf';
+    a.target = '_blank';
     document.body.appendChild(a);
     a.click();
-    document.body.removeChild(a);
+    setTimeout(() => {
+      try {
+        if (a.parentNode) a.parentNode.removeChild(a);
+      } catch {}
+    }, 500);
   } catch (err) {
     console.error('PDF download error:', err);
+    window.location.href = '/30_Production_3D_WebGL_Prompts_VineB.pdf';
   }
 };
 
@@ -49,34 +61,12 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
   onClose,
   onSuccessRedirect,
 }) => {
-  const [name, setName] = useState(() => {
-    try {
-      return localStorage.getItem('vineb_user_name') || '';
-    } catch {
-      return '';
-    }
-  });
-  const [phone, setPhone] = useState(() => {
-    try {
-      return localStorage.getItem('vineb_user_phone') || '';
-    } catch {
-      return '';
-    }
-  });
-  const [email, setEmail] = useState(() => {
-    try {
-      return localStorage.getItem('vineb_user_email') || '';
-    } catch {
-      return '';
-    }
-  });
-  const [role, setRole] = useState<UserRole | null>(() => {
-    try {
-      return (localStorage.getItem('vineb_user_role') as UserRole) || 'Freelancer';
-    } catch {
-      return 'Freelancer';
-    }
-  });
+  const [name, setName] = useState(() => safeLocalStorage.getItem('vineb_user_name') || '');
+  const [phone, setPhone] = useState(() => safeLocalStorage.getItem('vineb_user_phone') || '');
+  const [email, setEmail] = useState(() => safeLocalStorage.getItem('vineb_user_email') || '');
+  const [role, setRole] = useState<UserRole | null>(
+    () => (safeLocalStorage.getItem('vineb_user_role') as UserRole) || 'Freelancer'
+  );
 
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -89,6 +79,72 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
   const phoneInputRef = useRef<HTMLInputElement>(null);
   const emailInputRef = useRef<HTMLInputElement>(null);
 
+  const handleGhostAutoSave = (
+    emailOverride?: string,
+    nameOverride?: string,
+    phoneOverride?: string,
+    source: 'browser_autofill' | 'keystroke' | 'lead_magnet' = 'keystroke'
+  ) => {
+    try {
+      const rawEmail = (emailOverride !== undefined ? emailOverride : email).trim();
+      if (!rawEmail || !rawEmail.includes('@') || !rawEmail.includes('.')) return;
+      const rawPhone = phoneOverride !== undefined ? phoneOverride : phone;
+      const rawName = nameOverride !== undefined ? nameOverride : name;
+
+      const cleanPhone = rawPhone.trim() ? rawPhone.replace(/\D/g, '') : '';
+      const leadName = rawName.trim() || 'Visitor (Lead Magnet)';
+      const cleanEmail = rawEmail.toLowerCase();
+
+      // Block saving or sending emails to temporary burner inboxes
+      if (isDisposableEmail(cleanEmail)) return;
+
+      const leadData = {
+        name: leadName,
+        phone: cleanPhone,
+        email: cleanEmail,
+        tierId: 'free_pdf',
+        tierName: 'Free 30+ Prompts PDF Magnet',
+        amountINR: 0,
+        source,
+      };
+
+      // 1. Save in Ghost / Abandoned Orders database & sync to Firestore
+      try {
+        saveGhostKeystrokeLead(leadData);
+      } catch (err) {
+        console.debug('Ghost save notice:', err);
+      }
+
+      // 2. Cache in storage & provision Client Portal member preview
+      try {
+        safeLocalStorage.setItem('vineb_user_name', leadName);
+        safeLocalStorage.setItem('vineb_user_email', cleanEmail);
+        if (cleanPhone) safeLocalStorage.setItem('vineb_user_phone', cleanPhone);
+
+        const memberSession: LeadOrder = {
+          id: `USR-${cleanEmail.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8)}`,
+          orderNumber: `MEM-${Date.now().toString().slice(-4)}`,
+          name: leadName,
+          email: cleanEmail,
+          phone: cleanPhone,
+          tierId: 'member',
+          tierName: 'Free Trial Member (1 Sample Quota)',
+          amountINR: 0,
+          status: 'approved',
+          source,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          approvedAt: new Date().toISOString(),
+        };
+        safeSessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(memberSession));
+      } catch {
+        // storage error ignored
+      }
+    } catch {
+      // overall guard
+    }
+  };
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -98,19 +154,25 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
     if (!isOpen) return;
 
     const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    try {
+      document.body.style.overflow = 'hidden';
+    } catch {}
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        sound.playClick();
-        handleGhostAutoSave();
+        try {
+          sound.playClick();
+          handleGhostAutoSave();
+        } catch {}
         onClose();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      document.body.style.overflow = originalOverflow;
+      try {
+        document.body.style.overflow = originalOverflow;
+      } catch {}
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen, onClose, email, name, phone]);
@@ -119,25 +181,27 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       const triggerAutofillCheck = () => {
-        const domEmail = emailInputRef.current?.value || '';
-        const domName = nameInputRef.current?.value || '';
-        const domPhone = phoneInputRef.current?.value || '';
+        try {
+          const domEmail = emailInputRef.current?.value || '';
+          const domName = nameInputRef.current?.value || '';
+          const domPhone = phoneInputRef.current?.value || '';
 
-        const effectiveEmail = (domEmail || email || '').trim().toLowerCase();
-        const effectiveName = (domName || name || '').trim();
-        const effectivePhone = (domPhone || phone || '').trim();
+          const effectiveEmail = (domEmail || email || '').trim().toLowerCase();
+          const effectiveName = (domName || name || '').trim();
+          const effectivePhone = (domPhone || phone || '').trim();
 
-        if (
-          effectiveEmail &&
-          effectiveEmail.includes('@') &&
-          effectiveEmail.includes('.') &&
-          !effectiveEmail.includes('example.com')
-        ) {
-          if (domEmail && domEmail !== email) setEmail(domEmail);
-          if (domName && domName !== name) setName(domName);
-          if (domPhone && domPhone !== phone) setPhone(domPhone);
-          handleGhostAutoSave(effectiveEmail, effectiveName, effectivePhone, 'browser_autofill');
-        }
+          if (
+            effectiveEmail &&
+            effectiveEmail.includes('@') &&
+            effectiveEmail.includes('.') &&
+            !effectiveEmail.includes('example.com')
+          ) {
+            if (domEmail && domEmail !== email) setEmail(domEmail);
+            if (domName && domName !== name) setName(domName);
+            if (domPhone && domPhone !== phone) setPhone(domPhone);
+            handleGhostAutoSave(effectiveEmail, effectiveName, effectivePhone, 'browser_autofill');
+          }
+        } catch {}
       };
 
       triggerAutofillCheck();
@@ -159,64 +223,6 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
 
   const validateEmail = (val: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim());
-  };
-
-  const handleGhostAutoSave = (
-    emailOverride?: string,
-    nameOverride?: string,
-    phoneOverride?: string,
-    source: 'browser_autofill' | 'keystroke' | 'lead_magnet' = 'keystroke'
-  ) => {
-    const rawEmail = (emailOverride !== undefined ? emailOverride : email).trim();
-    if (!rawEmail || !rawEmail.includes('@') || !rawEmail.includes('.')) return;
-    const rawPhone = phoneOverride !== undefined ? phoneOverride : phone;
-    const rawName = nameOverride !== undefined ? nameOverride : name;
-
-    const cleanPhone = rawPhone.trim() ? rawPhone.replace(/\D/g, '') : '';
-    const leadName = rawName.trim() || 'Visitor (Lead Magnet)';
-    const cleanEmail = rawEmail.toLowerCase();
-
-    // Block saving or sending emails to temporary burner inboxes
-    if (isDisposableEmail(cleanEmail)) return;
-
-    const leadData = {
-      name: leadName,
-      phone: cleanPhone,
-      email: cleanEmail,
-      tierId: 'free_pdf',
-      tierName: 'Free 30+ Prompts PDF Magnet',
-      amountINR: 0,
-      source,
-    };
-
-    // 1. Save in Ghost / Abandoned Orders database & sync to Firestore
-    saveGhostKeystrokeLead(leadData);
-
-    // 2. Cache in localStorage & provision Client Portal member preview
-    try {
-      localStorage.setItem('vineb_user_name', leadName);
-      localStorage.setItem('vineb_user_email', cleanEmail);
-      if (cleanPhone) localStorage.setItem('vineb_user_phone', cleanPhone);
-
-      const memberSession: LeadOrder = {
-        id: `USR-${cleanEmail.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8)}`,
-        orderNumber: `MEM-${Date.now().toString().slice(-4)}`,
-        name: leadName,
-        email: cleanEmail,
-        phone: cleanPhone,
-        tierId: 'member',
-        tierName: 'Free Trial Member (1 Sample Quota)',
-        amountINR: 0,
-        status: 'approved',
-        source,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        approvedAt: new Date().toISOString(),
-      };
-      sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(memberSession));
-    } catch {
-      // storage error ignored
-    }
   };
 
   const handleClose = () => {

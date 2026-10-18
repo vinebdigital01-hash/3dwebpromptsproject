@@ -3,34 +3,45 @@
  * Zero external audio files required. Instantaneous, zero-latency, and customizable.
  */
 
+import { safeLocalStorage } from './safeStorage';
+
 class AudioEngine {
   private ctx: AudioContext | null = null;
   public isMuted: boolean = false;
 
   constructor() {
-    // Check localStorage for muted preference
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('apex_sound_muted');
+    try {
+      const saved = safeLocalStorage.getItem('apex_sound_muted');
       this.isMuted = saved === 'true';
+    } catch {
+      this.isMuted = false;
     }
   }
 
   private initCtx() {
-    if (!this.ctx && typeof window !== 'undefined') {
-      const AudioCtxClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      if (AudioCtxClass) {
-        this.ctx = new AudioCtxClass();
+    try {
+      if (!this.ctx && typeof window !== 'undefined') {
+        const AudioCtxClass =
+          window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        if (AudioCtxClass) {
+          this.ctx = new AudioCtxClass();
+        }
       }
-    }
-    if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume().catch(() => {});
+      if (this.ctx && this.ctx.state === 'suspended') {
+        this.ctx.resume().catch(() => {});
+      }
+    } catch {
+      this.ctx = null;
     }
   }
 
   public toggleMute(): boolean {
     this.isMuted = !this.isMuted;
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('apex_sound_muted', String(this.isMuted));
+    try {
+      safeLocalStorage.setItem('apex_sound_muted', String(this.isMuted));
+    } catch {
+      // ignore
     }
     if (!this.isMuted) {
       this.playChirp();
