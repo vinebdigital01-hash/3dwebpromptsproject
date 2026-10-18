@@ -263,9 +263,6 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
       }
     });
 
-    // Background self-healing check: check if any Day 1 / Day 2 follow-ups are due
-    triggerDripFollowupHeartbeat(false).catch(() => {});
-
     // Check for inviteToken & email in URL hash or search
     try {
       const hash = window.location.hash || '';

@@ -878,7 +878,7 @@ export async function triggerDripFollowupHeartbeat(force = false): Promise<{
   day1Count: number;
   day2Count: number;
 }> {
-  if (typeof window === 'undefined') return { success: false, day1Count: 0, day2Count: 0 };
+  if (typeof window === 'undefined' || !force) return { success: true, day1Count: 0, day2Count: 0 };
 
   const lastRun = localStorage.getItem('apex_last_drip_cron_run');
   const now = Date.now();
