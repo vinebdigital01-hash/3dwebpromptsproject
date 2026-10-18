@@ -66,7 +66,7 @@ export default function App() {
         setIsLeadMagnetOpen(true);
         sessionStorage.setItem('vineb_lead_magnet_auto_shown', 'true');
       }
-    }, 12000); // 12 seconds (within 10-15s range)
+    }, 5000); // 5 seconds (grabs visitors before mobile bounce)
 
     return () => clearTimeout(timer);
   }, [isCheckoutOpen, isAdminMode, isPortalMode]);
@@ -151,6 +151,7 @@ export default function App() {
       <Hero
         onUnlockClick={handleScrollToPricing}
         onTerminalClick={handleScrollToTheater}
+        onFreeDownloadClick={() => setIsLeadMagnetOpen(true)}
       />
 
       {/* 1.5 'Trusted by 2,400+ Agencies' Platform Authority Marquee (Webflow, Framer, Spline, Three.js) */}

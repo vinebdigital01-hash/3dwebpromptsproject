@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowRight, Terminal, Sparkles } from 'lucide-react';
+import { ArrowRight, Terminal, Sparkles, Gift, Check } from 'lucide-react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { sound } from '../lib/audioEngine';
@@ -11,6 +11,7 @@ if (typeof window !== 'undefined') {
 interface HeroProps {
   onUnlockClick: () => void;
   onTerminalClick: () => void;
+  onFreeDownloadClick: () => void;
 }
 
 const BG_IMAGE_1 =
@@ -26,7 +27,7 @@ const ROLES = [
   'Awwwards SOTD Creator',
 ];
 
-export const Hero: React.FC<HeroProps> = ({ onUnlockClick, onTerminalClick }) => {
+export const Hero: React.FC<HeroProps> = ({ onUnlockClick, onTerminalClick, onFreeDownloadClick }) => {
   const [roleIndex, setRoleIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const revealDivRef = useRef<HTMLDivElement>(null);
@@ -446,36 +447,48 @@ export const Hero: React.FC<HeroProps> = ({ onUnlockClick, onTerminalClick }) =>
           Stop spending 6 months learning WebGL, Three.js, and GLSL shaders. Copy our vault of 500+ battle-tested one-shot prompts to deploy jaw-dropping 3D interactive experiences in minutes.
         </p>
 
-        {/* Dual High-Conversion CTAs (Bright Electric Blue & Indigo Button) */}
+        {/* Dual High-Conversion CTAs: Free Starter PDF + Vault Pass */}
         <div
           ref={ctaGroupRef}
-          className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mb-8 will-change-transform transform-gpu"
+          className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 sm:gap-4 mb-3 will-change-transform transform-gpu"
         >
-          {/* Primary CTA */}
+          {/* Primary CTA: Free 30+ Prompts PDF Lead Magnet */}
+          <button
+            onClick={() => {
+              sound.playSuccess();
+              onFreeDownloadClick();
+            }}
+            onMouseEnter={() => sound.playHover()}
+            className="group relative inline-flex items-center justify-center gap-2.5 px-6 sm:px-8 py-3.5 sm:py-4 rounded-full text-sm sm:text-base font-bold text-white bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 transition-all duration-200 active:scale-95 shadow-[0_0_24px_rgba(59,130,246,0.5)] ring-1 ring-blue-400/50 overflow-hidden cursor-pointer"
+          >
+            <Gift className="w-4 h-4 text-emerald-300 animate-pulse" />
+            <span>Download Free 30+ Prompts PDF</span>
+            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+          </button>
+
+          {/* Secondary Ghost Button: Paid Vault Unlock */}
           <button
             onClick={() => {
               sound.playSuccess();
               onUnlockClick();
             }}
             onMouseEnter={() => sound.playHover()}
-            className="group relative inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full text-sm sm:text-base font-bold text-white bg-blue-600 hover:bg-blue-500 transition-all duration-200 active:scale-95 shadow-md overflow-hidden"
+            className="inline-flex items-center justify-center gap-2 px-6 sm:px-7 py-3.5 sm:py-4 rounded-full text-sm sm:text-base font-semibold text-white/90 bg-black/60 hover:bg-blue-600/10 border border-white/20 hover:border-blue-400/40 backdrop-blur-md transition-all duration-300 hover:scale-[1.02] active:scale-95 cursor-pointer"
           >
-            <span>Unlock The Vault — From ₹49</span>
-            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+            <Sparkles className="w-4 h-4 text-amber-400" />
+            <span>Unlock All 500+ Vault (From ₹49)</span>
           </button>
+        </div>
 
-          {/* Secondary Ghost Button */}
-          <button
-            onClick={() => {
-              sound.playClick();
-              onTerminalClick();
-            }}
-            onMouseEnter={() => sound.playHover()}
-            className="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full text-sm sm:text-base font-medium text-white/90 bg-black/60 hover:bg-blue-600/10 border border-white/20 hover:border-blue-400/40 backdrop-blur-md transition-all duration-300 hover:scale-[1.02] active:scale-95"
-          >
-            <Terminal className="w-4 h-4 text-blue-400" />
-            <span>Inspect 3D Cinema Reels</span>
-          </button>
+        {/* Micro-Trust Proof Underneath Buttons (Instant reassurance for cold ad traffic) */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[11px] font-mono text-zinc-400 mb-7">
+          <span className="flex items-center gap-1 text-emerald-400 font-semibold">
+            <Check className="w-3.5 h-3.5 text-emerald-400" /> 100% Free Instant Download
+          </span>
+          <span>•</span>
+          <span>Direct PDF + Portal Access</span>
+          <span>•</span>
+          <span className="text-zinc-500">Zero Credit Card Required</span>
         </div>
 
         {/* Social Proof Bar */}

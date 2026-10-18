@@ -169,9 +169,10 @@ export const Navbar: React.FC<NavbarProps> = ({ onUnlockClick, onLeadMagnetClick
                 sound.playClick();
                 onLeadMagnetClick();
               }}
-              className="hidden md:inline-flex px-3 py-1.5 rounded-full text-xs font-mono text-blue-300 hover:text-white bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 transition-all"
+              className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-mono text-emerald-300 hover:text-white bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 transition-all cursor-pointer"
             >
-              Free 30+ Prompts (.PDF)
+              <span className="hidden sm:inline">🎁 Free 30+ Prompts (.PDF)</span>
+              <span className="sm:hidden font-bold">🎁 Free PDF</span>
             </button>
 
 

@@ -178,6 +178,7 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmittedSuccess, setIsSubmittedSuccess] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
   const [mounted, setMounted] = useState(false);
 
   // Input refs for direct DOM browser autofill extraction
@@ -322,6 +323,26 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
     setIsSubmittedSuccess(false);
     onClose();
   };
+
+  // Automated 3-second countdown to transport user into Member Portal upon successful submission
+  useEffect(() => {
+    if (!isSubmittedSuccess) return;
+    setCountdown(3);
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev !== null && prev <= 1) {
+          clearInterval(timer);
+          setIsSubmittedSuccess(false);
+          onClose();
+          window.location.hash = '#portal';
+          return 0;
+        }
+        return prev !== null ? prev - 1 : 0;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isSubmittedSuccess, onClose]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -479,6 +500,30 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
               Your starter repository <code className="text-zinc-200 font-mono text-[11px] bg-white/5 px-1.5 py-0.5 rounded border border-white/10">30_Production_3D_WebGL_Prompts_VineB.pdf</code> has initiated direct download. A backup delivery is archived for <strong className="text-zinc-200">{email}</strong> and WhatsApp <strong className="text-zinc-200">+91 {phone}</strong>.
             </p>
 
+            {/* Auto-Redirect / Countdown Status Banner */}
+            <div className="mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <span className="relative flex h-2.5 w-2.5 shrink-0">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                </span>
+                <span className="text-xs font-mono text-emerald-300 font-medium">
+                  PDF downloaded! Launching Studio Portal in {countdown ?? 3}s...
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playSuccess();
+                  handleClose();
+                  window.location.hash = '#portal';
+                }}
+                className="text-[11px] font-mono font-bold text-emerald-400 hover:text-emerald-300 underline underline-offset-2 shrink-0 cursor-pointer"
+              >
+                Skip wait →
+              </button>
+            </div>
+
             {/* Free Member Portal Direct Launch */}
             <div className="mb-4">
               <button
@@ -491,7 +536,11 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
                 className="w-full py-3 px-4 rounded-xl text-xs font-mono font-bold uppercase tracking-wider text-black bg-emerald-400 hover:bg-emerald-300 active:scale-[0.99] transition-all shadow-[0_4px_20px_rgba(52,211,153,0.35)] flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Sparkles className="w-4 h-4 text-black" />
-                <span>Open Free Member Portal & Copy Prompt Now →</span>
+                <span>
+                  {countdown !== null && countdown > 0
+                    ? `Opening Studio Portal in ${countdown}s (or click now) →`
+                    : 'Open Free Member Portal & Copy Prompt Now →'}
+                </span>
               </button>
             </div>
 
