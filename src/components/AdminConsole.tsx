@@ -78,6 +78,10 @@ import {
   purgeAllDummyData,
   clearAllOrders,
   syncAllLeadsFromCloud,
+  deleteLeadPermanently,
+  deleteLeadGroupPermanently,
+  purgeAllLeadsPermanently,
+  deleteApprovedOrderPermanently,
   isDummyOrder,
   syncChannel,
 } from '../lib/leadTracker';
@@ -536,6 +540,70 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
       showToast(`Error sending email: ${err.message || 'Unknown error'}`);
     } finally {
       setSendingLeadEmailId(null);
+    }
+  };
+
+  const [isPurgingLeads, setIsPurgingLeads] = useState(false);
+  const [deletingLeadId, setDeletingLeadId] = useState<string | null>(null);
+
+  const handleDeleteSingleLead = async (leadId: string, email?: string, phone?: string) => {
+    sound.playClick();
+    if (!window.confirm('Are you sure you want to permanently delete this lead?')) return;
+    setDeletingLeadId(leadId);
+    try {
+      await deleteLeadPermanently(leadId, email, phone);
+      showToast('Lead deleted permanently.');
+      loadData();
+    } catch {
+      showToast('Failed to delete lead.');
+    } finally {
+      setDeletingLeadId(null);
+    }
+  };
+
+  const handleDeleteLeadGroup = async (group: any) => {
+    sound.playClick();
+    const leadsToDelete: LeadOrder[] = (group.attempts && group.attempts.length > 0)
+      ? group.attempts
+      : (group.primaryLead ? [group.primaryLead] : []);
+    const count = leadsToDelete.length;
+    if (!window.confirm(`Permanently delete all ${count} interaction touchpoint(s) for "${group.name || group.email || 'this lead'}"?`)) return;
+    setDeletingLeadId(group.key);
+    try {
+      await deleteLeadGroupPermanently(leadsToDelete);
+      showToast(`Deleted ${count} lead record(s).`);
+      loadData();
+    } catch {
+      showToast('Failed to delete lead group.');
+    } finally {
+      setDeletingLeadId(null);
+    }
+  };
+
+  const handlePurgeAllTestLeads = async () => {
+    sound.playClick();
+    if (!window.confirm('⚠️ WARNING: This will permanently delete ALL leads and ghost entries across your local cache, Cloud Database, and Relay API.\n\nAre you sure you want to wipe all leads?')) return;
+    setIsPurgingLeads(true);
+    try {
+      await purgeAllLeadsPermanently();
+      showToast('All leads have been wiped clean.');
+      loadData();
+    } catch {
+      showToast('Failed to purge leads.');
+    } finally {
+      setIsPurgingLeads(false);
+    }
+  };
+
+  const handleDeleteApprovedOrder = async (orderId: string, email?: string) => {
+    sound.playClick();
+    if (!window.confirm('Permanently delete this approved order record? This cannot be undone.')) return;
+    try {
+      await deleteApprovedOrderPermanently(orderId, email);
+      showToast('Order record deleted.');
+      loadData();
+    } catch {
+      showToast('Failed to delete order.');
     }
   };
 
@@ -1996,6 +2064,28 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                     <span>Export to Meta CSV</span>
                   </button>
                 )}
+
+                {ghostLeads.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handlePurgeAllTestLeads}
+                    disabled={isPurgingLeads}
+                    className="px-3.5 py-2 rounded-xl bg-red-950/40 hover:bg-red-900/60 text-red-300 hover:text-white border border-red-500/30 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                    title="Permanently wipe all test leads and ghost records"
+                  >
+                    {isPurgingLeads ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-red-400" />
+                        <span>Purging Leads...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                        <span>Purge All Test Leads</span>
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
 
@@ -2359,6 +2449,20 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                               </>
                             )}
                           </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteLeadGroup(group)}
+                            disabled={deletingLeadId === group.key}
+                            className="p-1.5 sm:p-2 rounded-lg bg-red-950/30 hover:bg-red-900/50 text-red-400 hover:text-red-300 border border-red-500/20 transition-all cursor-pointer disabled:opacity-50 shrink-0"
+                            title="Permanently delete this lead & all touchpoints"
+                          >
+                            {deletingLeadId === group.key ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-3.5 h-3.5" />
+                            )}
+                          </button>
                         </div>
                       </div>
 
@@ -2400,8 +2504,19 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                                   <span className="text-white/80">{att.tierName}</span>
                                   <span className="text-blue-400 font-bold">₹{att.amountINR}</span>
                                 </div>
-                                <div className="text-zinc-500 text-[10px]">
-                                  {new Date(att.updatedAt || att.createdAt || 0).toLocaleString()}
+                                <div className="flex items-center gap-2">
+                                  <div className="text-zinc-500 text-[10px]">
+                                    {new Date(att.updatedAt || att.createdAt || 0).toLocaleString()}
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteSingleLead(att.id, att.email, att.phone)}
+                                    disabled={deletingLeadId === att.id}
+                                    className="p-1 rounded text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                                    title="Delete this touchpoint"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
                                 </div>
                               </div>
                             );
@@ -2523,6 +2638,20 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                               <Send className="w-3 h-3" />
                               <span>Send Recovery Email</span>
                             </>
+                          )}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteSingleLead(lead.id, lead.email, lead.phone)}
+                          disabled={deletingLeadId === lead.id}
+                          className="p-1.5 sm:p-2 rounded-lg bg-red-950/30 hover:bg-red-900/50 text-red-400 hover:text-red-300 border border-red-500/20 transition-all cursor-pointer disabled:opacity-50 shrink-0"
+                          title="Permanently delete this lead"
+                        >
+                          {deletingLeadId === lead.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-3.5 h-3.5" />
                           )}
                         </button>
                       </div>
@@ -2675,6 +2804,14 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                       >
                         <Send className="w-3.5 h-3.5 text-blue-400" />
                         <span>Resend Invoice &amp; Pass</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleDeleteApprovedOrder(order.id, order.email)}
+                        className="p-2 rounded-xl bg-red-950/30 hover:bg-red-900/50 text-red-400 hover:text-red-300 border border-red-500/20 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                        title="Delete order record permanently"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>

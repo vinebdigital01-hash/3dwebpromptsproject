@@ -7,6 +7,8 @@ import {
   syncGhostLeadToCloud,
   saveOrderToFirestore,
   deleteOrderFromFirestore,
+  deleteMatchingOrdersFromFirestore,
+  purgeAllOrdersFromFirestore,
   subscribeToFirestoreOrders,
   fetchAllCloudOrdersAndGhostLeads,
   saveCloudQuotaRecord,
@@ -323,6 +325,40 @@ export function clearAllOrders(): void {
  * Retrieve all orders from local database (mirrors Firebase Firestore)
  */
 const GHOST_BACKUP_KEY = 'apex3d_ghost_vault_permanent';
+const DELETED_LEADS_KEY = 'apex3d_deleted_leads_v1';
+
+export function getDeletedLeadKeys(): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = localStorage.getItem(DELETED_LEADS_KEY);
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw);
+    return new Set(Array.isArray(arr) ? arr.map((k: string) => k.toLowerCase()) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+export function markLeadKeysDeleted(keys: string[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const current = getDeletedLeadKeys();
+    keys.forEach((k) => {
+      if (k && k.trim()) current.add(k.trim().toLowerCase());
+    });
+    localStorage.setItem(DELETED_LEADS_KEY, JSON.stringify(Array.from(current)));
+  } catch {}
+}
+
+export function isLeadDeleted(order: Partial<LeadOrder>): boolean {
+  if (!order) return true;
+  const deletedKeys = getDeletedLeadKeys();
+  if (order.id && deletedKeys.has(order.id.toLowerCase())) return true;
+  if (order.email && deletedKeys.has(order.email.trim().toLowerCase())) return true;
+  const cleanPhone = (order.phone || '').replace(/\D/g, '');
+  if (cleanPhone && deletedKeys.has(cleanPhone)) return true;
+  return false;
+}
 
 export function getAllOrders(): LeadOrder[] {
   if (typeof window === 'undefined') return [];
@@ -332,18 +368,18 @@ export function getAllOrders(): LeadOrder[] {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        orders = parsed.filter((o) => !isDummyOrder(o));
+        orders = parsed.filter((o) => !isDummyOrder(o) && !isLeadDeleted(o));
       }
     }
 
-    // Check backup ghost vault to ensure no ghost leads are ever dropped
+    // Check backup ghost vault to ensure no real ghost leads are dropped
     try {
       const ghostRaw = localStorage.getItem(GHOST_BACKUP_KEY);
       if (ghostRaw) {
         const backupGhosts: LeadOrder[] = JSON.parse(ghostRaw);
         if (Array.isArray(backupGhosts)) {
           backupGhosts.forEach((bg) => {
-            if (bg && bg.id && !isDummyOrder(bg)) {
+            if (bg && bg.id && !isDummyOrder(bg) && !isLeadDeleted(bg)) {
               if (!orders.some((o) => o.id === bg.id || (o.email && o.email.toLowerCase() === bg.email.toLowerCase()))) {
                 orders.push(bg);
               }
@@ -364,7 +400,7 @@ export function getAllOrders(): LeadOrder[] {
           promptLeads.forEach((pl: any) => {
             if (pl && pl.email) {
               const cleanEmail = pl.email.trim().toLowerCase();
-              if (isDummyOrder({ email: cleanEmail, name: pl.name })) return;
+              if (isDummyOrder({ email: cleanEmail, name: pl.name }) || isLeadDeleted({ email: cleanEmail, phone: pl.phone })) return;
               const existing = orders.find(
                 (o) => o.email && o.email.toLowerCase() === cleanEmail
               );
@@ -554,9 +590,9 @@ export async function syncAllLeadsFromCloud(): Promise<LeadOrder[]> {
     // 1. Query Firestore
     try {
       const cloudOrders = await fetchAllCloudOrdersAndGhostLeads();
-      const cleanCloud = cloudOrders.filter((o) => !isDummyOrder(o));
+      const cleanCloud = cloudOrders.filter((o) => !isDummyOrder(o) && !isLeadDeleted(o));
       cleanCloud.forEach((o) => {
-        if (o.id && !isDummyOrder(o)) {
+        if (o.id && !isDummyOrder(o) && !isLeadDeleted(o)) {
           const existing = mergedMap.get(o.id);
           if (!existing || new Date(o.updatedAt || 0) >= new Date(existing.updatedAt || 0)) {
             mergedMap.set(o.id, o);
@@ -574,7 +610,7 @@ export async function syncAllLeadsFromCloud(): Promise<LeadOrder[]> {
         const data = await relayRes.json();
         if (data && Array.isArray(data.leads)) {
           data.leads.forEach((l: any) => {
-            if (l && l.id && !isDummyOrder(l)) {
+            if (l && l.id && !isDummyOrder(l) && !isLeadDeleted(l)) {
               const existing = mergedMap.get(l.id);
               if (!existing || new Date(l.updatedAt || 0) >= new Date(existing.updatedAt || 0)) {
                 mergedMap.set(l.id, l);
@@ -587,51 +623,7 @@ export async function syncAllLeadsFromCloud(): Promise<LeadOrder[]> {
       // serverless relay fetch fallback ignored
     }
 
-    // 3. Cloud Lead Vault Recovery: Ensure verified leads captured via Resend are preserved across devices
-    const PERSISTENT_RECOVERED_LEADS: LeadOrder[] = [
-      {
-        id: 'GHOST-satya773791-day_pass',
-        orderNumber: 'APX-886007',
-        name: 'FASHION 4ROCK',
-        email: 'satya773791@gmail.com',
-        phone: '8860077777',
-        tierId: 'day_pass',
-        tierName: '1-Day Sprint Pass',
-        amountINR: 49,
-        status: 'unsubmitted_keystroke',
-        source: 'keystroke',
-        createdAt: '2026-10-17T20:11:58.000Z',
-        updatedAt: '2026-10-17T20:11:59.000Z',
-      },
-      {
-        id: 'GHOST-sjsjsj-free_trial',
-        orderNumber: 'APX-999999',
-        name: 'Xxyyzz',
-        email: 'sjsjsj@gmail.com',
-        phone: '9999999999',
-        role: 'Freelancer',
-        tierId: 'prompt_copy',
-        tierName: 'Free Sample: Hazmat Cybersecurity Master 3D Prompt',
-        amountINR: 0,
-        status: 'free_trial_claimed',
-        source: 'portal_free_copy_modal',
-        createdAt: '2026-10-17T11:57:33.000Z',
-        updatedAt: '2026-10-17T11:57:36.000Z',
-      },
-    ];
-
-    PERSISTENT_RECOVERED_LEADS.forEach((rec) => {
-      const exists = Array.from(mergedMap.values()).some(
-        (o) =>
-          (o.email && o.email.toLowerCase() === rec.email.toLowerCase()) ||
-          (o.phone && o.phone.replace(/\D/g, '') === rec.phone.replace(/\D/g, ''))
-      );
-      if (!exists) {
-        mergedMap.set(rec.id, rec);
-      }
-    });
-
-    const merged = Array.from(mergedMap.values());
+    const merged = Array.from(mergedMap.values()).filter((o) => !isLeadDeleted(o));
     merged.sort(
       (a, b) =>
         new Date(b.updatedAt || b.createdAt || 0).getTime() -
@@ -645,6 +637,110 @@ export async function syncAllLeadsFromCloud(): Promise<LeadOrder[]> {
     console.debug('Failed to sync leads from cloud:', err);
     return getAllOrders();
   }
+}
+
+/**
+ * Permanently delete a single lead or order across all local stores, Firestore, and Serverless Relay
+ */
+export async function deleteLeadPermanently(leadId: string, email?: string, phone?: string): Promise<void> {
+  if (typeof window === 'undefined') return;
+  try {
+    const keysToBlacklist = [leadId];
+    if (email) keysToBlacklist.push(email.trim().toLowerCase());
+    if (phone) keysToBlacklist.push(phone.trim().replace(/\D/g, ''));
+    markLeadKeysDeleted(keysToBlacklist);
+
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanPhone = (phone || '').trim().replace(/\D/g, '');
+
+    const purgePredicate = (item: any) => {
+      if (!item) return false;
+      const itemId = item.id;
+      const itemEmail = (item.email || '').trim().toLowerCase();
+      const itemPhone = (item.phone || '').trim().replace(/\D/g, '');
+      if (itemId && itemId === leadId) return true;
+      if (cleanEmail && itemEmail === cleanEmail) return true;
+      if (cleanPhone && itemPhone === cleanPhone) return true;
+      return false;
+    };
+
+    [STORAGE_KEY, GHOST_STORAGE_KEY, GHOST_BACKUP_KEY, 'apex_prompt_leads'].forEach((k) => {
+      try {
+        const raw = localStorage.getItem(k);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            const filtered = parsed.filter((it) => !purgePredicate(it));
+            localStorage.setItem(k, JSON.stringify(filtered));
+          }
+        }
+      } catch {}
+    });
+
+    // Remove from Firestore
+    deleteOrderFromFirestore(leadId).catch(() => {});
+    if (cleanEmail || cleanPhone) {
+      deleteMatchingOrdersFromFirestore(cleanEmail, cleanPhone).catch(() => {});
+    }
+
+    // Remove from Relay API
+    fetch(`/api/sync-lead?id=${encodeURIComponent(leadId)}&email=${encodeURIComponent(cleanEmail)}&phone=${encodeURIComponent(cleanPhone)}`, {
+      method: 'DELETE',
+    }).catch(() => {});
+
+    window.dispatchEvent(new CustomEvent('apex_order_updated', { detail: null }));
+  } catch (err) {
+    console.error('Failed to permanently delete lead:', err);
+  }
+}
+
+/**
+ * Permanently delete an entire group of touchpoints/leads for a user
+ */
+export async function deleteLeadGroupPermanently(leads: LeadOrder[]): Promise<void> {
+  if (!leads || !Array.isArray(leads)) return;
+  for (const l of leads) {
+    await deleteLeadPermanently(l.id, l.email, l.phone);
+  }
+}
+
+/**
+ * Purge ALL test leads and orders permanently across local storage, Cloud Firestore, and Relay API
+ */
+export async function purgeAllLeadsPermanently(): Promise<void> {
+  if (typeof window === 'undefined') return;
+  try {
+    const orders = getAllOrders();
+    const allKeys: string[] = [];
+    orders.forEach((o) => {
+      if (o.id) allKeys.push(o.id);
+      if (o.email) allKeys.push(o.email.trim().toLowerCase());
+      if (o.phone) allKeys.push(o.phone.trim().replace(/\D/g, ''));
+    });
+    markLeadKeysDeleted(allKeys);
+
+    [STORAGE_KEY, GHOST_STORAGE_KEY, GHOST_BACKUP_KEY, 'apex_prompt_leads', 'apex3d_marketing_campaigns_db'].forEach((k) => {
+      try {
+        localStorage.setItem(k, JSON.stringify([]));
+      } catch {}
+    });
+
+    purgeAllOrdersFromFirestore().catch(() => {});
+
+    fetch('/api/sync-lead?all=true', { method: 'DELETE' }).catch(() => {});
+
+    window.dispatchEvent(new CustomEvent('apex_order_updated', { detail: [] }));
+    window.dispatchEvent(new CustomEvent('apex_marketing_dispatched', { detail: [] }));
+  } catch (err) {
+    console.error('Failed to purge all leads:', err);
+  }
+}
+
+/**
+ * Permanently delete an approved order and revoke associated credentials
+ */
+export async function deleteApprovedOrderPermanently(orderId: string, email?: string): Promise<void> {
+  await deleteLeadPermanently(orderId, email);
 }
 
 // Auto-activate in browser

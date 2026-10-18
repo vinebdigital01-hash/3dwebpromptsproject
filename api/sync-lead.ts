@@ -43,12 +43,12 @@ export default async function handler(req: any, res: any) {
                   id: `LEAD-${item.id.slice(0, 8)}`,
                   orderNumber: `MEM-${item.id.slice(-4)}`,
                   name: name || 'Visitor',
-                  email: phone === '8860077777' ? 'satya773791@gmail.com' : phone === '9999999999' ? 'sjsjsj@gmail.com' : '',
+                  email: '',
                   phone,
                   role,
-                  tierName: phone === '8860077777' ? '1-Day Sprint Pass' : 'Free Sample Prompt',
-                  amountINR: phone === '8860077777' ? 49 : 0,
-                  status: phone === '8860077777' ? 'unsubmitted_keystroke' : 'free_trial_claimed',
+                  tierName: 'Free Sample Prompt',
+                  amountINR: 0,
+                  status: 'free_trial_claimed',
                   source: 'cloud_sync_relay',
                   createdAt: item.created_at || new Date().toISOString(),
                   updatedAt: item.created_at || new Date().toISOString(),
@@ -62,6 +62,29 @@ export default async function handler(req: any, res: any) {
       }
     }
     return res.status(200).json({ leads: memoryLeads });
+  }
+
+  if (req.method === 'DELETE') {
+    const { id, all, email, phone } = req.query;
+    if (all === 'true' || req.body?.all === true) {
+      memoryLeads.length = 0;
+      return res.status(200).json({ success: true, message: 'All leads purged from relay.' });
+    }
+    const cleanEmail = (typeof email === 'string' ? email : '').trim().toLowerCase();
+    const cleanPhone = (typeof phone === 'string' ? phone : '').trim().replace(/\D/g, '');
+    const cleanId = (typeof id === 'string' ? id : '').trim();
+
+    for (let i = memoryLeads.length - 1; i >= 0; i--) {
+      const item = memoryLeads[i];
+      if (
+        (cleanId && item.id === cleanId) ||
+        (cleanEmail && (item.email || '').toLowerCase() === cleanEmail) ||
+        (cleanPhone && (item.phone || '').replace(/\D/g, '') === cleanPhone)
+      ) {
+        memoryLeads.splice(i, 1);
+      }
+    }
+    return res.status(200).json({ success: true, remaining: memoryLeads.length });
   }
 
   if (req.method === 'POST') {

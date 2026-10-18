@@ -115,10 +115,59 @@ export async function saveOrderToFirestore(order: any): Promise<void> {
 export async function deleteOrderFromFirestore(orderId: string): Promise<void> {
   if (typeof window === 'undefined' || !orderId) return;
   try {
-    await deleteDoc(doc(db, 'orders', orderId));
+    await deleteDoc(doc(db, 'orders', orderId)).catch(() => {});
     await deleteDoc(doc(db, 'ghost_leads', orderId)).catch(() => {});
   } catch (err) {
     console.debug('Cloud deleteOrder error:', err);
+  }
+}
+
+/**
+ * Delete orders matching email or phone across Firestore
+ */
+export async function deleteMatchingOrdersFromFirestore(email?: string, phone?: string): Promise<void> {
+  if (typeof window === 'undefined') return;
+  try {
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanPhone = (phone || '').trim().replace(/\D/g, '');
+
+    for (const collName of ['orders', 'ghost_leads']) {
+      try {
+        const snap = await getDocs(collection(db, collName));
+        for (const docSnap of snap.docs) {
+          const data = docSnap.data();
+          const docEmail = (data.email || '').trim().toLowerCase();
+          const docPhone = (data.phone || '').trim().replace(/\D/g, '');
+          if (
+            (cleanEmail && docEmail === cleanEmail) ||
+            (cleanPhone && docPhone === cleanPhone)
+          ) {
+            await deleteDoc(doc(db, collName, docSnap.id)).catch(() => {});
+          }
+        }
+      } catch {}
+    }
+  } catch (err) {
+    console.debug('Cloud deleteMatchingOrders error:', err);
+  }
+}
+
+/**
+ * Purge all orders and ghost leads from Firestore
+ */
+export async function purgeAllOrdersFromFirestore(): Promise<void> {
+  if (typeof window === 'undefined') return;
+  try {
+    for (const collName of ['orders', 'ghost_leads']) {
+      try {
+        const snap = await getDocs(collection(db, collName));
+        for (const docSnap of snap.docs) {
+          await deleteDoc(doc(db, collName, docSnap.id)).catch(() => {});
+        }
+      } catch {}
+    }
+  } catch (err) {
+    console.debug('Cloud purgeAllOrders error:', err);
   }
 }
 
