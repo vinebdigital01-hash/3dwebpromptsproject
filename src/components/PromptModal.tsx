@@ -170,8 +170,10 @@ export const PromptModal: React.FC<PromptModalProps> = ({ item, onClose, onUnloc
 
             <div className="relative bg-[#050508] border border-zinc-800 rounded-xl p-4 sm:p-5 font-mono text-xs text-zinc-400 leading-relaxed overflow-hidden max-h-[220px]">
               <pre className="whitespace-pre-wrap select-none opacity-40 font-mono">
-                {item.promptArchitecture.slice(0, 320)}
-                {'\n\n[// ARCHITECTURE LOCKED: 2,500+ TOKENS OF VERIFIED PRODUCTION CODE]'}
+                {item.promptArchitecture.slice(0, 140)}
+                {'\n\n................................................................................'}
+                {'\n[🔒 ARCHITECTURE LOCKED: 2,500+ TOKENS OF VERIFIED PRODUCTION CODE]'}
+                {'\n................................................................................'}
               </pre>
 
               {/* Glassmorphic Gated Shield */}

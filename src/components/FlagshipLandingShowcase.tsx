@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Play, Pause, Volume2, VolumeX, Maximize2, Sparkles, ArrowRight, ShieldCheck, Copy, Check, Terminal, ExternalLink } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Maximize2, Sparkles, ArrowRight, ShieldCheck, Copy, Check, Terminal, ExternalLink, Lock } from 'lucide-react';
 import { sound } from '../lib/audioEngine';
+import { CopyPromptLeadModal } from './CopyPromptLeadModal';
 
 interface FlagshipLandingShowcaseProps {
   onUnlockClick: () => void;
@@ -150,6 +151,8 @@ export const FlagshipLandingShowcase: React.FC<FlagshipLandingShowcaseProps> = (
   const [isMuted, setIsMuted] = useState<boolean>(true);
   const [inspectedPrompt, setInspectedPrompt] = useState<FlagshipItem | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
+  const [leadTargetPrompt, setLeadTargetPrompt] = useState<FlagshipItem | null>(null);
   const videoRefs = useRef<{ [key: string]: HTMLVideoElement | null }>({});
 
   const handleSelectTab = (item: FlagshipItem) => {
@@ -184,11 +187,10 @@ export const FlagshipLandingShowcase: React.FC<FlagshipLandingShowcaseProps> = (
     setIsMuted(!isMuted);
   };
 
-  const handleCopyPrompt = (item: FlagshipItem) => {
-    sound.playSuccess();
-    navigator.clipboard.writeText(item.promptArchitecture);
-    setCopiedId(item.id);
-    setTimeout(() => setCopiedId(null), 2500);
+  const handleTriggerLeadCopy = (item: FlagshipItem) => {
+    sound.playClick();
+    setLeadTargetPrompt(item);
+    setIsLeadModalOpen(true);
   };
 
   return (
@@ -438,25 +440,52 @@ export const FlagshipLandingShowcase: React.FC<FlagshipLandingShowcaseProps> = (
                 </button>
               </div>
 
-              {/* Modal Body / Prompt Text */}
+              {/* Modal Body / Truncated Prompt Preview */}
               <div className="my-4 overflow-y-auto pr-2 space-y-4">
                 <div className="p-3.5 rounded-xl bg-blue-950/30 border border-blue-500/30 text-xs text-blue-300 flex items-center justify-between">
-                  <span>Tested with Claude 3.7 Sonnet & Cursor Composer • One-Shot Ready</span>
+                  <span className="flex items-center gap-1.5 font-medium">
+                    <ShieldCheck className="w-4 h-4 text-blue-400" />
+                    <span>Tested with Claude 3.7 Sonnet & Cursor Composer • One-Shot Ready</span>
+                  </span>
                   <span className="font-mono text-zinc-400">{inspectedPrompt.tokens}</span>
                 </div>
 
-                <div className="relative">
-                  <pre className="p-4 sm:p-5 rounded-xl bg-black border border-white/10 text-xs font-mono text-zinc-300 whitespace-pre-wrap leading-relaxed overflow-x-auto selection:bg-blue-600/30">
-                    {inspectedPrompt.promptArchitecture}
+                <div className="relative rounded-xl border border-white/10 overflow-hidden bg-black/90">
+                  <pre className="p-4 sm:p-5 text-xs font-mono text-zinc-400 whitespace-pre-wrap leading-relaxed select-none opacity-50 filter blur-[0.5px]">
+                    {inspectedPrompt.promptArchitecture.slice(0, 140)}
+                    {'\n\n................................................................................'}
+                    {'\n[🔒 ARCHITECTURAL BLUEPRINT LOCKED — 3,850+ TOKENS OF VERIFIED PRODUCTION CODE]'}
+                    {'\n[Contains Full WebGL Shaders, Responsive Canvas, & Celestial Physics Implementation]'}
+                    {'\n................................................................................'}
                   </pre>
+
+                  {/* Glassmorphic Gated Shield */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#09090f] via-[#09090f]/85 to-transparent flex flex-col items-center justify-end p-6 text-center">
+                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 mb-2 shadow-lg">
+                      <Lock className="w-5 h-5" />
+                    </div>
+                    <h4 className="text-sm font-bold text-white mb-1">
+                      {inspectedPrompt.name} Full Architecture Blueprint
+                    </h4>
+                    <p className="text-xs text-zinc-400 max-w-sm font-sans mb-3.5 leading-relaxed">
+                      Enter your details to claim and copy the complete calibrated prompt syntax directly to your clipboard.
+                    </p>
+                    <button
+                      onClick={() => handleTriggerLeadCopy(inspectedPrompt)}
+                      className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 transition-all flex items-center gap-2 shadow-[0_4px_16px_rgba(37,99,235,0.35)] active:scale-[0.99] cursor-pointer"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Unlock & Copy Full Blueprint</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
               {/* Modal Footer */}
               <div className="pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
                 <button
-                  onClick={() => handleCopyPrompt(inspectedPrompt)}
-                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-mono text-xs font-semibold transition-all flex items-center justify-center gap-2"
+                  onClick={() => handleTriggerLeadCopy(inspectedPrompt)}
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-mono text-xs font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   {copiedId === inspectedPrompt.id ? (
                     <>
@@ -476,7 +505,7 @@ export const FlagshipLandingShowcase: React.FC<FlagshipLandingShowcaseProps> = (
                     setInspectedPrompt(null);
                     onUnlockClick();
                   }}
-                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/30"
+                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/30 cursor-pointer"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>Get Complete 500+ Vault (From ₹49)</span>
@@ -486,6 +515,27 @@ export const FlagshipLandingShowcase: React.FC<FlagshipLandingShowcaseProps> = (
           </div>
         )}
       </AnimatePresence>
+
+      {/* Lead Capture Modal for Copying Blueprint */}
+      <CopyPromptLeadModal
+        isOpen={isLeadModalOpen}
+        promptSnippet={leadTargetPrompt?.promptArchitecture || ''}
+        clientTitle={leadTargetPrompt?.name}
+        onClose={() => setIsLeadModalOpen(false)}
+        onSuccessRedirect={() => {
+          setIsLeadModalOpen(false);
+          if (leadTargetPrompt) {
+            setCopiedId(leadTargetPrompt.id);
+            setTimeout(() => setCopiedId(null), 3000);
+          }
+        }}
+        onLeadSubmitted={() => {
+          if (leadTargetPrompt) {
+            setCopiedId(leadTargetPrompt.id);
+            setTimeout(() => setCopiedId(null), 3000);
+          }
+        }}
+      />
     </section>
   );
 };

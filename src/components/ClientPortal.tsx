@@ -1623,10 +1623,22 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                           </span>
                           <span className="text-zinc-500">~{spotlightPrompt.tokens} TOKENS</span>
                         </div>
-                        <div className="text-[11px] font-mono text-blue-200/90 max-h-28 overflow-y-auto whitespace-pre-wrap select-text leading-relaxed p-2.5 bg-black/50 rounded-lg border border-white/5 scrollbar-thin">
-                          {!isPaidMember && freeTrialUsage >= 1
-                            ? spotlightPrompt.promptArchitecture.slice(0, 160) + '\n\n// [FREE TRIAL QUOTA USED: 1/1 SAMPLES USED]\n// Upgrade starting at ₹49 to unlock 500+ commercial prompts!'
-                            : spotlightPrompt.promptArchitecture}
+                        <div className="text-[11px] font-mono text-blue-200/80 max-h-28 overflow-y-auto whitespace-pre-wrap select-none leading-relaxed p-2.5 bg-black/50 rounded-lg border border-white/5 scrollbar-thin">
+                          {isPaidMember ? (
+                            spotlightPrompt.promptArchitecture
+                          ) : freeTrialUsage >= 1 ? (
+                            spotlightPrompt.promptArchitecture.slice(0, 140) +
+                            '\n\n................................................................................' +
+                            '\n// [FREE TRIAL QUOTA USED: 1/1 SAMPLES USED]' +
+                            '\n// Upgrade starting at ₹49 to unlock 500+ commercial prompts!' +
+                            '\n................................................................................'
+                          ) : (
+                            spotlightPrompt.promptArchitecture.slice(0, 140) +
+                            '\n\n................................................................................' +
+                            '\n// [🔒 BLUEPRINT GATED — CLICK "COPY FREE SAMPLE" BELOW TO UNLOCK COMPLETE SYNTAX]' +
+                            '\n// Enter your details to claim full verified production code directly to clipboard' +
+                            '\n................................................................................'
+                          )}
                         </div>
                       </div>
                     )}
@@ -2469,16 +2481,19 @@ Rules:
                   {/* Preformatted Code Box */}
                   {!isPaidMember && !inspectingPrompt.allowFreeTrialCopy ? (
                     <div className="relative rounded-xl border border-amber-500/30 overflow-hidden">
-                      <div className="p-4 bg-black/80 font-mono text-xs text-blue-200/40 whitespace-pre-wrap leading-relaxed max-h-72 overflow-hidden select-none filter blur-[3px]">
-                        {inspectingPrompt.promptArchitecture.slice(0, 500)}
-                        {'\n\n// [PROTECTED ARCHITECTURE - PAID VAULT ONLY]\n// Upgrade to ₹49 Sprint Pass to view and copy complete Three.js architecture.'}
+                      <div className="p-4 bg-black/80 font-mono text-xs text-blue-200/40 whitespace-pre-wrap leading-relaxed max-h-72 overflow-hidden select-none filter blur-[2px]">
+                        {inspectingPrompt.promptArchitecture.slice(0, 140)}
+                        {'\n\n................................................................................'}
+                        {'\n[🔒 PROTECTED ARCHITECTURE — PAID VAULT ONLY]'}
+                        {'\n[Upgrade starting at ₹49 to view and copy complete Three.js architecture]'}
+                        {'\n................................................................................'}
                       </div>
                       <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/85 backdrop-blur-sm p-6 text-center">
                         <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-2">
                           <Lock className="w-5 h-5" />
                         </div>
                         <h4 className="text-sm font-bold text-white mb-1">Paid Vault Architecture</h4>
-                        <p className="text-xs text-zinc-400 max-w-sm mb-4 leading-relaxed">
+                        <p className="text-xs text-zinc-400 max-w-sm mb-4 leading-relaxed font-sans">
                           This prompt is reserved for paid passholders. Unlock full architecture syntax + commercial deployment rights starting at ₹49.
                         </p>
                         <button
@@ -2495,15 +2510,19 @@ Rules:
                     </div>
                   ) : !isPaidMember && inspectingPrompt.allowFreeTrialCopy && freeTrialUsage >= 1 ? (
                     <div className="relative rounded-xl border border-amber-500/30 overflow-hidden">
-                      <div className="p-4 bg-black/80 font-mono text-xs text-blue-200/40 whitespace-pre-wrap leading-relaxed max-h-72 overflow-hidden select-none filter blur-[3px]">
-                        {inspectingPrompt.promptArchitecture.slice(0, 500)}
+                      <div className="p-4 bg-black/80 font-mono text-xs text-blue-200/40 whitespace-pre-wrap leading-relaxed max-h-72 overflow-hidden select-none filter blur-[2px]">
+                        {inspectingPrompt.promptArchitecture.slice(0, 140)}
+                        {'\n\n................................................................................'}
+                        {'\n[🔒 FREE TRIAL QUOTA EXHAUSTED: 1/1 SAMPLES USED]'}
+                        {'\n[Upgrade starting at ₹49 to unlock 500+ commercial prompts & unmetered daily access]'}
+                        {'\n................................................................................'}
                       </div>
                       <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/85 backdrop-blur-sm p-6 text-center">
                         <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-2">
                           <Lock className="w-5 h-5" />
                         </div>
                         <h4 className="text-sm font-bold text-white mb-1">Free Trial Limit Reached (1/1 Used)</h4>
-                        <p className="text-xs text-zinc-400 max-w-sm mb-4 leading-relaxed">
+                        <p className="text-xs text-zinc-400 max-w-sm mb-4 leading-relaxed font-sans">
                           You have used your 1 free sample prompt copy. Upgrade starting at ₹49 for unlimited daily access to all 500+ prompts.
                         </p>
                         <button
@@ -2515,6 +2534,35 @@ Rules:
                           className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-mono font-bold uppercase transition-all shadow-lg shadow-amber-500/20 cursor-pointer"
                         >
                           Upgrade to Copy (₹49)
+                        </button>
+                      </div>
+                    </div>
+                  ) : !isPaidMember ? (
+                    <div className="relative rounded-xl border border-emerald-500/30 overflow-hidden">
+                      <div className="p-4 bg-black/80 font-mono text-xs text-blue-200/50 whitespace-pre-wrap leading-relaxed max-h-72 overflow-hidden select-none filter blur-[1.5px]">
+                        {inspectingPrompt.promptArchitecture.slice(0, 140)}
+                        {'\n\n................................................................................'}
+                        {'\n[🔒 ARCHITECTURAL BLUEPRINT GATED — 2,500+ TOKENS OF VERIFIED PRODUCTION CODE]'}
+                        {'\n[Click "Claim & Copy Free Sample" below to unlock full syntax directly to clipboard]'}
+                        {'\n................................................................................'}
+                      </div>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/85 backdrop-blur-sm p-6 text-center">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-2">
+                          <Sparkles className="w-5 h-5" />
+                        </div>
+                        <h4 className="text-sm font-bold text-white mb-1">Free Sample Blueprint</h4>
+                        <p className="text-xs text-zinc-400 max-w-sm mb-4 leading-relaxed font-sans">
+                          Claim your 1 free sample blueprint. Click below to copy the full calibrated prompt architecture directly to your clipboard.
+                        </p>
+                        <button
+                          onClick={() => {
+                            setInspectingPrompt(null);
+                            handleCopyPrompt(inspectingPrompt);
+                          }}
+                          className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-mono font-bold uppercase transition-all shadow-lg shadow-emerald-500/20 cursor-pointer flex items-center gap-2"
+                        >
+                          <Sparkles className="w-4 h-4" />
+                          <span>Claim & Copy Free Sample</span>
                         </button>
                       </div>
                     </div>
