@@ -30,112 +30,15 @@ interface LeadMagnetModalProps {
   onSuccessRedirect: () => void;
 }
 
-// Generates and triggers download of authentic 30+ Prompts PDF
-const trigger30PromptsPdfDownload = (userName: string, userRole: string) => {
-  const dateStr = new Date().toLocaleDateString('en-US', {
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  });
-
-  // Valid PDF-1.4 format containing 30 production prompt architectures
-  const pdfRaw = `%PDF-1.4
-%âãÏÓ
-1 0 obj
-<< /Type /Catalog /Pages 2 0 R >>
-endobj
-2 0 obj
-<< /Type /Pages /Kids [3 0 R] /Count 1 >>
-endobj
-3 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
-endobj
-4 0 obj
-<< /Length 1450 >>
-stream
-BT
-/F1 18 Tf
-50 740 Td
-(VINE B DIGITAL - 30+ 3D WEBGL PROMPT VAULT (STARTER EDITION)) Tj
-/F1 9 Tf
-0 -22 Td
-(Prepared for: ${userName} (${userRole}) | Issued: ${dateStr} | Official Release) Tj
-/F1 11 Tf
-0 -30 Td
-(1. HAZMAT CYBERSECURITY ENTERPRISE HERO - THREE.JS + GLSL) Tj
-/F1 8 Tf
-0 -16 Td
-(Prompt: Build a production dark-mode Cybersecurity Hero in React + Three.js with instanced vertices) Tj
-0 -12 Td
-(and GLSL noise displacement responding to mouse velocity with chromatic aberration.) Tj
-/F1 11 Tf
-0 -24 Td
-(2. LUXURY WATCHMAKER 3D TURNTABLE - PBR SAPPHIRE SHADERS) Tj
-/F1 8 Tf
-0 -16 Td
-(Prompt: Photorealistic chronograph turntable with physical metalness, roughness & HDR reflections.) Tj
-/F1 11 Tf
-0 -24 Td
-(3. LIQUID GLASS NEOMORPHIC CARD SPHERE - SPLINE INTERACTIVE) Tj
-/F1 8 Tf
-0 -16 Td
-(Prompt: Cursor-driven floating glass card cluster with dynamic light refraction and spring physics.) Tj
-/F1 11 Tf
-0 -24 Td
-(4. SPATIAL VISION OS PARALLAX DESKTOP) Tj
-/F1 8 Tf
-0 -16 Td
-(Prompt: Apple Vision OS styled spatial glass windows with eye-tracking depth and frosted blur.) Tj
-/F1 11 Tf
-0 -24 Td
-(5. AUDIO-REACTIVE VOLUMETRIC WAVEFORM TUNNEL) Tj
-/F1 8 Tf
-0 -16 Td
-(Prompt: WebAudio API FFT-driven GLSL shader tunnel with real-time bass frequency reactivity.) Tj
-/F1 11 Tf
-0 -24 Td
-(6. REAL-TIME 3D FINTECH TRANSACTION VAULT) Tj
-/F1 8 Tf
-0 -16 Td
-(Prompt: Stripe/Wise styled interactive 3D currency matrix with magnetic particle trails.) Tj
-/F1 11 Tf
-0 -28 Td
-(7 - 30. FULL 30+ PROMPT COLLECTION & LIVE CODE REPOSITORIES) Tj
-/F1 8 Tf
-0 -16 Td
-(Unlock the full 500+ Commercial 3D Prompt Architectures for just Rs 49 at: https://vinebdigital.store) Tj
-0 -12 Td
-(Includes: One-Click Copy, Claude 3.7 & Cursor calibration, Reseller Rights, and lifetime updates.) Tj
-ET
-endstream
-endobj
-5 0 obj
-<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
-endobj
-xref
-0 6
-0000000000 65535 f 
-0000000015 00000 n 
-0000000068 00000 n 
-0000000125 00000 n 
-0000000242 00000 n 
-0000001745 00000 n 
-trailer
-<< /Size 6 /Root 1 0 R >>
-startxref
-1820
-%%EOF`;
-
+// Triggers download of the authentic, interactive 3D WebGL Prompts PDF
+const trigger30PromptsPdfDownload = (_userName: string, _userRole: string) => {
   try {
-    const blob = new Blob([pdfRaw], { type: 'application/pdf' });
-    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = `30_Production_3D_WebGL_Prompts_VineB.pdf`;
+    a.href = '/30_Production_3D_WebGL_Prompts_VineB.pdf';
+    a.download = '30_Production_3D_WebGL_Prompts_VineB.pdf';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
   } catch (err) {
     console.error('PDF download error:', err);
   }
@@ -483,15 +386,15 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
         {isSubmittedSuccess ? (
           <div className="py-2 text-left">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-400 shrink-0">
-                <Check className="w-5 h-5 stroke-[2.5]" />
-              </div>
+              <a href="https://vinebdigital.store" target="_blank" rel="noopener noreferrer" className="shrink-0 hover:opacity-85 transition-opacity" title="Visit Storefront">
+                <img src="/wb-logo.png" alt="WB Logo" className="w-11 h-11 object-contain rounded-xl bg-white/[0.04] p-1 border border-white/10" />
+              </a>
               <div>
                 <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-emerald-400 font-semibold">
                   DOCUMENT COMPILED & DISPATCHED
                 </div>
                 <h3 className="text-lg sm:text-xl font-bold tracking-tight text-white">
-                  30+ Prompts Starter Kit Ready
+                  3D WebGL Prompts PDF Ready
                 </h3>
               </div>
             </div>
@@ -590,10 +493,15 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
               INITIAL FORM: CLAIM FREE 30+ PROMPTS PDF
              ======================================================== */
           <>
-            {/* Architectural Breadcrumb Header */}
-            <div className="flex items-center gap-2 text-[10px] font-mono tracking-[0.2em] text-blue-400 uppercase mb-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-              <span>APEX3D VAULT // STARTER REPOSITORY</span>
+            {/* Architectural Breadcrumb Header with Clickable WB Logo */}
+            <div className="flex items-center gap-2.5 mb-3">
+              <a href="https://vinebdigital.store" target="_blank" rel="noopener noreferrer" className="hover:scale-105 transition-transform shrink-0" title="Visit Storefront">
+                <img src="/wb-logo.png" alt="WB Logo" className="w-8 h-8 object-contain rounded-lg" />
+              </a>
+              <div className="flex items-center gap-1.5 text-[10px] font-mono tracking-[0.2em] text-blue-400 uppercase">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                <span>VINE B DIGITAL // STARTER PROMPTS</span>
+              </div>
             </div>
 
             {/* Modal Title & Subtitle */}

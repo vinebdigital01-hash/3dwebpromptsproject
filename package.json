@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
     "build": "vite build",
+    "generate-pdf": "node scripts/generatePdf.cjs",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit"
@@ -24,6 +25,7 @@
     "gsap": "^3.15.0",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
+    "pdfkit": "^0.20.2",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "recharts": "^3.10.1",
