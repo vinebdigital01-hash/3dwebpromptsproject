@@ -3,6 +3,7 @@ import { Preloader } from './components/Preloader';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
 import { StudioTheater } from './components/StudioTheater';
+import { FlagshipLandingShowcase } from './components/FlagshipLandingShowcase';
 import { ClientTransformations } from './components/ClientTransformations';
 import { VaultEditorialLedger } from './components/VaultEditorialLedger';
 import { CssSphereGallery } from './components/CssSphereGallery';
@@ -154,6 +155,9 @@ export default function App() {
 
       {/* 1.5 'Trusted by 2,400+ Agencies' Platform Authority Marquee (Webflow, Framer, Spline, Three.js) */}
       <AgencyMarquee />
+
+      {/* 1.8 Flagship Landing Page Blueprints (Valmora, Selene, Ora, Fluxora) */}
+      <FlagshipLandingShowcase onUnlockClick={handleScrollToPricing} />
 
       {/* 2. Panoramic Cinema Studio Theater (Replaces Generic Cards) */}
       <div id="theater">

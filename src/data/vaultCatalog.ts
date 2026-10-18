@@ -20,6 +20,166 @@ export interface VaultItem {
 
 export const VAULT_CATALOG: VaultItem[] = [
   {
+    id: 'valmora',
+    title: 'VALMORA — Haute-Couture Kinetic Spatial Architecture',
+    subtitle: 'High-Fashion Editorial Landing Page with Fluid Motion Physics',
+    category: 'Luxury',
+    filterGroup: 'Luxury Brands',
+    clientValue: '$28,500',
+    testedModels: ['Claude 3.7 Sonnet', 'Cursor Agent', 'ChatGPT o3'],
+    tokens: 3850,
+    highlightStat: '18.5x Agency Markup',
+    videoUrl: 'https://pub-1e5b4001b36b47e28e6a2fb775966a79.r2.dev/previews/valmora.mp4',
+    poster: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=1400&auto=format&fit=crop&q=80',
+    fpsBadge: '60 FPS EDITORIAL',
+    description: 'An ultra-luxury architectural & haute-couture editorial landing page with brutalist typography, fluid cinematic physics, and obsidian aesthetic.',
+    tags: ['Landing Page', 'Haute Couture', 'Brutalist Typography', 'Fluid Physics'],
+    keyFeatures: [
+      'Oversized brutalist display typography paired with high-contrast serif italic accents',
+      'Editorial asymmetric grid layout with floating luxury coordinates and specimen serial numbers',
+      'Fluid scroll momentum with inertial damping for imagery and editorial text columns',
+      'Magnetic hover physics on all interactive CTA pills with subtle specular shine sweeps'
+    ],
+    promptArchitecture: `Act as an Awwwards Site of the Year Creative Technologist.
+Recreate the VALMORA haute-couture editorial landing page experience in React 19 + Tailwind CSS + WebGL.
+
+VISUAL & INTERACTIVE BLUEPRINT:
+1. TYPOGRAPHY & LAYOUT:
+   - Oversized brutalist display headings paired with high-contrast serif italic accents.
+   - Editorial asymmetric grid layout with floating luxury coordinates and specimen serial numbers.
+   - Ultra-dark obsidian background (#060609) with ambient hairline borders (rgba(255,255,255,0.08)).
+
+2. MOTION & DYNAMICS:
+   - Fluid scroll momentum with inertial damping for imagery and editorial text columns.
+   - Magnetic hover physics on all interactive CTA pills with subtle specular shine sweeps.
+   - Canvas-backed volumetric smoke/fluid turbulence reacting to cursor velocity.
+
+3. DELIVERABLE SPECIFICATIONS:
+   - Pure responsive architecture (Mobile, Tablet, 4K Ultrawide).
+   - Zero layout shifts (CLS < 0.01), sub-16ms frame budget (60 FPS locked).
+   - Calibrated for one-shot compilation with Claude 3.7 Sonnet & Cursor Composer.`
+  },
+  {
+    id: 'selene',
+    title: 'SELENE — Lunar Expedition Earthrise Site Rebuild',
+    subtitle: 'Celestial Parallax & 384,400 km Dynamic Trajectory Engine',
+    category: 'Advanced 3D',
+    filterGroup: 'Spatial & WebGL',
+    clientValue: '$36,000',
+    testedModels: ['Claude 3.7 Sonnet', 'Cursor Agent', 'ChatGPT o3-mini'],
+    tokens: 3920,
+    highlightStat: 'Awwwards SOTD',
+    videoUrl: 'https://pub-1e5b4001b36b47e28e6a2fb775966a79.r2.dev/previews/selene.mp4',
+    poster: 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=1400&auto=format&fit=crop&q=80',
+    fpsBadge: '6-LAYER PARALLAX',
+    description: 'A lunar expedition site where the dust clears onto the Moon and the Earth rises over the horizon — six parallax layers, a trajectory that inks itself to 384,400 km, and a mission reel that slides past on the scroll.',
+    tags: ['Lunar Parallax', 'Celestial WebGL', 'Earthrise Shader', 'SVG Trajectory'],
+    keyFeatures: [
+      'Six celestial parallax layers: cosmic starfield, lunar horizon, photorealistic Earthrise sphere',
+      'SVG vector trajectory calculating the Trans-Lunar Injection (TLI) orbit to 384,400 km',
+      'Mission reel sliding cinematic mission logs across screen with zero layout jank',
+      'Subtle Poisson-disc stellar brightness flicker and monospace telemetry'
+    ],
+    promptArchitecture: `# SELENE — Lunar Expedition Earthrise Site Rebuild Prompt
+
+Act as a Principal Creative Engineer. Build the complete SELENE Lunar Expedition site in pure React 19 + Tailwind CSS + HTML5 Canvas.
+
+CORE ARCHITECTURE:
+1. SIX CELESTIAL PARALLAX LAYERS:
+   - Deep cosmic starfield with subtle Poisson-disc stellar brightness flicker.
+   - Distant lunar horizon with dust particulate dispersion cleared by scroll acceleration.
+   - Photorealistic Earthrise sphere with Rayleigh atmosphere atmospheric rim glow shader.
+   - Foreground lander telemetry HUD with monospace latitude/longitude data streams.
+
+2. TRAJECTORY ENGINE:
+   - SVG vector path calculating the Trans-Lunar Injection (TLI) orbit.
+   - Path inks itself proportionally to window.scrollY, reaching precisely 384,400 km at the touchdown milestone.
+   - Interactive milestones with tactile acoustic clicks and coordinate telemetry readouts.
+
+3. MISSION REEL:
+   - Horizontal scroll-jacking reel sliding cinematic mission logs across the screen with zero layout jank.
+   - Full keyboard accessibility and reduced-motion fallback compliance.`
+  },
+  {
+    id: 'ora',
+    title: 'Ora — Geneva Watch Scroll-Scrubbed Canvas Storefront',
+    subtitle: '240 Decoded WebP Frames Behind Real-Progress Preloader',
+    category: 'Luxury',
+    filterGroup: 'Luxury Brands',
+    clientValue: '$42,000',
+    testedModels: ['Claude 3.7 Sonnet', 'Cursor Agent'],
+    tokens: 4150,
+    highlightStat: 'Zero Library Overhead',
+    videoUrl: 'https://pub-1e5b4001b36b47e28e6a2fb775966a79.r2.dev/previews/ora-v2.mp4',
+    poster: 'https://images.unsplash.com/photo-1524805444758-089113d48a6d?w=1400&auto=format&fit=crop&q=80',
+    fpsBadge: '240 FPS CANVAS SCRUB',
+    description: 'A Geneva watch storefront built on a scroll-scrubbed canvas: 240 decoded WebP frames taken apart chapter by chapter behind a real-progress preloader, with no animation library anywhere in the dependency list.',
+    tags: ['Canvas 2D', '240 Frames', 'Zero-Dep', 'Geneva Horology'],
+    keyFeatures: [
+      'Pre-decode 240 high-resolution WebP frames into an offscreen ImageBitmap array',
+      'True-progress numeric preloader (0% -> 100%) tracking actual asset byte transfer',
+      'Frame scrubbing via requestAnimationFrame + linear interpolation (lerp 0.08) against scroll',
+      'Four interactive chapter deconstructions: Bezel, Tourbillon, Sapphire Crystal, Bespoke Leather'
+    ],
+    promptArchitecture: `Act as a High-End Performance Web Engineer.
+Build the Ora Geneva watch storefront using a pure scroll-scrubbed HTML5 Canvas engine with ZERO animation libraries.
+
+TECHNICAL SPECIFICATIONS:
+1. 240-FRAME WEBP BUFFER:
+   - Pre-decode an array of 240 high-resolution WebP frames into an offscreen ImageBitmap array.
+   - Render a high-precision real-progress numeric preloader (0% -> 100%) tracking actual asset byte transfer.
+   - Scrub the active frame via requestAnimationFrame + linear interpolation (lerp factor 0.08) against scroll progress.
+
+2. CHAPTER DECONSTRUCTION:
+   - Chapter 1: The Bezel & Fluted Case specular light sweep.
+   - Chapter 2: The Mechanical Tourbillon exploded-view complication.
+   - Chapter 3: The Sapphire Crystal double-dome anti-reflective coating.
+   - Chapter 4: The Bespoke Alligator Leather strap tailoring.
+
+3. ZERO-DEPENDENCY CONSTRAINT:
+   - No GSAP, no Framer Motion, no Three.js.
+   - 100% pure vanilla Canvas 2D context with hardware GPU acceleration.
+   - Flawless performance on mobile Safari & high-refresh desktop monitors.`
+  },
+  {
+    id: 'fluxora',
+    title: 'Fluxora — Human Craft Agency Visor Architecture',
+    subtitle: 'Amber Visor Light Rake & High-Trust Client Proof Stack',
+    category: 'Cyber & Agency',
+    filterGroup: 'High-Ticket Agency',
+    clientValue: '$31,000',
+    testedModels: ['Claude 3.7 Sonnet', 'Cursor Agent', 'ChatGPT o3'],
+    tokens: 3600,
+    highlightStat: '3.4x Conversion Lift',
+    videoUrl: 'https://pub-1e5b4001b36b47e28e6a2fb775966a79.r2.dev/previews/fluxora.mp4',
+    poster: 'https://images.unsplash.com/photo-1507499739999-097706ad8914?w=1400&auto=format&fit=crop&q=80',
+    fpsBadge: 'GLSL VISOR SHADER',
+    description: 'Amber light raking across a visor, a headline that breaks to italic serif on the word doing the work, and the proof stacked underneath it — an agency page arguing for people over machines.',
+    tags: ['Amber Visor', 'Light Rake Shader', 'Editorial Serif', 'Agency Landing Page'],
+    keyFeatures: [
+      'Amber light ray (#f59e0b) raking diagonally across the hero visor element reacting to mouse velocity',
+      'Dynamic typography: crisp sans-serif breaking to high-fashion italic serif on emotional pivot words',
+      'Stacked quantitative social proof cards featuring real deliverables and live telemetry metrics',
+      'Obsidian matte charcoal surfaces with ambient specular border illumination'
+    ],
+    promptArchitecture: `Act as an Award-Winning Creative Director & Frontend Architect.
+Build the Fluxora agency landing page — arguing for human craft and intuition over generic machines.
+
+DESIGN SYSTEM & VISUAL HOOK:
+1. THE VISOR LIGHT RAKE:
+   - Implement an amber light ray (#f59e0b) raking diagonally across the hero helmet/visor element.
+   - Light displacement velocity reacts organically to mouse position and inertial scroll speed.
+   - High-contrast specular reflections cutting across deep matte charcoal surfaces.
+
+2. EDITORIAL TYPOGRAPHY BREAK:
+   - Dynamic headline structure: crisp neo-grotesque sans-serif that intentionally breaks to high-fashion italic serif on the pivotal emotional word.
+   - Subtle animated hairline underlines and micro-spaced tabular category badges.
+
+3. THE PROOF STACK:
+   - Stacked quantitative social proof cards underneath the fold featuring real deliverables, live metrics, and verified agency receipts.
+   - Magnetic card hover states with warm amber radial illumination.`
+  },
+  {
     id: 'hazmat-cyber',
     allowFreeTrialCopy: true,
     title: 'Hazmat Cybersecurity Master 3D Prompt',
