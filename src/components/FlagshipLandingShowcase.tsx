@@ -153,12 +153,23 @@ export const FlagshipLandingShowcase: React.FC<FlagshipLandingShowcaseProps> = (
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
   const [leadTargetPrompt, setLeadTargetPrompt] = useState<FlagshipItem | null>(null);
+  const [progress, setProgress] = useState(0);
   const videoRefs = useRef<{ [key: string]: HTMLVideoElement | null }>({});
+
+  const handleTimeUpdate = (id: string) => {
+    const video = videoRefs.current[id];
+    if (video) {
+      const currentT = video.currentTime;
+      const dur = video.duration || 1;
+      setProgress((currentT / dur) * 100);
+    }
+  };
 
   const handleSelectTab = (item: FlagshipItem) => {
     sound.playClick();
     setActiveItem(item);
     setIsPlaying(true);
+    setProgress(0);
     const video = videoRefs.current[item.id];
     if (video) {
       video.currentTime = 0;
@@ -194,73 +205,99 @@ export const FlagshipLandingShowcase: React.FC<FlagshipLandingShowcaseProps> = (
   };
 
   return (
-    <section id="flagship-rebuilds" className="relative py-20 sm:py-28 md:py-32 bg-[#040407] border-t border-white/10 select-none overflow-hidden">
+    <section id="flagship-rebuilds" className="relative py-12 sm:py-20 md:py-28 bg-[#040407] border-t border-white/10 select-none overflow-hidden">
       {/* Subtle Ambient Radial Lighting */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-b from-blue-600/10 via-purple-600/5 to-transparent blur-3xl pointer-events-none -z-0" />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-16 relative z-10">
         
         {/* Editorial Eyebrow & Title */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 sm:mb-16 pb-8 border-b border-white/10">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-6 mb-6 sm:mb-10 pb-5 sm:pb-6 border-b border-white/10">
           <div>
-            <div className="flex items-center gap-2 text-[11px] sm:text-xs font-mono text-amber-400 uppercase tracking-widest mb-3">
+            <div className="flex items-center gap-2 text-[11px] sm:text-xs font-mono text-amber-400 uppercase tracking-widest mb-2 sm:mb-3">
               <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
               <span>FLAGSHIP PRODUCTION REBUILDS • 4 MASTERPIECE BLUEPRINTS</span>
             </div>
-            <h2 className="text-3xl sm:text-5xl md:text-6xl font-bold tracking-tight text-white">
+            <h2 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white">
               Valmora, Selene, Ora & <span className="accent-text-gradient font-display italic font-normal">Fluxora</span>
             </h2>
           </div>
 
           <div className="max-w-md">
-            <p className="text-xs sm:text-sm text-zinc-400 font-sans leading-relaxed mb-4">
+            <p className="text-xs sm:text-sm text-zinc-400 font-sans leading-relaxed mb-2.5 sm:mb-3">
               4 world-class landing pages reverse-engineered into calibrated, one-shot prompts for Claude 3.7 & Cursor. Pure WebGL, canvas frame-scrubbing, and zero-math celestial physics.
             </p>
-            <div className="flex items-center gap-4 text-xs font-mono text-zinc-500">
-              <span className="flex items-center gap-1.5 text-emerald-400">
+            <div className="flex items-center gap-3 text-xs font-mono text-zinc-500">
+              <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
                 <ShieldCheck className="w-4 h-4" /> 100% Tested Production Blueprints
               </span>
               <span>•</span>
-              <span className="text-zinc-400">$137,500 Total Client Value</span>
+              <span className="text-zinc-300 font-bold">$137,500 Client Value</span>
             </div>
           </div>
         </div>
 
-        {/* 4 Navigation Selector Pills */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5 mb-8">
+        {/* 1. Mobile Visual Switcher Dock (Compact horizontal touch-scroll, zero screen blockage) */}
+        <div className="flex sm:hidden items-center gap-2 overflow-x-auto pb-3 pt-1 scrollbar-none snap-x touch-pan-x -mx-4 px-4 mb-4">
           {FLAGSHIP_LANDING_PAGES.map((item, idx) => {
             const isActive = activeItem.id === item.id;
             return (
               <button
                 key={item.id}
                 onClick={() => handleSelectTab(item)}
-                className={`relative text-left p-3.5 sm:p-5 rounded-2xl border transition-all duration-300 flex flex-col justify-between ${
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl border shrink-0 snap-start text-left transition-all cursor-pointer ${
                   isActive
-                    ? 'bg-zinc-900/90 border-blue-500/50 shadow-[0_0_24px_rgba(59,130,246,0.25)] ring-1 ring-blue-500/30'
+                    ? 'bg-blue-600/25 border-blue-500 text-white shadow-[0_0_16px_rgba(59,130,246,0.35)] ring-1 ring-blue-400/40'
+                    : 'bg-zinc-950/80 border-white/10 text-zinc-400 hover:text-white'
+                }`}
+              >
+                <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-blue-400 animate-pulse' : 'bg-zinc-600'}`} />
+                <span className="text-xs font-mono font-bold uppercase tracking-wider">
+                  0{idx + 1} {item.name}
+                </span>
+                <span className="text-[10px] font-mono text-emerald-400 font-semibold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                  {item.clientValuation}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* 2. Desktop & Tablet 4-Reel Selector Cards */}
+        <div className="hidden sm:grid sm:grid-cols-4 gap-3.5 mb-6">
+          {FLAGSHIP_LANDING_PAGES.map((item, idx) => {
+            const isActive = activeItem.id === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => handleSelectTab(item)}
+                className={`relative text-left p-4 rounded-2xl border transition-all duration-300 flex flex-col justify-between cursor-pointer ${
+                  isActive
+                    ? 'bg-zinc-900/90 border-blue-500/60 shadow-[0_0_24px_rgba(59,130,246,0.25)] ring-1 ring-blue-500/40'
                     : 'bg-zinc-950/60 border-white/10 hover:border-white/20 hover:bg-zinc-900/40 text-zinc-400'
                 }`}
               >
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="text-[10px] sm:text-[11px] font-mono tracking-wider uppercase text-blue-400 font-semibold">
+                    <span className="text-[11px] font-mono tracking-wider uppercase text-blue-400 font-semibold">
                       0{idx + 1} // {item.badge.split('//')[0].trim()}
                     </span>
-                    <span className="text-[10px] sm:text-xs font-mono text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                    <span className="text-xs font-mono text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
                       {item.clientValuation}
                     </span>
                   </div>
-                  <h3 className={`text-base sm:text-xl font-bold tracking-tight mb-1 ${isActive ? 'text-white' : 'text-zinc-300'}`}>
+                  <h3 className={`text-lg font-bold tracking-tight mb-1 ${isActive ? 'text-white' : 'text-zinc-300'}`}>
                     {item.name}
                   </h3>
-                  <p className="text-[11px] sm:text-xs text-zinc-500 font-sans line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-zinc-500 font-sans line-clamp-1 leading-relaxed">
                     {item.category}
                   </p>
                 </div>
 
-                <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between text-[11px] font-mono">
+                <div className="mt-3 pt-2.5 border-t border-white/5 flex items-center justify-between text-[11px] font-mono">
                   <span className="text-zinc-500">{item.tokens}</span>
                   <span className={`flex items-center gap-1 font-semibold ${isActive ? 'text-blue-400' : 'text-zinc-500'}`}>
-                    {isActive ? 'Active Reel' : 'Inspect'} <ArrowRight className="w-3 h-3" />
+                    {isActive ? 'Active Reel' : 'Watch Reel'} <ArrowRight className="w-3 h-3" />
                   </span>
                 </div>
 
@@ -276,39 +313,58 @@ export const FlagshipLandingShowcase: React.FC<FlagshipLandingShowcaseProps> = (
           })}
         </div>
 
-        {/* Panoramic Cinema Screen for Active Flagship Item */}
-        <div className="relative rounded-2xl sm:rounded-3xl border border-white/15 bg-black/80 shadow-[0_32px_80px_rgba(0,0,0,0.9)] overflow-hidden">
+        {/* 3. Panoramic Cinema Screen (100% Unobstructed Video — Zero Text Overlap) */}
+        <div className="relative rounded-2xl sm:rounded-3xl border border-white/15 bg-black shadow-[0_32px_80px_rgba(0,0,0,0.95)] overflow-hidden flex flex-col">
           {/* Top Cinema Header Bar */}
-          <div className="px-4 sm:px-6 py-3.5 bg-zinc-950/90 border-b border-white/10 flex items-center justify-between gap-4 text-xs font-mono text-zinc-400">
-            <div className="flex items-center gap-3">
-              <span className="flex items-center gap-1.5 text-blue-400 font-bold">
+          <div className="px-3.5 sm:px-6 py-2.5 sm:py-3.5 bg-zinc-950/95 border-b border-white/10 flex items-center justify-between gap-2 sm:gap-4 text-xs font-mono text-zinc-400">
+            <div className="flex items-center gap-2 sm:gap-3 truncate">
+              <span className="flex items-center gap-1.5 text-blue-400 font-bold shrink-0">
                 <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping" />
-                <span>LIVE PREVIEW: {activeItem.name.toUpperCase()}</span>
+                <span>LIVE PREVIEW:</span>
               </span>
-              <span className="hidden sm:inline text-zinc-600">|</span>
-              <span className="hidden sm:inline text-zinc-400">{activeItem.badge}</span>
+              <span className="text-white font-bold tracking-wide truncate">{activeItem.name}</span>
+              <span className="hidden md:inline text-zinc-600">|</span>
+              <span className="hidden md:inline text-zinc-400">{activeItem.badge}</span>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              <span className="hidden sm:inline-block px-2 py-0.5 rounded bg-white/5 border border-white/10 text-[10px] text-amber-400 font-mono">
+                60 FPS 4K
+              </span>
+
               <button
                 onClick={toggleMute}
-                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 hover:text-white transition-all"
-                title={isMuted ? 'Unmute' : 'Mute'}
+                className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 hover:text-white transition-all flex items-center gap-1 text-[11px] font-mono cursor-pointer"
+                title={isMuted ? 'Unmute Audio' : 'Mute Audio'}
               >
-                {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                {isMuted ? (
+                  <>
+                    <VolumeX className="w-3.5 h-3.5 text-zinc-400" />
+                    <span>MUTED</span>
+                  </>
+                ) : (
+                  <>
+                    <Volume2 className="w-3.5 h-3.5 text-blue-400" />
+                    <span className="text-blue-400 font-bold">AUDIO ON</span>
+                  </>
+                )}
               </button>
+
               <button
                 onClick={togglePlay}
-                className="px-3 py-1 rounded-lg bg-blue-600/30 hover:bg-blue-600 border border-blue-500/40 text-blue-300 hover:text-white transition-all flex items-center gap-1.5 text-[11px]"
+                className="px-2.5 sm:px-3 py-1 rounded-lg bg-blue-600/30 hover:bg-blue-600 border border-blue-500/40 text-blue-300 hover:text-white transition-all flex items-center gap-1 text-[11px] font-mono cursor-pointer"
               >
                 {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
-                <span>{isPlaying ? 'PAUSE' : 'PLAY'}</span>
+                <span className="hidden sm:inline">{isPlaying ? 'PAUSE' : 'PLAY'}</span>
               </button>
             </div>
           </div>
 
-          {/* Video Container (16:9 Aspect Ratio) */}
-          <div className="relative aspect-video w-full bg-zinc-950 flex items-center justify-center overflow-hidden">
+          {/* Dedicated Unobstructed Video Player Stage */}
+          <div
+            onClick={togglePlay}
+            className="relative aspect-[16/10] sm:aspect-video w-full bg-black flex items-center justify-center overflow-hidden cursor-pointer select-none group"
+          >
             {FLAGSHIP_LANDING_PAGES.map((item) => (
               <video
                 key={item.id}
@@ -318,71 +374,102 @@ export const FlagshipLandingShowcase: React.FC<FlagshipLandingShowcaseProps> = (
                 loop
                 muted={isMuted}
                 playsInline
-                preload="metadata"
-                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
+                webkit-playsinline="true"
+                preload="auto"
+                onTimeUpdate={() => {
+                  if (item.id === activeItem.id) {
+                    handleTimeUpdate(item.id);
+                  }
+                }}
+                className={`absolute inset-0 w-full h-full object-contain sm:object-cover transition-opacity duration-300 bg-black ${
                   item.id === activeItem.id ? 'opacity-100 z-10 pointer-events-auto' : 'opacity-0 z-0 pointer-events-none'
                 }`}
               />
             ))}
 
-            {/* Gradient Scrim for Legibility at Bottom */}
-            <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black via-black/60 to-transparent pointer-events-none z-20" />
+            {/* Subtle Center Tap Indicator */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+              <div
+                className={`w-14 sm:w-16 h-14 sm:h-16 rounded-full bg-black/60 backdrop-blur-md border border-white/20 flex items-center justify-center text-white transition-all duration-300 ${
+                  isPlaying ? 'opacity-0 group-hover:opacity-80 scale-95' : 'opacity-90 scale-100 ring-4 ring-blue-500/20'
+                }`}
+              >
+                {isPlaying ? (
+                  <Pause className="w-6 h-6 sm:w-7 sm:h-7" />
+                ) : (
+                  <Play className="w-6 h-6 sm:w-7 sm:h-7 ml-0.5 text-blue-400" />
+                )}
+              </div>
+            </div>
 
-            {/* Floating Telemetry Box at Bottom */}
-            <div className="absolute bottom-4 sm:bottom-6 inset-x-4 sm:inset-x-8 z-30 flex flex-col md:flex-row md:items-end justify-between gap-4">
-              <div className="max-w-2xl bg-black/75 backdrop-blur-md p-4 sm:p-5 rounded-2xl border border-white/10 shadow-2xl">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <span className="px-2 py-0.5 rounded bg-blue-500/20 border border-blue-500/30 text-blue-300 font-mono text-[10px] uppercase font-bold tracking-wide">
-                    {activeItem.badge}
-                  </span>
-                  <span className="text-emerald-400 font-mono text-xs font-bold">
-                    Client Value: {activeItem.clientValuation}
-                  </span>
-                </div>
-                <h4 className="text-lg sm:text-2xl font-bold text-white mb-2 tracking-tight">
-                  {activeItem.name}
-                </h4>
-                <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed font-sans">
-                  {activeItem.description}
-                </p>
+            {/* Bottom Scrubber Progress Bar */}
+            <div className="absolute bottom-0 inset-x-0 h-1 bg-white/10 z-20 pointer-events-none">
+              <div
+                className="h-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)] transition-all duration-100 ease-linear"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
 
-                {/* Tech Pills */}
-                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-3.5">
-                  {activeItem.techStack.map((tech) => (
-                    <span
-                      key={tech}
-                      className="text-[10px] sm:text-[11px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-zinc-300 border border-white/10"
-                    >
-                      {tech}
-                    </span>
-                  ))}
-                </div>
+          {/* 4. Dedicated Dossier Section BELOW Video — Zero Video Obstruction */}
+          <div className="p-4 sm:p-6 md:p-7 bg-[#07070d] border-t border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                <span className="px-2 py-0.5 rounded bg-blue-500/20 border border-blue-500/30 text-blue-300 font-mono text-[10px] uppercase font-bold tracking-wide">
+                  {activeItem.badge}
+                </span>
+                <span className="text-emerald-400 font-mono text-xs font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                  Client Value: {activeItem.clientValuation}
+                </span>
+                <span className="text-zinc-500 font-mono text-[10px]">
+                  {activeItem.tokens}
+                </span>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
-                <button
-                  onClick={() => setInspectedPrompt(activeItem)}
-                  className="px-4 sm:px-5 py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-mono text-xs font-semibold transition-all active:scale-95 flex items-center gap-2 shadow-lg backdrop-blur-md"
-                >
-                  <Terminal className="w-4 h-4 text-blue-400" />
-                  <span>Inspect Prompt</span>
-                </button>
+              <h4 className="text-lg sm:text-2xl font-bold text-white tracking-tight">
+                {activeItem.name} — <span className="text-zinc-400 text-sm sm:text-base font-normal">{activeItem.category}</span>
+              </h4>
 
-                <button
-                  onClick={onUnlockClick}
-                  className="px-5 sm:px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-xs sm:text-sm transition-all active:scale-95 flex items-center gap-2 shadow-[0_0_24px_rgba(59,130,246,0.5)] ring-1 ring-blue-400/50"
-                >
-                  <Sparkles className="w-4 h-4" />
-                  <span>Unlock Blueprint (From ₹49)</span>
-                </button>
+              <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed font-sans mt-1 max-w-2xl line-clamp-2 sm:line-clamp-none">
+                {activeItem.description}
+              </p>
+
+              {/* Tech Stack Tags */}
+              <div className="flex flex-wrap items-center gap-1.5 mt-2.5 sm:mt-3">
+                {activeItem.techStack.map((tech) => (
+                  <span
+                    key={tech}
+                    className="text-[10px] sm:text-[11px] font-mono px-2 py-0.5 rounded-md bg-white/5 text-zinc-400 border border-white/10"
+                  >
+                    {tech}
+                  </span>
+                ))}
               </div>
+            </div>
+
+            {/* Action Buttons — Thumb-friendly & prominent */}
+            <div className="flex items-stretch sm:items-center gap-2.5 sm:gap-3 shrink-0 pt-1 md:pt-0">
+              <button
+                onClick={() => setInspectedPrompt(activeItem)}
+                className="flex-1 sm:flex-initial px-4 sm:px-5 py-3 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-white font-mono text-xs font-semibold transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer shadow-lg"
+              >
+                <Terminal className="w-4 h-4 text-blue-400" />
+                <span>Inspect Prompt</span>
+              </button>
+
+              <button
+                onClick={onUnlockClick}
+                className="flex-1 sm:flex-initial px-5 sm:px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-xs sm:text-sm transition-all active:scale-95 flex items-center justify-center gap-2 shadow-[0_0_24px_rgba(59,130,246,0.5)] ring-1 ring-blue-400/50 cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>Unlock Blueprint (From ₹49)</span>
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Feature Highlights Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+        {/* Feature Highlights Grid (Desktop/Tablet Only — Prevents redundant mobile text clutter) */}
+        <div className="hidden md:grid md:grid-cols-4 gap-4 mt-6">
           {FLAGSHIP_LANDING_PAGES.map((item) => (
             <div
               key={item.id}
