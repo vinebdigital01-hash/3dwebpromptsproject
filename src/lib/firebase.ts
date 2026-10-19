@@ -158,16 +158,41 @@ export async function recordDeletedLeadsToFirestore(keys: string[], purgedAll?: 
 export async function deleteOrderFromFirestore(orderId: string, email?: string, phone?: string): Promise<void> {
   if (typeof window === 'undefined' || !orderId) return;
   try {
-    const keys = [orderId];
-    if (email) keys.push(email);
-    if (phone) keys.push(phone);
+    const cleanId = orderId.trim();
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanPhone = (phone || '').trim().replace(/\D/g, '');
+
+    const keys = [cleanId];
+    if (cleanEmail) keys.push(cleanEmail);
+    if (cleanPhone) keys.push(cleanPhone);
     await recordDeletedLeadsToFirestore(keys);
 
-    await deleteDoc(doc(db, 'orders', orderId)).catch(() => {});
-    await deleteDoc(doc(db, 'ghost_leads', orderId)).catch(() => {});
+    for (const collName of ['orders', 'ghost_leads']) {
+      try {
+        await deleteDoc(doc(db, collName, cleanId)).catch(() => {});
 
-    await setDoc(doc(db, 'orders', orderId), { isDeleted: true, status: 'deleted_purged' }, { merge: true }).catch(() => {});
-    await setDoc(doc(db, 'ghost_leads', orderId), { isDeleted: true, status: 'deleted_purged' }, { merge: true }).catch(() => {});
+        const snap = await getDocs(collection(db, collName)).catch(() => null);
+        if (snap) {
+          for (const docSnap of snap.docs) {
+            const data = docSnap.data();
+            const docId = (data.id || docSnap.id || '').trim();
+            const docEmail = (data.email || '').trim().toLowerCase();
+            const docPhone = (data.phone || '').trim().replace(/\D/g, '');
+
+            if (
+              docSnap.id === cleanId ||
+              docId === cleanId ||
+              (cleanEmail && docEmail === cleanEmail) ||
+              (cleanPhone && docPhone === cleanPhone)
+            ) {
+              await deleteDoc(doc(db, collName, docSnap.id)).catch(() => {});
+            }
+          }
+        }
+      } catch (err) {
+        console.debug(`Cloud deleteOrder in ${collName} notice:`, err);
+      }
+    }
   } catch (err) {
     console.debug('Cloud deleteOrder error:', err);
   }
@@ -188,17 +213,18 @@ export async function deleteMatchingOrdersFromFirestore(email?: string, phone?: 
 
     for (const collName of ['orders', 'ghost_leads']) {
       try {
-        const snap = await getDocs(collection(db, collName));
-        for (const docSnap of snap.docs) {
-          const data = docSnap.data();
-          const docEmail = (data.email || '').trim().toLowerCase();
-          const docPhone = (data.phone || '').trim().replace(/\D/g, '');
-          if (
-            (cleanEmail && docEmail === cleanEmail) ||
-            (cleanPhone && docPhone === cleanPhone)
-          ) {
-            await deleteDoc(doc(db, collName, docSnap.id)).catch(() => {});
-            await setDoc(doc(db, collName, docSnap.id), { isDeleted: true, status: 'deleted_purged' }, { merge: true }).catch(() => {});
+        const snap = await getDocs(collection(db, collName)).catch(() => null);
+        if (snap) {
+          for (const docSnap of snap.docs) {
+            const data = docSnap.data();
+            const docEmail = (data.email || '').trim().toLowerCase();
+            const docPhone = (data.phone || '').trim().replace(/\D/g, '');
+            if (
+              (cleanEmail && docEmail === cleanEmail) ||
+              (cleanPhone && docPhone === cleanPhone)
+            ) {
+              await deleteDoc(doc(db, collName, docSnap.id)).catch(() => {});
+            }
           }
         }
       } catch {}
@@ -214,7 +240,6 @@ export async function deleteMatchingOrdersFromFirestore(email?: string, phone?: 
 export async function purgeAllOrdersFromFirestore(): Promise<void> {
   if (typeof window === 'undefined') return;
   try {
-    // 1. Record global purge timestamp in Cloud Firestore
     const purgeTime = new Date().toISOString();
     await setDoc(doc(db, 'app_metadata', 'deleted_leads'), {
       purgedAllAt: purgeTime,
@@ -222,13 +247,13 @@ export async function purgeAllOrdersFromFirestore(): Promise<void> {
       updatedAt: purgeTime,
     }, { merge: true }).catch(() => {});
 
-    // 2. Wipe/Mark all documents across 'orders' and 'ghost_leads'
     for (const collName of ['orders', 'ghost_leads']) {
       try {
-        const snap = await getDocs(collection(db, collName));
-        for (const docSnap of snap.docs) {
-          await deleteDoc(doc(db, collName, docSnap.id)).catch(() => {});
-          await setDoc(doc(db, collName, docSnap.id), { isDeleted: true, status: 'deleted_purged' }, { merge: true }).catch(() => {});
+        const snap = await getDocs(collection(db, collName)).catch(() => null);
+        if (snap) {
+          for (const docSnap of snap.docs) {
+            await deleteDoc(doc(db, collName, docSnap.id)).catch(() => {});
+          }
         }
       } catch {}
     }
@@ -242,19 +267,35 @@ export async function purgeAllOrdersFromFirestore(): Promise<void> {
  */
 export function subscribeToFirestoreOrders(callback: (orders: any[]) => void): Unsubscribe {
   try {
-    const masterMap = new Map<string, any>();
+    const ordersMap = new Map<string, any>();
+    const ghostsMap = new Map<string, any>();
     let cloudDeletedKeys = new Set<string>();
     let cloudPurgedAllAt: number = 0;
 
     const dispatchMerged = () => {
-      const list = Array.from(masterMap.values()).filter((item) => {
+      const mergedMap = new Map<string, any>();
+
+      // 1. Add orders
+      ordersMap.forEach((val, key) => {
+        mergedMap.set(key, val);
+      });
+
+      // 2. Merge ghosts: keep newer
+      ghostsMap.forEach((val, key) => {
+        const existing = mergedMap.get(key);
+        if (!existing || new Date(val.updatedAt || 0) >= new Date(existing.updatedAt || 0)) {
+          mergedMap.set(key, val);
+        }
+      });
+
+      const list = Array.from(mergedMap.values()).filter((item) => {
         if (!item || item.isDeleted || item.status === 'deleted_purged') return false;
         const itemTime = new Date(item.updatedAt || item.createdAt || 0).getTime();
         if (cloudPurgedAllAt > 0 && itemTime <= cloudPurgedAllAt) return false;
         const id = (item.id || '').trim();
         const email = (item.email || '').trim().toLowerCase();
         const phone = (item.phone || '').trim().replace(/\D/g, '');
-        if (id && cloudDeletedKeys.has(id)) return false;
+        if (id && cloudDeletedKeys.has(id.toLowerCase())) return false;
         if (email && cloudDeletedKeys.has(email)) return false;
         if (phone && cloudDeletedKeys.has(phone)) return false;
         return true;
@@ -290,9 +331,11 @@ export function subscribeToFirestoreOrders(callback: (orders: any[]) => void): U
     const unsubOrders = onSnapshot(
       collection(db, 'orders'),
       (snapshot) => {
+        ordersMap.clear();
         snapshot.forEach((d) => {
           const data = d.data();
-          if (data && data.id) masterMap.set(data.id, data);
+          const docId = (data.id || d.id || '').trim();
+          if (data && docId) ordersMap.set(docId, { ...data, id: docId });
         });
         dispatchMerged();
       },
@@ -303,14 +346,11 @@ export function subscribeToFirestoreOrders(callback: (orders: any[]) => void): U
     const unsubGhosts = onSnapshot(
       collection(db, 'ghost_leads'),
       (snapshot) => {
+        ghostsMap.clear();
         snapshot.forEach((d) => {
           const data = d.data();
-          if (data && data.id) {
-            const existing = masterMap.get(data.id);
-            if (!existing || new Date(data.updatedAt || 0) >= new Date(existing.updatedAt || 0)) {
-              masterMap.set(data.id, data);
-            }
-          }
+          const docId = (data.id || d.id || '').trim();
+          if (data && docId) ghostsMap.set(docId, { ...data, id: docId });
         });
         dispatchMerged();
       },
@@ -344,7 +384,8 @@ export async function fetchAllCloudOrdersAndGhostLeads(): Promise<any[]> {
     if (ordersSnap) {
       ordersSnap.forEach((d) => {
         const data = d.data();
-        if (data && data.id) masterMap.set(data.id, data);
+        const docId = (data.id || d.id || '').trim();
+        if (data && docId) masterMap.set(docId, { ...data, id: docId });
       });
     }
 
@@ -353,10 +394,11 @@ export async function fetchAllCloudOrdersAndGhostLeads(): Promise<any[]> {
     if (ghostSnap) {
       ghostSnap.forEach((d) => {
         const data = d.data();
-        if (data && data.id) {
-          const existing = masterMap.get(data.id);
+        const docId = (data.id || d.id || '').trim();
+        if (data && docId) {
+          const existing = masterMap.get(docId);
           if (!existing || new Date(data.updatedAt || 0) >= new Date(existing.updatedAt || 0)) {
-            masterMap.set(data.id, data);
+            masterMap.set(docId, { ...data, id: docId });
           }
         }
       });
@@ -369,7 +411,7 @@ export async function fetchAllCloudOrdersAndGhostLeads(): Promise<any[]> {
       const id = (item.id || '').trim();
       const email = (item.email || '').trim().toLowerCase();
       const phone = (item.phone || '').trim().replace(/\D/g, '');
-      if (id && cloudDeletedKeys.has(id)) return false;
+      if (id && cloudDeletedKeys.has(id.toLowerCase())) return false;
       if (email && cloudDeletedKeys.has(email)) return false;
       if (phone && cloudDeletedKeys.has(phone)) return false;
       return true;
@@ -439,6 +481,22 @@ export function subscribeToFirestoreAdmins(callback: (admins: any[]) => void): U
   } catch (err) {
     console.debug('Failed to subscribe to Firestore admin_team:', err);
     return () => {};
+  }
+}
+
+/**
+ * Fetch all admin team members from Firestore once
+ */
+export async function fetchAdminsFromFirestore(): Promise<any[]> {
+  try {
+    const teamCol = collection(db, 'admin_team');
+    const snapshot = await getDocs(teamCol);
+    const list: any[] = [];
+    snapshot.forEach((d) => list.push(d.data()));
+    return list;
+  } catch (err) {
+    console.debug('Failed to fetch admin team from Firestore:', err);
+    return [];
   }
 }
 

@@ -113,6 +113,15 @@ import {
   CloudSyncResult,
 } from '../lib/cloudSync';
 import {
+  fetchAllCloudOrdersAndGhostLeads,
+  subscribeToFirestoreOrders,
+  subscribeToFirestoreAdmins,
+  subscribeToFirestorePrompts,
+  fetchAdminsFromFirestore,
+  fetchPromptsFromFirestore,
+  saveOrderToFirestore,
+} from '../lib/firebase';
+import {
   sendOrderApprovalEmail,
   sendOrderRejectionEmail,
   sendTestEmail,
@@ -243,23 +252,67 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
     });
   };
 
-  const loadData = () => {
-    setOrders(getAllOrders());
+  const loadData = async () => {
+    try {
+      const cloudOrders = await fetchAllCloudOrdersAndGhostLeads();
+      const cleanOrders = (cloudOrders || []).filter((o) => !isDummyOrder(o) && !isLeadDeleted(o));
+      setOrders(cleanOrders);
+    } catch (err) {
+      console.error('Firestore loadData error:', err);
+    }
+
     setMarketingHistory(getAllMarketingDispatches());
-    setPromptsList(getAllVaultPrompts());
-    setTeamList(getAllAdmins());
+
+    try {
+      const cloudPrompts = await fetchPromptsFromFirestore();
+      if (cloudPrompts && cloudPrompts.length > 0) setPromptsList(cloudPrompts);
+      else setPromptsList(getAllVaultPrompts());
+    } catch {
+      setPromptsList(getAllVaultPrompts());
+    }
+
+    try {
+      const cloudTeam = await fetchAdminsFromFirestore();
+      if (cloudTeam && cloudTeam.length > 0) setTeamList(cloudTeam);
+      else setTeamList(getAllAdmins());
+    } catch {
+      setTeamList(getAllAdmins());
+    }
   };
 
   useEffect(() => {
     // Purge any legacy dummy records from localStorage immediately on mount
     purgeAllDummyData();
     purgeDummyAdmins();
+    try {
+      localStorage.removeItem('apex3d_orders');
+      localStorage.removeItem('apex3d_ghost_vault_permanent');
+      localStorage.removeItem('apex_prompt_leads');
+      localStorage.removeItem('apex3d_ghost_orders_vault');
+    } catch {}
+
+    // 1. Initial direct fetch from Firebase Firestore (Zero localStorage)
     loadData();
 
-    // Actively pull from Cloud Database in the background and update state
-    syncAllLeadsFromCloud().then((synced) => {
-      if (Array.isArray(synced)) {
-        setOrders(synced);
+    // 2. Real-time direct Firestore Orders & Ghost Leads listener (No localStorage)
+    const unsubOrders = subscribeToFirestoreOrders((cloudOrders) => {
+      if (Array.isArray(cloudOrders)) {
+        const clean = cloudOrders.filter((o) => !isDummyOrder(o) && !isLeadDeleted(o));
+        setOrders(clean);
+      }
+    });
+
+    // 3. Real-time direct Firestore Admin Team listener
+    const unsubAdmins = subscribeToFirestoreAdmins((cloudAdmins) => {
+      if (Array.isArray(cloudAdmins) && cloudAdmins.length > 0) {
+        setTeamList(cloudAdmins);
+      }
+    });
+
+    // 4. Real-time direct Firestore Prompts listener
+    const unsubPrompts = subscribeToFirestorePrompts((cloudPrompts) => {
+      if (Array.isArray(cloudPrompts) && cloudPrompts.length > 0) {
+        setPromptsList(cloudPrompts);
       }
     });
 
@@ -293,15 +346,26 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
     // Listen for real-time updates
     const handleOrderUpdate = (e?: any) => {
       if (e?.detail && Array.isArray(e.detail)) {
-        setOrders(e.detail);
+        setOrders(e.detail.filter((o: any) => !isDummyOrder(o) && !isLeadDeleted(o)));
       } else {
-        loadData();
+        fetchAllCloudOrdersAndGhostLeads().then((list) => {
+          if (Array.isArray(list)) {
+            setOrders(list.filter((o) => !isDummyOrder(o) && !isLeadDeleted(o)));
+          }
+        });
       }
     };
     const handleMarketingUpdate = () => setMarketingHistory(getAllMarketingDispatches());
-    const handlePromptsUpdate = () => setPromptsList(getAllVaultPrompts());
+    const handlePromptsUpdate = () => {
+      fetchPromptsFromFirestore().then((p) => {
+        if (p && p.length > 0) setPromptsList(p);
+      }).catch(() => setPromptsList(getAllVaultPrompts()));
+    };
     const handleAuthChange = (e: any) => setSession(e.detail || null);
-    const handleTeamChange = (e: any) => setTeamList(e.detail || getAllAdmins());
+    const handleTeamChange = (e: any) => {
+      if (e?.detail) setTeamList(e.detail);
+      else fetchAdminsFromFirestore().then((t) => { if (t && t.length > 0) setTeamList(t); });
+    };
 
     window.addEventListener('apex_order_updated', handleOrderUpdate);
     window.addEventListener('storage', handleOrderUpdate);
@@ -312,6 +376,9 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
     window.addEventListener('apex_admins_updated', handleTeamChange);
 
     return () => {
+      unsubOrders();
+      unsubAdmins();
+      unsubPrompts();
       window.removeEventListener('apex_order_updated', handleOrderUpdate);
       window.removeEventListener('storage', handleOrderUpdate);
       syncChannel?.removeEventListener('message', handleOrderUpdate);
@@ -466,9 +533,9 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
   // Actions
   const handleApprove = async (order: LeadOrder) => {
     sound.playSuccess();
-    const approved = approveOrder(order.id);
+    const approved = approveOrder(order.id, order);
     if (approved) {
-      loadData();
+      await saveOrderToFirestore(approved);
       showToast(`Order ${approved.orderNumber} Approved! License ${approved.licenseKey} & Invoice generated.`);
 
       // Automated Resend transactional fulfillment email
@@ -484,6 +551,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
           console.error('Error dispatching fulfillment email:', err);
         }
       }
+      loadData();
     }
   };
 
@@ -495,9 +563,9 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
   const handleConfirmReject = async () => {
     if (!rejectionModalOrder) return;
     sound.playClick();
-    const rejected = rejectOrder(rejectionModalOrder.id, rejectionReason);
+    const rejected = rejectOrder(rejectionModalOrder.id, rejectionReason, rejectionModalOrder);
     if (rejected) {
-      loadData();
+      await saveOrderToFirestore(rejected);
       showToast(`Order ${rejected.orderNumber} marked as Rejected.`);
 
       // Automated Resend rejection notice
@@ -508,6 +576,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
           console.error('Error dispatching rejection notice:', err);
         }
       }
+      loadData();
     }
     setRejectionModalOrder(null);
   };
