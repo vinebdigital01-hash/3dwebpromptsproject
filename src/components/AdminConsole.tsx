@@ -263,6 +263,9 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
       }
     });
 
+    // Automated background drip follow-up heartbeat (throttled to max once every 4h, respects per-recipient rate limits)
+    triggerDripFollowupHeartbeat(false).catch(() => {});
+
     // Check for inviteToken & email in URL hash or search
     try {
       const hash = window.location.hash || '';

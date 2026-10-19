@@ -415,6 +415,9 @@ function buildDay2Email(lead: FollowupLeadInfo): string {
 </html>`;
 }
 
+const recipientLogs = new Map<string, number[]>();
+const MAX_SERVER_DAILY = 4; // Max 4 emails per recipient per 24 hours
+
 export default async function handler(req: any, res: any) {
   // Allow GET (Vercel Cron) and POST (Heartbeat / Manual trigger)
   if (req.method !== 'GET' && req.method !== 'POST') {
@@ -443,6 +446,7 @@ export default async function handler(req: any, res: any) {
   })[] = Array.isArray(req.body?.leads) ? req.body.leads : [];
 
   const now = Date.now();
+  const windowMs = 24 * 60 * 60 * 1000;
   const day1Sent: string[] = [];
   const day2Sent: string[] = [];
   const errors: any[] = [];
@@ -450,6 +454,13 @@ export default async function handler(req: any, res: any) {
   for (const lead of incomingLeads) {
     if (!lead.email || !lead.email.includes('@')) continue;
     if (lead.status === 'approved') continue;
+
+    const recipient = lead.email.trim().toLowerCase();
+    const existing = recipientLogs.get(recipient) || [];
+    const recent = existing.filter((t) => now - t < windowMs);
+    if (recent.length >= MAX_SERVER_DAILY) {
+      continue; // Skip recipient if already reached daily limit of 4
+    }
 
     const createdAtMs = new Date(lead.createdAt || now).getTime();
     const ageHours = (now - createdAtMs) / (1000 * 60 * 60);
@@ -478,6 +489,8 @@ export default async function handler(req: any, res: any) {
         const data = await response.json();
         if (response.ok) {
           day1Sent.push(lead.email);
+          recent.push(now);
+          recipientLogs.set(recipient, recent);
         } else {
           errors.push({ email: lead.email, stage: 1, error: data });
         }
@@ -507,6 +520,8 @@ export default async function handler(req: any, res: any) {
         const data = await response.json();
         if (response.ok) {
           day2Sent.push(lead.email);
+          recent.push(now);
+          recipientLogs.set(recipient, recent);
         } else {
           errors.push({ email: lead.email, stage: 2, error: data });
         }

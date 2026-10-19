@@ -15,6 +15,7 @@ import {
   fetchCloudQuotaRecord,
 } from './firebase';
 import { generateDeviceFingerprint } from './security';
+import { checkRecipientRateLimit } from './resendEmail';
 
 export type OrderStatus =
   | 'unsubmitted_keystroke' // User typed email/phone but never hit proceed
@@ -878,12 +879,12 @@ export async function triggerDripFollowupHeartbeat(force = false): Promise<{
   day1Count: number;
   day2Count: number;
 }> {
-  if (typeof window === 'undefined' || !force) return { success: true, day1Count: 0, day2Count: 0 };
+  if (typeof window === 'undefined') return { success: true, day1Count: 0, day2Count: 0 };
 
   const lastRun = localStorage.getItem('apex_last_drip_cron_run');
   const now = Date.now();
-  // Don't spam unless forced or at least 2 hours have passed
-  if (!force && lastRun && now - parseInt(lastRun, 10) < 1000 * 60 * 60 * 2) {
+  // Don't spam: throttle background cron to run at most once every 4 hours unless forced
+  if (!force && lastRun && now - parseInt(lastRun, 10) < 1000 * 60 * 60 * 4) {
     return { success: true, day1Count: 0, day2Count: 0 };
   }
 
@@ -892,7 +893,8 @@ export async function triggerDripFollowupHeartbeat(force = false): Promise<{
     (o) =>
       (o.status === 'unsubmitted_keystroke' || o.status === 'abandoned_at_qr') &&
       o.email &&
-      o.email.includes('@')
+      o.email.includes('@') &&
+      checkRecipientRateLimit(o.email).allowed
   );
 
   if (ghostLeads.length === 0) {

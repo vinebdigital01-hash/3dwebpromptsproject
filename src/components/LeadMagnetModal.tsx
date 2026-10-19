@@ -348,6 +348,17 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
     // Trigger instant browser download of 30+ prompts PDF
     trigger30PromptsPdfDownload(name.trim(), role);
 
+    // Dispatch welcome email via Resend (strictly rate-limited to max 4/day)
+    sendInstantLeadMagnetOrAbandonedEmail({
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
+      phone: cleanPhone,
+      tierId: 'free_pdf',
+      tierName: 'Free 30+ Prompts PDF Magnet',
+    }).catch((err) => {
+      console.warn('Instant starter pack email deferred:', err);
+    });
+
     // Launch celebratory confetti
     try {
       confetti({

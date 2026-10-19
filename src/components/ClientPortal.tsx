@@ -73,6 +73,7 @@ import { LicenseModal } from './LicenseModal';
 import { UpgradeShowcaseModal } from './UpgradeShowcaseModal';
 import { CopyPromptLeadModal } from './CopyPromptLeadModal';
 import { TierId } from './PricingSection';
+import { checkPasswordResetRateLimit, recordPasswordResetSent } from '../lib/resendEmail';
 
 interface ClientPortalProps {
   onBackToSite: () => void;
@@ -547,9 +548,21 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
     setIsResetLoading(true);
     setResetStatus(null);
     try {
+      const rateCheck = checkPasswordResetRateLimit(resetEmail);
+      if (!rateCheck.allowed) {
+        sound.playError();
+        setResetStatus(`⚠️ Daily password reset limit reached (maximum 2 requests per 24 hours). Please try again in ~${rateCheck.resetHours || 24}h or check your spam inbox.`);
+        setIsResetLoading(false);
+        return;
+      }
+
       await sendPasswordReset(resetEmail);
-      setResetStatus('Password reset link sent! Check your inbox.');
+      recordPasswordResetSent(resetEmail);
+      sound.playSuccess();
+      const remaining = rateCheck.remaining - 1;
+      setResetStatus(`Password reset link dispatched! Please check your inbox. (${remaining} of 2 reset requests remaining today)`);
     } catch (err: any) {
+      sound.playError();
       setResetStatus(getFirebaseErrorMessage(err));
     } finally {
       setIsResetLoading(false);

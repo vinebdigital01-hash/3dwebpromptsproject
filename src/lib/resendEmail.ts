@@ -26,6 +26,101 @@ export interface EmailDispatchResult {
   id?: string;
 }
 
+// 🔒 STRICT PRODUCTION RATE LIMITS (Prevents Resend daily quota exhaustion)
+export const MAX_DAILY_EMAILS_PER_RECIPIENT = 4; // Max 4 emails per day per user
+export const MAX_PW_RESET_PER_DAY = 2;          // Max 2 password resets per day separately
+
+/**
+ * Check if a recipient has exceeded their daily email limit (max 3-4/day)
+ */
+export function checkRecipientRateLimit(
+  recipientEmail: string,
+  limit = MAX_DAILY_EMAILS_PER_RECIPIENT
+): { allowed: boolean; remaining: number; resetHours: number } {
+  if (typeof window === 'undefined') return { allowed: true, remaining: limit, resetHours: 0 };
+  const clean = recipientEmail.trim().toLowerCase();
+  const logKey = `apex_email_rate_${clean}`;
+  try {
+    const raw = localStorage.getItem(logKey);
+    const now = Date.now();
+    const windowMs = 24 * 60 * 60 * 1000;
+    let timestamps: number[] = raw ? JSON.parse(raw) : [];
+    timestamps = timestamps.filter((t) => typeof t === 'number' && now - t < windowMs);
+    localStorage.setItem(logKey, JSON.stringify(timestamps));
+
+    const remaining = Math.max(0, limit - timestamps.length);
+    const oldest = timestamps[0];
+    const resetHours = oldest ? Math.ceil((oldest + windowMs - now) / (1000 * 60 * 60)) : 0;
+
+    return {
+      allowed: timestamps.length < limit,
+      remaining,
+      resetHours,
+    };
+  } catch {
+    return { allowed: true, remaining: limit, resetHours: 0 };
+  }
+}
+
+export function recordRecipientEmailSent(recipientEmail: string): void {
+  if (typeof window === 'undefined') return;
+  const clean = recipientEmail.trim().toLowerCase();
+  const logKey = `apex_email_rate_${clean}`;
+  try {
+    const raw = localStorage.getItem(logKey);
+    const now = Date.now();
+    const windowMs = 24 * 60 * 60 * 1000;
+    let timestamps: number[] = raw ? JSON.parse(raw) : [];
+    timestamps = timestamps.filter((t) => typeof t === 'number' && now - t < windowMs);
+    timestamps.push(now);
+    localStorage.setItem(logKey, JSON.stringify(timestamps));
+  } catch {}
+}
+
+/**
+ * Check separate Password Reset limit (max 2 per day)
+ */
+export function checkPasswordResetRateLimit(email: string): { allowed: boolean; remaining: number; resetHours: number } {
+  if (typeof window === 'undefined') return { allowed: true, remaining: MAX_PW_RESET_PER_DAY, resetHours: 0 };
+  const clean = email.trim().toLowerCase();
+  const logKey = `apex_pw_reset_rate_${clean}`;
+  try {
+    const raw = localStorage.getItem(logKey);
+    const now = Date.now();
+    const windowMs = 24 * 60 * 60 * 1000;
+    let timestamps: number[] = raw ? JSON.parse(raw) : [];
+    timestamps = timestamps.filter((t) => typeof t === 'number' && now - t < windowMs);
+    localStorage.setItem(logKey, JSON.stringify(timestamps));
+
+    const remaining = Math.max(0, MAX_PW_RESET_PER_DAY - timestamps.length);
+    const oldest = timestamps[0];
+    const resetHours = oldest ? Math.ceil((oldest + windowMs - now) / (1000 * 60 * 60)) : 0;
+
+    return {
+      allowed: timestamps.length < MAX_PW_RESET_PER_DAY,
+      remaining,
+      resetHours,
+    };
+  } catch {
+    return { allowed: true, remaining: MAX_PW_RESET_PER_DAY, resetHours: 0 };
+  }
+}
+
+export function recordPasswordResetSent(email: string): void {
+  if (typeof window === 'undefined') return;
+  const clean = email.trim().toLowerCase();
+  const logKey = `apex_pw_reset_rate_${clean}`;
+  try {
+    const raw = localStorage.getItem(logKey);
+    const now = Date.now();
+    const windowMs = 24 * 60 * 60 * 1000;
+    let timestamps: number[] = raw ? JSON.parse(raw) : [];
+    timestamps = timestamps.filter((t) => typeof t === 'number' && now - t < windowMs);
+    timestamps.push(now);
+    localStorage.setItem(logKey, JSON.stringify(timestamps));
+  } catch {}
+}
+
 /**
  * Send an email using Resend API (via serverless endpoint / dev proxy or direct fallback)
  */
@@ -45,9 +140,21 @@ export async function sendEmailViaResend(options: {
     return { success: false, message: 'Invalid recipient email address.' };
   }
 
+  const cleanRecipient = options.to.trim().toLowerCase();
+
+  // Enforce daily rate limit per recipient (max 4 per day)
+  const rate = checkRecipientRateLimit(cleanRecipient, MAX_DAILY_EMAILS_PER_RECIPIENT);
+  if (!rate.allowed) {
+    console.warn(`[Resend Rate Limiter] Suppressed email to ${cleanRecipient}: daily limit of ${MAX_DAILY_EMAILS_PER_RECIPIENT} reached. Resets in ~${rate.resetHours}h.`);
+    return {
+      success: false,
+      message: `Daily email limit of ${MAX_DAILY_EMAILS_PER_RECIPIENT} reached for this recipient. Resets in ~${rate.resetHours}h.`,
+    };
+  }
+
   const payload = {
     from: fromAddress,
-    to: [options.to.trim()],
+    to: [cleanRecipient],
     subject: options.subject,
     html: options.html,
     text: options.text || options.subject,
@@ -67,6 +174,7 @@ export async function sendEmailViaResend(options: {
     });
 
     if (proxyRes.ok) {
+      recordRecipientEmailSent(cleanRecipient);
       const data = await proxyRes.json();
       return {
         success: true,
@@ -92,6 +200,7 @@ export async function sendEmailViaResend(options: {
     const data = await directRes.json();
 
     if (directRes.ok) {
+      recordRecipientEmailSent(cleanRecipient);
       return {
         success: true,
         message: `Email dispatched directly via Resend! (ID: ${data.id || 'OK'})`,
