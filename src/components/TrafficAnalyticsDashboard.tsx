@@ -59,6 +59,19 @@ export const TrafficAnalyticsDashboard: React.FC<TrafficAnalyticsDashboardProps>
   const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'leads' | 'buyers'>('all');
   const [expandedSessionIds, setExpandedSessionIds] = useState<Set<string>>(new Set());
   const [isPurging, setIsPurging] = useState(false);
+  const [isDeviceExcluded, setIsDeviceExcluded] = useState<boolean>(() => isAdminDevice());
+
+  const handleToggleDeviceExclusion = () => {
+    sound.playClick();
+    const next = !isDeviceExcluded;
+    setAdminDeviceExclusion(next);
+    setIsDeviceExcluded(next);
+    if (next) {
+      onShowToast('🛡️ Admin Device Shield: This device is now INVISIBLE to analytics.');
+    } else {
+      onShowToast('🧪 Test Tracking Active: This device will now appear on the live dashboard! Open homepage in another tab to test.');
+    }
+  };
 
   // Subscribe to real-time visitor sessions from Cloud Firestore
   useEffect(() => {
@@ -286,25 +299,56 @@ export const TrafficAnalyticsDashboard: React.FC<TrafficAnalyticsDashboardProps>
       {/* ========================================================================= */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-gradient-to-r from-blue-950/40 via-[#0c1424] to-[#070b14] border border-blue-500/25 shadow-lg shadow-black/40">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shrink-0">
-            <ShieldCheck className="w-5 h-5 text-emerald-400" />
+          <div
+            className={`p-2 rounded-xl border shrink-0 ${
+              isDeviceExcluded
+                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+            }`}
+          >
+            {isDeviceExcluded ? (
+              <ShieldCheck className="w-5 h-5 text-emerald-400" />
+            ) : (
+              <Radio className="w-5 h-5 text-amber-400 animate-pulse" />
+            )}
           </div>
           <div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-white font-mono uppercase tracking-wide">
-                Admin Self-Traffic Shield:
+                Admin Device Shield:
               </span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                ACTIVE · INVISIBLE
+              <span
+                className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono border ${
+                  isDeviceExcluded
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                    : 'bg-amber-500/20 text-amber-300 border-amber-500/30 animate-pulse'
+                }`}
+              >
+                {isDeviceExcluded ? 'ACTIVE · INVISIBLE' : 'TEST MODE · VISIBLE'}
               </span>
             </div>
             <p className="text-[11px] text-white/60 mt-0.5 font-mono">
-              Your device visits, clicks, and pageviews are filtered out so they do not pollute visitor stats or fire Meta Pixel events.
+              {isDeviceExcluded
+                ? 'Your device visits are filtered out from Firestore and Meta Pixel. To test from this device, switch to Test Mode below or open an Incognito tab.'
+                : 'This device is currently being tracked like a real visitor for live testing. You will see your actions in the stream below.'}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          <button
+            onClick={handleToggleDeviceExclusion}
+            className={`px-3 py-1.5 rounded-xl border text-xs font-mono flex items-center gap-1.5 transition-colors cursor-pointer ${
+              isDeviceExcluded
+                ? 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border-amber-500/30'
+                : 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border-emerald-500/30'
+            }`}
+            title="Toggle tracking on this specific device"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>{isDeviceExcluded ? 'Allow Tracking This Device (Test Mode)' : 'Shield This Device (Excluded)'}</span>
+          </button>
+
           <button
             onClick={handlePurgeAnalytics}
             disabled={isPurging}

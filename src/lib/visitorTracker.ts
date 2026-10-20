@@ -97,10 +97,24 @@ const EXCLUDE_ADMIN_KEY = 'apex3d_exclude_admin_tracking';
 export function isAdminDevice(): boolean {
   if (typeof window === 'undefined') return false;
   try {
+    const search = window.location.search || '';
+    const hash = window.location.hash || '';
+
+    // If explicit tracking test override is present, NEVER exclude
+    if (
+      search.includes('track=1') ||
+      search.includes('track=true') ||
+      search.includes('test_visitor=1') ||
+      hash.includes('track=1')
+    ) {
+      localStorage.removeItem(EXCLUDE_ADMIN_KEY);
+      return false;
+    }
+
     const hasAdminSession = !!localStorage.getItem('apex3d_admin_session_v2');
     const hasExplicitExclude = localStorage.getItem(EXCLUDE_ADMIN_KEY) === 'true';
     const isAtAdminUrl =
-      window.location.hash.includes('#admin') ||
+      hash.includes('#admin') ||
       window.location.pathname.startsWith('/admin');
 
     if (hasAdminSession || hasExplicitExclude || isAtAdminUrl) {
@@ -425,6 +439,15 @@ function persistSession(session: VisitorSession) {
   saveVisitorSessionToFirestore(session).catch((err) => {
     console.debug('Telemetry session sync notice:', err);
   });
+
+  // Relay to real-time serverless visitor stream for instant cross-device monitoring
+  if (typeof fetch !== 'undefined') {
+    fetch('/api/visitor-relay', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(session),
+    }).catch(() => {});
+  }
 }
 
 /**
