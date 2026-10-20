@@ -50,7 +50,7 @@ export const DEFAULT_ADMIN_SETTINGS: AdminSettings = {
   lastCloudSyncAt: null,
   resendApiKey: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_RESEND_API_KEY) || '',
   resendFromEmail: 'Vine B Digital // 3D Vault <vault@vinebdigital.store>',
-  metaPixelId: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_META_PIXEL_ID) || '',
+  metaPixelId: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_META_PIXEL_ID) || '4722606601349243',
   clarityProjectId: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_CLARITY_PROJECT_ID) || '',
 };
 
