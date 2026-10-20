@@ -27,6 +27,7 @@ export interface AdminSettings {
   resendFromEmail: string;
   // Ads Attribution & Session Replays
   metaPixelId?: string;
+  metaConversionsApiToken?: string;
   clarityProjectId?: string;
 }
 
@@ -51,6 +52,9 @@ export const DEFAULT_ADMIN_SETTINGS: AdminSettings = {
   resendApiKey: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_RESEND_API_KEY) || '',
   resendFromEmail: 'Vine B Digital // 3D Vault <vault@vinebdigital.store>',
   metaPixelId: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_META_PIXEL_ID) || '4722606601349243',
+  metaConversionsApiToken:
+    (typeof import.meta !== 'undefined' && import.meta.env?.VITE_META_CAPI_TOKEN) ||
+    'EAAcrhPzk3TUBSxOMHu0dI3VlEDjSKCTDcDhnB3mJgwFDke1fAO3hTJee0jEZALjRxYlCN8On0gBxyWGerNAESyVkqJ6NZCKZCAgCZASN5KxqFsVb0OrX8xz9PE7OkOWGjm8EfYukDAgFIZAPZA7BLcqtakt5O8U0Kgn8CGxhzzUaUNOjumf50HPcdU8puq2wZDZD',
   clarityProjectId: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_CLARITY_PROJECT_ID) || '',
 };
 

@@ -242,7 +242,10 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
 
   // Meta Pixel & Microsoft Clarity State
   const [metaPixelId, setMetaPixelId] = useState(settings.metaPixelId || '');
+  const [metaConversionsApiToken, setMetaConversionsApiToken] = useState(settings.metaConversionsApiToken || '');
   const [clarityProjectId, setClarityProjectId] = useState(settings.clarityProjectId || '');
+  const [isTestingCapi, setIsTestingCapi] = useState(false);
+  const [capiTestResult, setCapiTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
   // Ghost Leads Grouping & Timeline State
   const [ghostViewMode, setGhostViewMode] = useState<'grouped' | 'raw'>('grouped');
@@ -842,11 +845,57 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
       resendApiKey: resendApiKey.trim(),
       resendFromEmail: resendFromEmail.trim(),
       metaPixelId: metaPixelId.trim(),
+      metaConversionsApiToken: metaConversionsApiToken.trim(),
       clarityProjectId: clarityProjectId.trim(),
     });
     setSettings(updated);
     initializeThirdPartyScripts();
-    showToast('Store settings, Pixel & payment configuration saved live!');
+    showToast('Store settings, Meta Pixel & Conversions API saved live!');
+  };
+
+  const handleTestCapiEvent = async () => {
+    setIsTestingCapi(true);
+    setCapiTestResult(null);
+    sound.playClick();
+    try {
+      const res = await fetch('/api/meta-conversions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eventName: 'PageView',
+          eventId: `test_${Date.now()}`,
+          userData: {
+            email: session?.email || 'admin@vinebdigital.store',
+            name: session?.name || 'Admin Tester',
+          },
+          customData: {
+            content_name: 'Live CAPI Integration Health Check',
+          },
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        sound.playSuccess();
+        setCapiTestResult({
+          success: true,
+          message: `✅ Conversions API Verified! Event received by Meta (fbtrace_id: ${data.fbtrace_id}).`,
+        });
+        showToast('Meta Conversions API connection verified!');
+      } else {
+        sound.playError();
+        setCapiTestResult({
+          success: false,
+          message: `❌ Meta API Notice: ${data.error?.message || data.message || 'Verification failed.'}`,
+        });
+      }
+    } catch (err: any) {
+      setCapiTestResult({
+        success: false,
+        message: `Failed to connect: ${err.message}`,
+      });
+    } finally {
+      setIsTestingCapi(false);
+    }
   };
 
   const handleSendTestEmail = async () => {
@@ -3884,6 +3933,49 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                     100% Free Forever on clarity.microsoft.com &rarr; Settings &rarr; Project ID.
                   </span>
                 </div>
+              </div>
+
+              {/* Meta Conversions API (CAPI) Direct Server Integration */}
+              <div className="pt-2 border-t border-white/10 space-y-3">
+                <div>
+                  <label className="block text-xs font-semibold text-white/70 mb-1">
+                    Meta Conversions API (CAPI) System User Access Token
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="password"
+                      value={metaConversionsApiToken}
+                      onChange={(e) => setMetaConversionsApiToken(e.target.value)}
+                      placeholder="EAACrhPzk3TU..."
+                      className="flex-1 px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-xs font-mono text-emerald-400 placeholder-white/20 focus:outline-none focus:border-emerald-500"
+                    />
+                    <button
+                      type="button"
+                      disabled={isTestingCapi}
+                      onClick={handleTestCapiEvent}
+                      className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold font-mono shrink-0 flex items-center gap-1.5 transition-all shadow-md shadow-emerald-600/30 disabled:opacity-50 cursor-pointer"
+                    >
+                      <Zap className={`w-3.5 h-3.5 ${isTestingCapi ? 'animate-spin' : ''}`} />
+                      <span>{isTestingCapi ? 'Verifying...' : 'Test CAPI to Meta'}</span>
+                    </button>
+                  </div>
+                  <span className="text-[10px] text-white/40 mt-1 block">
+                    Enables direct server-to-server tracking with SHA-256 data matching and ad-blocker resilience for 10/10 Event Quality.
+                  </span>
+                </div>
+
+                {capiTestResult && (
+                  <div
+                    className={`p-2.5 rounded-lg text-xs font-mono flex items-center gap-2 ${
+                      capiTestResult.success
+                        ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300'
+                        : 'bg-amber-500/10 border border-amber-500/30 text-amber-300'
+                    }`}
+                  >
+                    <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                    <span>{capiTestResult.message}</span>
+                  </div>
+                )}
               </div>
             </div>
 

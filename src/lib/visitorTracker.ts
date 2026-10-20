@@ -277,14 +277,99 @@ export function initializeThirdPartyScripts(): void {
 }
 
 /**
- * Forward event to Meta Pixel (fbq) if available
+ * Retrieve or generate Meta _fbp (Browser ID) cookie
  */
-function forwardToMetaPixel(eventName: string, params?: Record<string, any>) {
+function getOrCreateFbp(): string {
+  if (typeof document === 'undefined') return '';
+  const match = document.cookie.match(/(^|;)\s*_fbp=([^;]+)/);
+  if (match) return match[2];
+
+  const sessionCached = sessionStorage.getItem('_fbp');
+  if (sessionCached) return sessionCached;
+
+  const generated = `fb.1.${Date.now()}.${Math.floor(Math.random() * 8999999999 + 1000000000)}`;
+  try {
+    document.cookie = `_fbp=${generated}; path=/; max-age=7776000; SameSite=Lax`;
+    sessionStorage.setItem('_fbp', generated);
+  } catch {}
+  return generated;
+}
+
+/**
+ * Retrieve or generate Meta _fbc (Click ID) cookie if fbclid is present
+ */
+function getOrCreateFbc(fbclid?: string): string | undefined {
+  if (typeof document === 'undefined') return undefined;
+  const match = document.cookie.match(/(^|;)\s*_fbc=([^;]+)/);
+  if (match) return match[2];
+
+  const sessionCached = sessionStorage.getItem('_fbc');
+  if (sessionCached) return sessionCached;
+
+  const id = fbclid || sessionStorage.getItem('fbclid') || new URLSearchParams(window.location.search).get('fbclid');
+  if (!id) return undefined;
+
+  const generated = `fb.1.${Date.now()}.${id}`;
+  try {
+    document.cookie = `_fbc=${generated}; path=/; max-age=7776000; SameSite=Lax`;
+    sessionStorage.setItem('_fbc', generated);
+  } catch {}
+  return generated;
+}
+
+/**
+ * Dual Dispatch: Sends event to both client Meta Pixel (fbq) and Meta Conversions API (CAPI)
+ * with deduplicated event_id for maximum Event Match Quality (EMQ)
+ */
+export function dispatchMetaEvent(
+  eventName: string,
+  params?: Record<string, any>,
+  leadData?: { email?: string; phone?: string; name?: string }
+): string {
+  const eventId = `evt_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+
+  // 1. Browser Meta Pixel (fbq)
   if (typeof window !== 'undefined' && (window as any).fbq) {
     try {
-      (window as any).fbq('track', eventName, params || {});
+      (window as any).fbq('track', eventName, params || {}, { eventID: eventId });
+    } catch (e) {
+      console.debug('Browser fbq notice:', e);
+    }
+  }
+
+  // 2. Server-side Meta Conversions API (Direct CAPI Integration)
+  if (typeof window !== 'undefined') {
+    try {
+      const fbp = getOrCreateFbp();
+      const fbc = getOrCreateFbc(activeSession?.utm?.fbclid);
+      const email = leadData?.email || activeSession?.leadEmail;
+      const phone = leadData?.phone || activeSession?.leadPhone;
+      const name = leadData?.name || activeSession?.leadName;
+
+      fetch('/api/meta-conversions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          eventName,
+          eventId,
+          eventSourceUrl: window.location.href,
+          userData: {
+            email,
+            phone,
+            name,
+            fbc,
+            fbp,
+            clientUserAgent: navigator.userAgent,
+          },
+          customData: params || {},
+        }),
+      }).catch(() => {});
     } catch {}
   }
+
+  return eventId;
 }
 
 /**
@@ -458,8 +543,8 @@ export function initVisitorTracking(): void {
     utmSource: utm.source,
   });
 
-  // Forward to Meta Pixel if loaded
-  forwardToMetaPixel('PageView');
+  // Forward to Meta Pixel & Conversions API (CAPI)
+  dispatchMetaEvent('PageView');
 
   // Enrich with IP Geolocation asynchronously without blocking UI
   fetchGeoLocation().then((geo) => {
@@ -572,7 +657,7 @@ export function trackPromptInspect(promptId: string, promptTitle?: string): void
     promptId,
     promptTitle,
   });
-  forwardToMetaPixel('ViewContent', {
+  dispatchMetaEvent('ViewContent', {
     content_name: promptTitle || promptId,
     content_category: '3D Prompt Blueprint',
   });
@@ -612,10 +697,14 @@ export function trackLeadSubmitted(lead: {
     role: lead.role,
     source: lead.source,
   });
-  forwardToMetaPixel('Lead', {
-    content_name: 'Free Starter Prompt Magnet',
-    lead_role: lead.role,
-  });
+  dispatchMetaEvent(
+    'Lead',
+    {
+      content_name: 'Free Starter Prompt Magnet',
+      lead_role: lead.role,
+    },
+    lead
+  );
 }
 
 /**
@@ -636,7 +725,7 @@ export function trackCheckoutInitiate(tierId: string, priceINR?: number, tierNam
     priceINR,
     tierName,
   });
-  forwardToMetaPixel('InitiateCheckout', {
+  dispatchMetaEvent('InitiateCheckout', {
     content_name: tierName || tierId,
     value: priceINR || 0,
     currency: 'INR',
@@ -662,7 +751,7 @@ export function trackPaymentSuccess(orderId: string, amountINR: number, tierName
     amountINR,
     tierName,
   });
-  forwardToMetaPixel('Purchase', {
+  dispatchMetaEvent('Purchase', {
     value: amountINR,
     currency: 'INR',
     content_name: tierName || 'APEX3D Vault Access',
