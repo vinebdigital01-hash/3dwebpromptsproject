@@ -70,12 +70,10 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
   onClose,
   onSuccessRedirect,
 }) => {
-  const [name, setName] = useState(() => safeLocalStorage.getItem('vineb_user_name') || '');
-  const [phone, setPhone] = useState(() => safeLocalStorage.getItem('vineb_user_phone') || '');
-  const [email, setEmail] = useState(() => safeLocalStorage.getItem('vineb_user_email') || '');
-  const [role, setRole] = useState<UserRole | null>(
-    () => (safeLocalStorage.getItem('vineb_user_role') as UserRole) || 'Freelancer'
-  );
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [role, setRole] = useState<UserRole | null>('Freelancer');
 
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -124,12 +122,8 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
         console.debug('Ghost save notice:', err);
       }
 
-      // 2. Cache in storage & provision Client Portal member preview
+      // 2. Provision temporary active session in sessionStorage only (Zero localStorage)
       try {
-        safeLocalStorage.setItem('vineb_user_name', leadName);
-        safeLocalStorage.setItem('vineb_user_email', cleanEmail);
-        if (cleanPhone) safeLocalStorage.setItem('vineb_user_phone', cleanPhone);
-
         const memberSession: LeadOrder = {
           id: `USR-${cleanEmail.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8)}`,
           orderNumber: `MEM-${Date.now().toString().slice(-4)}`,
@@ -186,46 +180,36 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
     };
   }, [isOpen, onClose, email, name, phone]);
 
-  // Real-time Browser Autofill Detection
+  // Browser Autofill Detection: Only triggers when DOM inputs are actively populated by browser autofill
   useEffect(() => {
-    if (isOpen) {
-      const triggerAutofillCheck = () => {
-        try {
-          const domEmail = emailInputRef.current?.value || '';
-          const domName = nameInputRef.current?.value || '';
-          const domPhone = phoneInputRef.current?.value || '';
+    if (!isOpen) return;
 
-          const effectiveEmail = (domEmail || email || '').trim().toLowerCase();
-          const effectiveName = (domName || name || '').trim();
-          const effectivePhone = (domPhone || phone || '').trim();
+    // We do NOT automatically trigger ghost saves on open to avoid resurrecting deleted test data
+    const handleInputAutofill = () => {
+      try {
+        const domEmail = emailInputRef.current?.value || '';
+        const domName = nameInputRef.current?.value || '';
+        const domPhone = phoneInputRef.current?.value || '';
 
-          if (
-            effectiveEmail &&
-            effectiveEmail.includes('@') &&
-            effectiveEmail.includes('.') &&
-            !effectiveEmail.includes('example.com')
-          ) {
-            if (domEmail && domEmail !== email) setEmail(domEmail);
-            if (domName && domName !== name) setName(domName);
-            if (domPhone && domPhone !== phone) setPhone(domPhone);
-            handleGhostAutoSave(effectiveEmail, effectiveName, effectivePhone, 'browser_autofill');
-          }
-        } catch {}
-      };
+        // Must be genuinely present in the DOM input element
+        if (domEmail && domEmail.includes('@') && domEmail.includes('.') && !domEmail.includes('example.com')) {
+          setEmail(domEmail);
+          if (domName) setName(domName);
+          if (domPhone) setPhone(domPhone);
+          handleGhostAutoSave(domEmail, domName, domPhone, 'browser_autofill');
+        }
+      } catch {}
+    };
 
-      triggerAutofillCheck();
-      const t1 = setTimeout(triggerAutofillCheck, 150);
-      const t2 = setTimeout(triggerAutofillCheck, 400);
-      const t3 = setTimeout(triggerAutofillCheck, 900);
-      const t4 = setTimeout(triggerAutofillCheck, 2000);
-
-      return () => {
-        clearTimeout(t1);
-        clearTimeout(t2);
-        clearTimeout(t3);
-        clearTimeout(t4);
-      };
+    const emailEl = emailInputRef.current;
+    if (emailEl) {
+      emailEl.addEventListener('change', handleInputAutofill);
     }
+    return () => {
+      if (emailEl) {
+        emailEl.removeEventListener('change', handleInputAutofill);
+      }
+    };
   }, [isOpen]);
 
   // Automated 3-second countdown to transport user into Member Portal upon successful submission
@@ -298,24 +282,8 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
     setIsSubmitting(true);
     try { sound.playSuccess(); } catch {}
 
-    // Persist details safely so future pricing checkout is prefilled instantly
+    // Direct cloud save & session storage (Zero localStorage caching)
     try {
-      safeLocalStorage.setItem('vineb_user_name', name.trim());
-      safeLocalStorage.setItem('vineb_user_phone', cleanPhone);
-      safeLocalStorage.setItem('vineb_user_email', email.trim().toLowerCase());
-      safeLocalStorage.setItem('vineb_user_role', role);
-
-      const stored = JSON.parse(safeLocalStorage.getItem('apex_prompt_leads') || '[]');
-      stored.push({
-        name: name.trim(),
-        phone: cleanPhone,
-        email: email.trim().toLowerCase(),
-        role,
-        source: 'Free 30+ Prompts PDF',
-        timestamp: new Date().toISOString(),
-      });
-      safeLocalStorage.setItem('apex_prompt_leads', JSON.stringify(stored));
-
       saveGhostKeystrokeLead({
         name: name.trim(),
         phone: cleanPhone,

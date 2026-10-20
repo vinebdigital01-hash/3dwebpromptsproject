@@ -92,35 +92,6 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
         return JSON.parse(stored);
       }
 
-      // Auto-recognize user if they previously entered name/email in popup or checkout
-      const cachedEmail = localStorage.getItem('vineb_user_email');
-      const cachedName = localStorage.getItem('vineb_user_name');
-      const cachedPhone = localStorage.getItem('vineb_user_phone');
-      if (cachedEmail && cachedEmail.includes('@')) {
-        const approved = findApprovedOrder(cachedEmail);
-        if (approved) {
-          sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(approved));
-          return approved;
-        }
-
-        const memberSession: LeadOrder = {
-          id: `USR-${cachedEmail.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8)}`,
-          orderNumber: `MEM-${Date.now().toString().slice(-4)}`,
-          name: cachedName || 'Free Trial Member',
-          email: cachedEmail,
-          phone: cachedPhone || '',
-          tierId: 'member',
-          tierName: 'Free Trial Member (1 Sample Quota)',
-          amountINR: 0,
-          status: 'approved',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          approvedAt: new Date().toISOString(),
-        };
-        saveOrder(memberSession);
-        sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(memberSession));
-        return memberSession;
-      }
     } catch {
       // ignore
     }
@@ -1068,27 +1039,21 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                 type="button"
                 onClick={() => {
                   sound.playSuccess();
-                  const cachedEmail = localStorage.getItem('vineb_user_email');
-                  const cachedName = localStorage.getItem('vineb_user_name');
-                  const cachedPhone = localStorage.getItem('vineb_user_phone');
-                  let guestOrder = cachedEmail ? findApprovedOrder(cachedEmail) : null;
-                  if (!guestOrder) {
-                    // Ephemeral guest exploration session; NEVER write dummy orders into the database!
-                    guestOrder = {
-                      id: 'SESSION-GUEST',
-                      orderNumber: 'GUEST',
-                      name: cachedName || 'Guest Explorer',
-                      email: cachedEmail || '',
-                      phone: cachedPhone || '',
-                      tierId: 'member',
-                      tierName: 'Free Trial Member (1 Sample Quota)',
-                      amountINR: 0,
-                      status: 'approved',
-                      createdAt: new Date().toISOString(),
-                      updatedAt: new Date().toISOString(),
-                      approvedAt: new Date().toISOString(),
-                    };
-                  }
+                  // Ephemeral guest exploration session; NEVER write dummy orders into the database!
+                  const guestOrder: LeadOrder = {
+                    id: 'SESSION-GUEST',
+                    orderNumber: 'GUEST',
+                    name: 'Guest Explorer',
+                    email: '',
+                    phone: '',
+                    tierId: 'member',
+                    tierName: 'Free Trial Member (1 Sample Quota)',
+                    amountINR: 0,
+                    status: 'approved',
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    approvedAt: new Date().toISOString(),
+                  };
                   setActiveOrder(guestOrder);
                   sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(guestOrder));
                   const userIdentifier = guestOrder.email || 'free_guest';

@@ -24,9 +24,9 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
   onSuccessRedirect,
   onLeadSubmitted,
 }) => {
-  const [name, setName] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('vineb_user_name') || '' : ''));
-  const [email, setEmail] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('vineb_user_email') || '' : ''));
-  const [phone, setPhone] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('vineb_user_phone') || '' : ''));
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [role, setRole] = useState<UserRole | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,17 +41,6 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
     setMounted(true);
   }, []);
 
-  useEffect(() => {
-    if (isOpen && typeof window !== 'undefined') {
-      const cachedN = localStorage.getItem('vineb_user_name');
-      const cachedE = localStorage.getItem('vineb_user_email');
-      const cachedP = localStorage.getItem('vineb_user_phone');
-      if (cachedN && !name) setName(cachedN);
-      if (cachedE && !email) setEmail(cachedE);
-      if (cachedP && !phone) setPhone(cachedP);
-    }
-  }, [isOpen]);
-
   const captureGhost = (
     source: 'browser_autofill' | 'keystroke' = 'keystroke',
     overrides?: { email?: string; name?: string; phone?: string; role?: UserRole }
@@ -63,6 +52,7 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
 
     // Reject dummy placeholder emails
     if (
+      !rawEmail ||
       rawEmail.includes('free_guest') ||
       rawEmail.includes('@apex3d.local') ||
       rawEmail.includes('pending@') ||
@@ -75,7 +65,7 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
     const hasValidEmail = rawEmail.includes('@') && rawEmail.includes('.');
     const hasValidPhone = rawPhone.length >= 7;
 
-    // Must have at least email or phone (or if name is typed with either)
+    // Must have at least valid email
     if (!hasValidEmail && !hasValidPhone) return;
 
     if (rawEmail && rawEmail !== email) setEmail(rawEmail);
@@ -93,25 +83,6 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
       source,
     });
   };
-
-  // Browser Autofill Detection on modal open
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const checkAutofill = () => captureGhost('browser_autofill');
-    checkAutofill();
-    const t1 = setTimeout(checkAutofill, 150);
-    const t2 = setTimeout(checkAutofill, 400);
-    const t3 = setTimeout(checkAutofill, 900);
-    const t4 = setTimeout(checkAutofill, 2000);
-
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
-      clearTimeout(t4);
-    };
-  }, [isOpen, clientTitle]);
 
   // Lock body scroll and handle Escape key
   useEffect(() => {
@@ -230,22 +201,9 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
 
     saveOrder(leadOrder);
 
-    // 2. Persist user credentials to browser localStorage
+    // 2. Provision temporary active session in sessionStorage only (Zero localStorage caching)
     try {
-      localStorage.setItem('vineb_user_email', cleanEmail);
-      localStorage.setItem('vineb_user_name', cleanName);
-      localStorage.setItem('vineb_user_phone', cleanPhone);
-
-      const stored = JSON.parse(localStorage.getItem('apex_prompt_leads') || '[]');
-      stored.push({
-        name: cleanName,
-        email: cleanEmail,
-        phone: cleanPhone,
-        role,
-        promptTarget: clientTitle || 'General Prompt',
-        timestamp: new Date().toISOString(),
-      });
-      localStorage.setItem('apex_prompt_leads', JSON.stringify(stored));
+      sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(leadOrder));
     } catch {
       // Ignore storage errors
     }

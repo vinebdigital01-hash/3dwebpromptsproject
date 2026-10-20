@@ -72,11 +72,46 @@ export function sanitizeForFirestore(obj: any): any {
   return sanitized;
 }
 
+// ==========================================
+// Global Cloud Blacklist & Purge Tracker
+// Synchronized in real time with 'app_metadata/deleted_leads'
+// ==========================================
+let globalCloudDeletedKeys = new Set<string>();
+let globalCloudPurgedAllAt: number = 0;
+
+export function isLeadDeletedInCloud(id?: string, email?: string, phone?: string, timeIso?: string): boolean {
+  const cleanId = (id || '').trim().toLowerCase();
+  const cleanEmail = (email || '').trim().toLowerCase();
+  const cleanPhone = (phone || '').trim().replace(/\D/g, '');
+
+  if (cleanId && globalCloudDeletedKeys.has(cleanId)) return true;
+  if (cleanEmail && globalCloudDeletedKeys.has(cleanEmail)) return true;
+  if (cleanPhone && globalCloudDeletedKeys.has(cleanPhone)) return true;
+
+  if (globalCloudPurgedAllAt > 0 && timeIso) {
+    const itemTime = new Date(timeIso).getTime();
+    if (itemTime <= globalCloudPurgedAllAt) return true;
+  }
+  return false;
+}
+
+export function getCloudDeletedKeys(): Set<string> {
+  return globalCloudDeletedKeys;
+}
+
+export function getCloudPurgedAllAt(): number {
+  return globalCloudPurgedAllAt;
+}
+
 /**
  * Save an order to Firestore 'orders' collection and mirror ghost leads
  */
 export async function saveOrderToFirestore(order: any): Promise<void> {
   if (typeof window === 'undefined' || !order || !order.id) return;
+  // Never save or recreate deleted leads
+  if (isLeadDeletedInCloud(order.id, order.email, order.phone, order.createdAt || order.updatedAt)) {
+    return;
+  }
   try {
     const cleanData = sanitizeForFirestore({
       ...order,
@@ -134,6 +169,13 @@ export async function recordDeletedLeadsToFirestore(keys: string[], purgedAll?: 
   if (typeof window === 'undefined') return;
   try {
     const cleanKeys = keys.filter(Boolean).map((k) => k.trim().toLowerCase());
+    if (purgedAll) {
+      globalCloudPurgedAllAt = Date.now();
+      globalCloudDeletedKeys.clear();
+    } else {
+      cleanKeys.forEach((k) => globalCloudDeletedKeys.add(k));
+    }
+
     const existing = await fetchCloudDeletedMetadata();
     const mergedKeys = Array.from(new Set([...existing.keys, ...cleanKeys]));
 
@@ -241,6 +283,9 @@ export async function purgeAllOrdersFromFirestore(): Promise<void> {
   if (typeof window === 'undefined') return;
   try {
     const purgeTime = new Date().toISOString();
+    globalCloudPurgedAllAt = Date.now();
+    globalCloudDeletedKeys.clear();
+
     await setDoc(doc(db, 'app_metadata', 'deleted_leads'), {
       purgedAllAt: purgeTime,
       keys: [],
@@ -269,8 +314,6 @@ export function subscribeToFirestoreOrders(callback: (orders: any[]) => void): U
   try {
     const ordersMap = new Map<string, any>();
     const ghostsMap = new Map<string, any>();
-    let cloudDeletedKeys = new Set<string>();
-    let cloudPurgedAllAt: number = 0;
 
     const dispatchMerged = () => {
       const mergedMap = new Map<string, any>();
@@ -291,13 +334,13 @@ export function subscribeToFirestoreOrders(callback: (orders: any[]) => void): U
       const list = Array.from(mergedMap.values()).filter((item) => {
         if (!item || item.isDeleted || item.status === 'deleted_purged') return false;
         const itemTime = new Date(item.updatedAt || item.createdAt || 0).getTime();
-        if (cloudPurgedAllAt > 0 && itemTime <= cloudPurgedAllAt) return false;
+        if (globalCloudPurgedAllAt > 0 && itemTime <= globalCloudPurgedAllAt) return false;
         const id = (item.id || '').trim();
         const email = (item.email || '').trim().toLowerCase();
         const phone = (item.phone || '').trim().replace(/\D/g, '');
-        if (id && cloudDeletedKeys.has(id.toLowerCase())) return false;
-        if (email && cloudDeletedKeys.has(email)) return false;
-        if (phone && cloudDeletedKeys.has(phone)) return false;
+        if (id && globalCloudDeletedKeys.has(id.toLowerCase())) return false;
+        if (email && globalCloudDeletedKeys.has(email)) return false;
+        if (phone && globalCloudDeletedKeys.has(phone)) return false;
         return true;
       });
 
@@ -316,10 +359,10 @@ export function subscribeToFirestoreOrders(callback: (orders: any[]) => void): U
         if (snapshot.exists()) {
           const data = snapshot.data();
           if (Array.isArray(data.keys)) {
-            cloudDeletedKeys = new Set(data.keys.map((k: string) => k.toLowerCase()));
+            globalCloudDeletedKeys = new Set(data.keys.map((k: string) => k.toLowerCase()));
           }
           if (data.purgedAllAt) {
-            cloudPurgedAllAt = new Date(data.purgedAllAt).getTime();
+            globalCloudPurgedAllAt = new Date(data.purgedAllAt).getTime();
           }
           dispatchMerged();
         }
@@ -522,6 +565,9 @@ export async function syncGhostLeadToCloud(lead: {
   lastFreeCopyAt?: string;
 }): Promise<void> {
   if (typeof window === 'undefined' || !lead.email) return;
+  if (isLeadDeletedInCloud(lead.id, lead.email, lead.phone, lead.createdAt)) {
+    return;
+  }
   try {
     const cleanEmail = lead.email.replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
     const docId = lead.id || `GHOST-${cleanEmail}-${lead.tierId}`;

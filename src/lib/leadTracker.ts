@@ -13,6 +13,7 @@ import {
   fetchAllCloudOrdersAndGhostLeads,
   saveCloudQuotaRecord,
   fetchCloudQuotaRecord,
+  isLeadDeletedInCloud,
 } from './firebase';
 import { generateDeviceFingerprint } from './security';
 import { checkRecipientRateLimit } from './resendEmail';
@@ -370,6 +371,12 @@ export function isLeadDeleted(order: Partial<LeadOrder>): boolean {
   if ((order as any).isDeleted) return true;
   if (order.status === ('deleted_purged' as any)) return true;
 
+  // 1. Check real-time cloud blacklist from Firestore
+  if (isLeadDeletedInCloud(order.id, order.email, order.phone, order.createdAt || order.updatedAt)) {
+    return true;
+  }
+
+  // 2. In-memory / local blacklist
   const purgedAllAt = getGlobalPurgedAt();
   if (purgedAllAt) {
     const itemTime = new Date(order.createdAt || order.updatedAt || 0).getTime();
@@ -413,6 +420,25 @@ if (syncChannel) {
 }
 
 if (typeof window !== 'undefined') {
+  // Immediately wipe stale test user form inputs and legacy order caches from browser localStorage
+  const STALE_STARTUP_KEYS = [
+    'vineb_user_name',
+    'vineb_user_email',
+    'vineb_user_phone',
+    'vineb_user_role',
+    'apex_prompt_leads',
+    'apex3d_vault_orders_db',
+    'apex3d_ghost_leads',
+    'apex3d_ghost_vault_permanent',
+    'apex3d_orders',
+    'apex3d_ghost_orders_vault',
+  ];
+  STALE_STARTUP_KEYS.forEach((k) => {
+    try {
+      localStorage.removeItem(k);
+    } catch {}
+  });
+
   window.addEventListener('storage', (event) => {
     if (event.key === STORAGE_KEY || event.key === GHOST_STORAGE_KEY || event.key === GHOST_BACKUP_KEY) {
       window.dispatchEvent(new CustomEvent('apex_order_updated', { detail: null }));
@@ -543,7 +569,16 @@ export async function deleteLeadPermanently(leadId: string, email?: string, phon
 
     memoryCloudOrders = memoryCloudOrders.filter((it) => !purgePredicate(it));
 
-    [STORAGE_KEY, GHOST_STORAGE_KEY, GHOST_BACKUP_KEY, 'apex_prompt_leads'].forEach((k) => {
+    [
+      STORAGE_KEY,
+      GHOST_STORAGE_KEY,
+      GHOST_BACKUP_KEY,
+      'apex_prompt_leads',
+      'vineb_user_name',
+      'vineb_user_email',
+      'vineb_user_phone',
+      'vineb_user_role',
+    ].forEach((k) => {
       try {
         localStorage.removeItem(k);
       } catch {}
@@ -595,7 +630,21 @@ export async function purgeAllLeadsPermanently(): Promise<void> {
 
     memoryCloudOrders = [];
 
-    [STORAGE_KEY, GHOST_STORAGE_KEY, GHOST_BACKUP_KEY, 'apex_prompt_leads', 'apex3d_marketing_campaigns_db'].forEach((k) => {
+    [
+      STORAGE_KEY,
+      GHOST_STORAGE_KEY,
+      GHOST_BACKUP_KEY,
+      'apex_prompt_leads',
+      'apex3d_marketing_campaigns_db',
+      'vineb_user_name',
+      'vineb_user_email',
+      'vineb_user_phone',
+      'vineb_user_role',
+      'apex3d_deleted_leads_v1',
+      'apex3d_purged_all_at_v1',
+      'apex3d_orders',
+      'apex3d_ghost_orders_vault',
+    ].forEach((k) => {
       try {
         localStorage.removeItem(k);
       } catch {}
@@ -667,6 +716,11 @@ export function saveGhostKeystrokeLead(data: {
   const orderId = hasValidEmail
     ? `GHOST-${cleanEmail.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10)}-${data.tierId}`
     : `GHOST-PH-${cleanPhone}-${data.tierId}`;
+
+  // Reject if previously deleted or purged in Cloud or Local Blacklist
+  if (isLeadDeleted({ id: orderId, email: hasValidEmail ? cleanEmail : '', phone: cleanPhone })) {
+    return;
+  }
 
   const ghostOrder: LeadOrder = {
     id: orderId,

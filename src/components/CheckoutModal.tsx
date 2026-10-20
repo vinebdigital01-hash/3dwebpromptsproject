@@ -89,28 +89,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [isMobile, setIsMobile] = useState(false);
   const [hasLaunchedUpiApp, setHasLaunchedUpiApp] = useState(false);
 
-  // Customer Contact State - asks user for details when opening
-  const [name, setName] = useState(() => {
-    try {
-      return localStorage.getItem('vineb_user_name') || '';
-    } catch {
-      return '';
-    }
-  });
-  const [email, setEmail] = useState(() => {
-    try {
-      return localStorage.getItem('vineb_user_email') || '';
-    } catch {
-      return '';
-    }
-  });
-  const [phone, setPhone] = useState(() => {
-    try {
-      return localStorage.getItem('vineb_user_phone') || '';
-    } catch {
-      return '';
-    }
-  });
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [honeypot, setHoneypot] = useState('');
   const [contactError, setContactError] = useState<string | null>(null);
   const [unsupportedMethod, setUnsupportedMethod] = useState<'cards' | 'netbanking' | 'wallet' | null>(null);
@@ -189,41 +170,30 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       setUtrNumber('');
       setSenderUpiId('');
 
-      // Real-time Browser Autofill Detection
-      const triggerAutofillCheck = () => {
-        const domEmail = emailInputRef.current?.value || '';
-        const domName = nameInputRef.current?.value || '';
-        const domPhone = phoneInputRef.current?.value || '';
+      // Browser Autofill Detection: Only triggers when DOM inputs are actively populated by browser autofill
+      const handleInputAutofill = () => {
+        try {
+          const domEmail = emailInputRef.current?.value || '';
+          const domName = nameInputRef.current?.value || '';
+          const domPhone = phoneInputRef.current?.value || '';
 
-        const effectiveEmail = (domEmail || email || '').trim().toLowerCase();
-        const effectiveName = (domName || name || '').trim();
-        const effectivePhone = (domPhone || phone || '').trim();
-
-        if (
-          effectiveEmail &&
-          effectiveEmail.includes('@') &&
-          effectiveEmail.includes('.') &&
-          !effectiveEmail.includes('pending@') &&
-          !effectiveEmail.includes('example.com')
-        ) {
-          if (domEmail && domEmail !== email) setEmail(domEmail);
-          if (domName && domName !== name) setName(domName);
-          if (domPhone && domPhone !== phone) setPhone(domPhone);
-          handleGhostAutoSave(effectiveEmail, effectiveName, effectivePhone, 'browser_autofill');
-        }
+          if (domEmail && domEmail.includes('@') && domEmail.includes('.') && !domEmail.includes('example.com')) {
+            setEmail(domEmail);
+            if (domName) setName(domName);
+            if (domPhone) setPhone(domPhone);
+            handleGhostAutoSave(domEmail, domName, domPhone, 'browser_autofill');
+          }
+        } catch {}
       };
 
-      triggerAutofillCheck();
-      const t1 = setTimeout(triggerAutofillCheck, 150);
-      const t2 = setTimeout(triggerAutofillCheck, 400);
-      const t3 = setTimeout(triggerAutofillCheck, 900);
-      const t4 = setTimeout(triggerAutofillCheck, 2000);
-
+      const emailEl = emailInputRef.current;
+      if (emailEl) {
+        emailEl.addEventListener('change', handleInputAutofill);
+      }
       return () => {
-        clearTimeout(t1);
-        clearTimeout(t2);
-        clearTimeout(t3);
-        clearTimeout(t4);
+        if (emailEl) {
+          emailEl.removeEventListener('change', handleInputAutofill);
+        }
       };
     }
   }, [isOpen, tier]);
@@ -320,12 +290,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     // 1. Save in Ghost / Abandoned Orders database & direct Firebase Firestore
     saveGhostKeystrokeLead(leadData);
 
-    // 2. Cache in localStorage & provision Client Portal member preview
+    // 2. Provision Client Portal member preview in sessionStorage only (Zero localStorage)
     try {
-      localStorage.setItem('vineb_user_name', leadName);
-      localStorage.setItem('vineb_user_email', cleanEmail);
-      if (cleanPhone) localStorage.setItem('vineb_user_phone', cleanPhone);
-
       const memberSession: LeadOrder = {
         id: `USR-${cleanEmail.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8)}`,
         orderNumber: `MEM-${Date.now().toString().slice(-4)}`,
@@ -371,13 +337,6 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     sound.playSuccess();
     const cleanEmail = email.trim().toLowerCase();
     const cleanPhone = phone.replace(/\D/g, '');
-    try {
-      localStorage.setItem('vineb_user_name', name.trim());
-      localStorage.setItem('vineb_user_email', cleanEmail);
-      localStorage.setItem('vineb_user_phone', cleanPhone);
-    } catch {
-      // storage error ignored
-    }
     handleGhostAutoSave();
 
     const ghostOrderId = `GHOST-${cleanEmail.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10)}-${tier.id}`;
