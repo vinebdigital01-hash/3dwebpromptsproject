@@ -296,8 +296,6 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
       localStorage.removeItem('vineb_user_email');
       localStorage.removeItem('vineb_user_phone');
       localStorage.removeItem('vineb_user_role');
-      localStorage.removeItem('apex3d_deleted_leads_v1');
-      localStorage.removeItem('apex3d_purged_all_at_v1');
     } catch {}
 
     // Exclude this Admin/Owner device from all visitor analytics & Meta Pixel tracking
