@@ -30,6 +30,7 @@ import {
 import {
   trackCheckoutInitiate,
   trackCheckoutDropoff,
+  trackAddPaymentInfo,
   trackPaymentSuccess,
 } from '../lib/visitorTracker';
 import { sendInstantLeadMagnetOrAbandonedEmail } from '../lib/resendEmail';
@@ -363,6 +364,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     saveOrder(updated);
     setCurrentOrder(updated);
     setView('options');
+    trackAddPaymentInfo(tier.id, tier.priceINR, 'UPI / QR');
   };
 
   const handleRequestExit = () => {
@@ -453,7 +455,16 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       }
       setView('success');
       sound.playSuccess();
-      trackPaymentSuccess(currentOrder?.orderNumber || 'PENDING', tier?.priceINR || 0, tier?.name || 'Vault Access');
+      trackPaymentSuccess(
+        currentOrder?.orderNumber || 'PENDING',
+        tier?.priceINR || 0,
+        tier?.name || 'Vault Access',
+        {
+          email: currentOrder?.email || email,
+          phone: currentOrder?.phone || phone,
+          name: currentOrder?.name || name,
+        }
+      );
 
       try {
         confetti({

@@ -7,7 +7,7 @@ import { isMediaImage } from '../lib/mediaUtils';
 import { PromptModal } from './PromptModal';
 import { CopyPromptLeadModal } from './CopyPromptLeadModal';
 import { sound } from '../lib/audioEngine';
-import { trackPromptInspect } from '../lib/visitorTracker';
+import { trackPromptInspect, trackSearch } from '../lib/visitorTracker';
 
 interface VaultEditorialLedgerProps {
   onUnlockClick: () => void;
@@ -201,6 +201,15 @@ export const VaultEditorialLedger: React.FC<VaultEditorialLedgerProps> = ({ onUn
       window.removeEventListener('apex_prompts_updated', handleUpdate);
     };
   }, []);
+
+  // Debounced search tracking for Meta Pixel + Analytics
+  useEffect(() => {
+    if (!searchQuery.trim() || searchQuery.trim().length < 3) return;
+    const t = setTimeout(() => {
+      trackSearch(searchQuery.trim(), activeCategory);
+    }, 1200);
+    return () => clearTimeout(t);
+  }, [searchQuery, activeCategory]);
 
   // Filter strictly to FREE prompts only — paid prompts are kept locked in paid vault
   const freePrompts = useMemo(() => {

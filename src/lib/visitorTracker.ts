@@ -383,24 +383,35 @@ export function dispatchMetaEvent(
   }
 
   const eventId = `evt_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+  const email = leadData?.email || activeSession?.leadEmail;
+  const phone = leadData?.phone || activeSession?.leadPhone;
+  const name = leadData?.name || activeSession?.leadName;
 
-  // 1. Browser Meta Pixel (fbq)
+  // 1. Browser Meta Pixel (fbq) with Advanced Matching
   if (typeof window !== 'undefined' && (window as any).fbq) {
     try {
+      if (email || phone || name) {
+        (window as any).fbq('setUserProperties', '4722606601349243', {
+          em: email ? email.trim().toLowerCase() : undefined,
+          ph: phone ? phone.replace(/\D/g, '') : undefined,
+          fn: name ? name.trim().split(/\s+/)[0] : undefined,
+        });
+      }
       (window as any).fbq('track', eventName, params || {}, { eventID: eventId });
     } catch (e) {
       console.debug('Browser fbq notice:', e);
     }
   }
 
-  // 2. Server-side Meta Conversions API (Direct CAPI Integration)
+  // 2. Server-side Meta Conversions API (Direct CAPI Integration with 100% EMQ parameters)
   if (typeof window !== 'undefined') {
     try {
       const fbp = getOrCreateFbp();
       const fbc = getOrCreateFbc(activeSession?.utm?.fbclid);
-      const email = leadData?.email || activeSession?.leadEmail;
-      const phone = leadData?.phone || activeSession?.leadPhone;
-      const name = leadData?.name || activeSession?.leadName;
+      const externalId = activeSession?.sessionId;
+      const city = activeSession?.location?.city;
+      const countryCode = activeSession?.location?.countryCode || 'IN';
+      const region = activeSession?.location?.region;
 
       fetch('/api/meta-conversions', {
         method: 'POST',
@@ -415,6 +426,10 @@ export function dispatchMetaEvent(
             email,
             phone,
             name,
+            externalId,
+            city,
+            countryCode,
+            region,
             fbc,
             fbp,
             clientUserAgent: navigator.userAgent,
@@ -808,6 +823,37 @@ export function trackCheckoutInitiate(tierId: string, priceINR?: number, tierNam
 }
 
 /**
+ * 🔎 Track when a visitor searches the vault
+ */
+export function trackSearch(searchQuery: string, category?: string): void {
+  if (!searchQuery || !searchQuery.trim()) return;
+  trackVisitorEvent('search', `Searched: "${searchQuery}"${category ? ` in ${category}` : ''}`, {
+    query: searchQuery,
+    category,
+  });
+  dispatchMetaEvent('Search', {
+    search_string: searchQuery.trim(),
+    content_category: category || 'All Prompts',
+  });
+}
+
+/**
+ * 💳 Track when a visitor views payment instructions / QR screen
+ */
+export function trackAddPaymentInfo(tierId: string, priceINR: number, paymentType = 'UPI / QR'): void {
+  trackVisitorEvent('add_payment_info', `Selected payment method (${paymentType}) for ₹${priceINR}`, {
+    tierId,
+    priceINR,
+    paymentType,
+  });
+  dispatchMetaEvent('AddPaymentInfo', {
+    content_category: tierId,
+    value: priceINR,
+    currency: 'INR',
+  });
+}
+
+/**
  * ⚠️ Track checkout dropoff / abandonment
  */
 export function trackCheckoutDropoff(tierId: string, reason = 'Modal closed without entering UTR'): void {
@@ -818,19 +864,32 @@ export function trackCheckoutDropoff(tierId: string, reason = 'Modal closed with
 }
 
 /**
- * ✅ Track approved or submitted payment
+ * ✅ Track approved or submitted payment with full customer identity for Meta Purchase attribution
  */
-export function trackPaymentSuccess(orderId: string, amountINR: number, tierName?: string): void {
+export function trackPaymentSuccess(
+  orderId: string,
+  amountINR: number,
+  tierName?: string,
+  customerData?: { email?: string; phone?: string; name?: string }
+): void {
   trackVisitorEvent('payment_success', `Payment completed: Order ${orderId} (₹${amountINR})`, {
     orderId,
     amountINR,
     tierName,
+    ...customerData,
   });
-  dispatchMetaEvent('Purchase', {
-    value: amountINR,
-    currency: 'INR',
-    content_name: tierName || 'APEX3D Vault Access',
-  });
+  dispatchMetaEvent(
+    'Purchase',
+    {
+      value: amountINR,
+      currency: 'INR',
+      content_name: tierName || 'APEX3D Vault Access',
+      content_type: 'product',
+      order_id: orderId,
+      num_items: 1,
+    },
+    customerData
+  );
 }
 
 /**

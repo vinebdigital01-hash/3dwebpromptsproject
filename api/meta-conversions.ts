@@ -25,8 +25,12 @@ function hashString(val?: string): string | undefined {
  */
 function hashPhone(phone?: string): string | undefined {
   if (!phone || typeof phone !== 'string') return undefined;
-  const digits = phone.replace(/\D/g, '');
+  let digits = phone.replace(/\D/g, '');
   if (!digits) return undefined;
+  // If standard 10-digit number without country code, prepend India country code 91 for maximum Meta matching
+  if (digits.length === 10) {
+    digits = `91${digits}`;
+  }
   return crypto.createHash('sha256').update(digits).digest('hex');
 }
 
@@ -115,6 +119,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const hashedEmail = hashString(userData.email);
   const hashedPhone = hashPhone(userData.phone);
   const { fn, ln } = hashName(userData.name);
+  const hashedCity = hashString(userData.city);
+  const hashedCountry = hashString((userData.countryCode || userData.country || 'IN').toLowerCase().trim());
+  const hashedRegion = hashString(userData.region || userData.state);
+  const hashedExternalId = hashString(userData.externalId || userData.sessionId);
+  const hashedZip = hashString(userData.zip || userData.postalCode);
 
   // Extract or build FBC (Click ID) and FBP (Browser ID)
   const fbc = userData.fbc || undefined;
@@ -130,6 +139,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (hashedPhone) metaUserData.ph = [hashedPhone];
   if (fn) metaUserData.fn = fn;
   if (ln) metaUserData.ln = ln;
+  if (hashedCity) metaUserData.ct = [hashedCity];
+  if (hashedCountry) metaUserData.country = [hashedCountry];
+  if (hashedRegion) metaUserData.st = [hashedRegion];
+  if (hashedExternalId) metaUserData.external_id = [hashedExternalId];
+  if (hashedZip) metaUserData.zp = [hashedZip];
   if (fbc) metaUserData.fbc = fbc;
   if (fbp) metaUserData.fbp = fbp;
 
