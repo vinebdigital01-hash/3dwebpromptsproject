@@ -35,6 +35,13 @@ import {
   ShieldAlert,
   ShieldCheck,
   Link2,
+  Target,
+  ExternalLink,
+  MessageSquare,
+  Mail,
+  UserCheck,
+  PieChart,
+  Brain,
 } from 'lucide-react';
 import {
   VisitorSession,
@@ -263,6 +270,103 @@ export const TrafficAnalyticsDashboard: React.FC<TrafficAnalyticsDashboardProps>
     });
 
     return Array.from(map.values()).sort((a, b) => b.visitors - a.visitors);
+  }, [sessions]);
+
+  // Audience Demographics & Persona Analytics Aggregation
+  const audienceAnalytics = useMemo(() => {
+    const total = sessions.length || 1;
+
+    let mobileCount = 0;
+    let desktopCount = 0;
+    let tabletCount = 0;
+    let androidCount = 0;
+    let iosCount = 0;
+    let windowsCount = 0;
+    let macCount = 0;
+
+    const cityMap = new Map<string, number>();
+    const countryMap = new Map<string, number>();
+    const roleMap = new Map<string, number>();
+    const contactsMap = new Map<string, any>();
+
+    sessions.forEach((s) => {
+      // Device
+      if (s.device === 'mobile') mobileCount++;
+      else if (s.device === 'tablet') tabletCount++;
+      else desktopCount++;
+
+      // Operating System
+      const osLow = (s.os || '').toLowerCase();
+      if (osLow.includes('android')) androidCount++;
+      else if (osLow.includes('ios') || osLow.includes('iphone') || osLow.includes('ipad')) iosCount++;
+      else if (osLow.includes('win')) windowsCount++;
+      else if (osLow.includes('mac') || osLow.includes('darwin')) macCount++;
+
+      // City & Country
+      if (s.location?.city) {
+        cityMap.set(s.location.city, (cityMap.get(s.location.city) || 0) + 1);
+      }
+      if (s.location?.country) {
+        countryMap.set(s.location.country, (countryMap.get(s.location.country) || 0) + 1);
+      }
+
+      // Persona / Role
+      if (s.leadRole) {
+        roleMap.set(s.leadRole, (roleMap.get(s.leadRole) || 0) + 1);
+      }
+
+      // Identified Human Contacts (Email or Phone)
+      const contactKey = s.leadEmail || s.leadPhone;
+      if (contactKey && !contactsMap.has(contactKey)) {
+        contactsMap.set(contactKey, {
+          sessionId: s.sessionId,
+          name: s.leadName || 'Visitor',
+          email: s.leadEmail || '',
+          phone: s.leadPhone || '',
+          role: s.leadRole || 'Explorer',
+          city: s.location?.city || 'India',
+          country: s.location?.country || 'IN',
+          channel: s.channel,
+          lastActiveAt: s.lastActiveAt || s.firstSeenAt,
+          inspectedPrompt: s.inspectedPrompts?.[0] || 'Starter 3D Prompt',
+          hasPaid: s.hasConvertedPaid,
+        });
+      }
+    });
+
+    const topCities = Array.from(cityMap.entries())
+      .map(([city, count]) => ({ city, count, pct: Math.round((count / total) * 100) }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6);
+
+    const topCountries = Array.from(countryMap.entries())
+      .map(([country, count]) => ({ country, count, pct: Math.round((count / total) * 100) }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 4);
+
+    const topRoles = Array.from(roleMap.entries())
+      .map(([role, count]) => ({ role, count }))
+      .sort((a, b) => b.count - a.count);
+
+    const identifiedContacts = Array.from(contactsMap.values()).slice(0, 10);
+
+    return {
+      totalVisitors: sessions.length,
+      mobilePct: Math.round((mobileCount / total) * 100),
+      desktopPct: Math.round((desktopCount / total) * 100),
+      tabletPct: Math.round((tabletCount / total) * 100),
+      mobileCount,
+      desktopCount,
+      tabletCount,
+      androidCount,
+      iosCount,
+      windowsCount,
+      macCount,
+      topCities,
+      topCountries,
+      topRoles,
+      identifiedContacts,
+    };
   }, [sessions]);
 
   // Filtered Sessions for the Real-Time Activity Feed
@@ -551,6 +655,372 @@ export const TrafficAnalyticsDashboard: React.FC<TrafficAnalyticsDashboardProps>
               {stats.totalVisitors > 0 ? ((stats.paidCount / stats.totalVisitors) * 100).toFixed(1) : 0}%
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 2.5. AUDIENCE DEMOGRAPHICS & META AUDIENCE INTELLIGENCE HUB */}
+      {/* ========================================================================= */}
+      <div className="p-5 sm:p-6 rounded-2xl bg-[#080c16] border border-purple-500/20 shadow-[0_0_35px_rgba(168,85,247,0.08)]">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="p-1.5 rounded-lg bg-purple-500/10 border border-purple-500/30 text-purple-400">
+                <Brain className="w-4 h-4" />
+              </span>
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <span>Meta Audience Intelligence &amp; Demographics</span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                  AI Profiler
+                </span>
+              </h3>
+            </div>
+            <p className="text-xs text-white/60">
+              Real-time audience profiling, device telemetry, city geolocation &amp; verified human identities captured from Meta Ads.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/[0.04] border border-white/10 text-[11px] font-mono text-purple-300">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Pixel Dataset: 4722606601349243</span>
+            </span>
+          </div>
+        </div>
+
+        {/* 4 Demographics & Targeting Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          {/* Card 1: Device & Tech Split */}
+          <div className="p-4 rounded-xl bg-white/[0.02] border border-white/10 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-mono uppercase text-white/50 flex items-center gap-1.5">
+                  <Smartphone className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Device &amp; OS Split</span>
+                </span>
+                <span className="text-[10px] font-mono text-cyan-400 bg-cyan-950/40 px-1.5 py-0.5 rounded border border-cyan-800/40">
+                  {audienceAnalytics.totalVisitors} visits
+                </span>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden flex mb-3">
+                <div
+                  className="bg-cyan-400 transition-all duration-500"
+                  style={{ width: `${audienceAnalytics.mobilePct}%` }}
+                  title={`Mobile: ${audienceAnalytics.mobilePct}%`}
+                />
+                <div
+                  className="bg-purple-400 transition-all duration-500"
+                  style={{ width: `${audienceAnalytics.desktopPct}%` }}
+                  title={`Desktop: ${audienceAnalytics.desktopPct}%`}
+                />
+                <div
+                  className="bg-amber-400 transition-all duration-500"
+                  style={{ width: `${audienceAnalytics.tabletPct}%` }}
+                  title={`Tablet: ${audienceAnalytics.tabletPct}%`}
+                />
+              </div>
+
+              <div className="space-y-1.5 text-xs font-mono">
+                <div className="flex items-center justify-between text-white/80">
+                  <span className="flex items-center gap-1.5 text-cyan-300">
+                    <Smartphone className="w-3 h-3" /> Mobile
+                  </span>
+                  <span className="font-bold">{audienceAnalytics.mobilePct}% ({audienceAnalytics.mobileCount})</span>
+                </div>
+                <div className="flex items-center justify-between text-white/80">
+                  <span className="flex items-center gap-1.5 text-purple-300">
+                    <Monitor className="w-3 h-3" /> Desktop
+                  </span>
+                  <span className="font-bold">{audienceAnalytics.desktopPct}% ({audienceAnalytics.desktopCount})</span>
+                </div>
+                <div className="flex items-center justify-between text-white/80">
+                  <span className="flex items-center gap-1.5 text-amber-300">
+                    <Tablet className="w-3 h-3" /> Tablet
+                  </span>
+                  <span className="font-bold">{audienceAnalytics.tabletPct}% ({audienceAnalytics.tabletCount})</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-3 mt-3 border-t border-white/5 flex items-center justify-between text-[11px] font-mono text-white/50">
+              <span>OS Breakdown:</span>
+              <span className="text-white/80">
+                Android {audienceAnalytics.androidCount} • iOS {audienceAnalytics.iosCount} • Win {audienceAnalytics.windowsCount}
+              </span>
+            </div>
+          </div>
+
+          {/* Card 2: Top Cities & Locations */}
+          <div className="p-4 rounded-xl bg-white/[0.02] border border-white/10 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-mono uppercase text-white/50 flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Top Geographies</span>
+                </span>
+                <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-800/40">
+                  Geo-IP Live
+                </span>
+              </div>
+
+              {audienceAnalytics.topCities.length === 0 ? (
+                <div className="text-xs text-white/40 font-mono py-4 text-center">
+                  Waiting for visitor IP resolution...
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {audienceAnalytics.topCities.slice(0, 4).map((c, i) => (
+                    <div key={i} className="flex items-center justify-between text-xs font-mono">
+                      <span className="text-white/80 flex items-center gap-1.5 truncate">
+                        <span className="text-white/30 text-[10px]">#{i + 1}</span>
+                        <span className="truncate">{c.city}</span>
+                      </span>
+                      <span className="text-emerald-300 font-bold ml-2">
+                        {c.count} <span className="text-white/40 text-[10px] font-normal">({c.pct}%)</span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="pt-3 mt-3 border-t border-white/5 text-[10px] text-white/50 font-mono">
+              💡 Target Meta Ad Sets to high-volume Tier-1 tech hubs.
+            </div>
+          </div>
+
+          {/* Card 3: Audience Personas & Roles */}
+          <div className="p-4 rounded-xl bg-white/[0.02] border border-white/10 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-mono uppercase text-white/50 flex items-center gap-1.5">
+                  <UserCheck className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Audience Personas</span>
+                </span>
+                <span className="text-[10px] font-mono text-amber-400 bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-800/40">
+                  Declared Roles
+                </span>
+              </div>
+
+              {audienceAnalytics.topRoles.length === 0 ? (
+                <div className="text-xs text-white/40 font-mono py-4 text-center">
+                  Roles captured when visitors unlock free prompts or initiate checkout.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {audienceAnalytics.topRoles.slice(0, 4).map((r, i) => (
+                    <div key={i} className="flex items-center justify-between text-xs font-mono">
+                      <span className="text-white/80 truncate">{r.role}</span>
+                      <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 font-bold border border-amber-500/20 text-[11px]">
+                        {r.count} leads
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="pt-3 mt-3 border-t border-white/5 text-[10px] text-white/50 font-mono">
+              🎯 Top audience: Web Designers, Agency Founders &amp; Freelancers.
+            </div>
+          </div>
+
+          {/* Card 4: Meta Retargeting & Lookalikes Shortcuts */}
+          <div className="p-4 rounded-xl bg-purple-950/20 border border-purple-500/30 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-mono uppercase text-purple-300 flex items-center gap-1.5 font-bold">
+                  <Target className="w-3.5 h-3.5 text-purple-400" />
+                  <span>Meta Retargeting Hub</span>
+                </span>
+                <span className="text-[10px] font-mono text-purple-300 bg-purple-900/40 px-1.5 py-0.5 rounded border border-purple-700/50">
+                  Ads Manager
+                </span>
+              </div>
+
+              <p className="text-[11px] text-white/60 mb-3 leading-relaxed">
+                Meta Pixel has tracked all visitors. Launch precision retargeting ads to recapture non-buyers:
+              </p>
+
+              <div className="space-y-2">
+                <a
+                  href="https://adsmanager.facebook.com/adsmanager/audiences"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 text-purple-200 text-xs font-medium transition-all group"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <Target className="w-3 h-3 text-purple-400" />
+                    <span>Create 30-Day Retargeting</span>
+                  </span>
+                  <ExternalLink className="w-3 h-3 text-purple-400 group-hover:translate-x-0.5 transition-transform" />
+                </a>
+
+                <a
+                  href="https://adsmanager.facebook.com/adsmanager/audiences"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-white/80 hover:text-white text-xs font-medium transition-all group"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <Sparkles className="w-3 h-3 text-amber-400" />
+                    <span>Build 1% Lookalike (100k Twins)</span>
+                  </span>
+                  <ExternalLink className="w-3 h-3 text-white/40 group-hover:translate-x-0.5 transition-transform" />
+                </a>
+
+                <a
+                  href="https://adsmanager.facebook.com/events_run"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 text-white/60 hover:text-white/90 text-[11px] transition-all"
+                >
+                  <span>Open Meta Events Manager</span>
+                  <ExternalLink className="w-2.5 h-2.5 text-white/40" />
+                </a>
+              </div>
+            </div>
+
+            <div className="pt-2 mt-2 text-[10px] text-purple-300/70 font-mono">
+              ⚡ Retargeting converts at 3x to 5x higher ROI.
+            </div>
+          </div>
+        </div>
+
+        {/* Identified Real Human Visitors Stream (Real Names, WhatsApp, Email) */}
+        <div className="mt-4 p-4 rounded-xl bg-white/[0.02] border border-white/10">
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <div>
+              <h4 className="text-xs font-bold text-white uppercase font-mono tracking-wider flex items-center gap-2">
+                <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Identified Real People &amp; Direct WhatsApp Outreach</span>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] border border-emerald-500/30">
+                  {audienceAnalytics.identifiedContacts.length} Human Leads
+                </span>
+              </h4>
+              <p className="text-[11px] text-white/50 mt-0.5">
+                Meta Pixel keeps profiles private due to international privacy laws, but our website captures their verified Name, Phone, and Email directly:
+              </p>
+            </div>
+          </div>
+
+          {audienceAnalytics.identifiedContacts.length === 0 ? (
+            <div className="text-center py-6 text-xs font-mono text-white/40">
+              No identified human contacts yet. When visitors claim a free prompt or fill the checkout modal, their real Name, Phone Number, and 1-Click WhatsApp buttons appear here immediately!
+            </div>
+          ) : (
+            <div className="overflow-x-auto no-scrollbar">
+              <table className="w-full text-left border-collapse text-xs font-mono">
+                <thead>
+                  <tr className="border-b border-white/10 text-[10px] uppercase text-white/40 tracking-wider">
+                    <th className="py-2 px-3">Visitor Name &amp; Role</th>
+                    <th className="py-2 px-3">Contact (Phone / Email)</th>
+                    <th className="py-2 px-3">City &amp; Channel</th>
+                    <th className="py-2 px-3">Prompt Interest</th>
+                    <th className="py-2 px-3">Status</th>
+                    <th className="py-2 px-3 text-right">Instant Outreach</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {audienceAnalytics.identifiedContacts.map((contact, idx) => {
+                    const cleanPhone = contact.phone ? contact.phone.replace(/\D/g, '') : '';
+                    const waPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+                    const waText = encodeURIComponent(
+                      `Hi ${contact.name}! I noticed you were exploring 3D Web Prompts on Apex3D Vault. Do you need any help downloading or implementing the 3D prompts into your project?`
+                    );
+                    const waUrl = cleanPhone ? `https://wa.me/${waPhone}?text=${waText}` : null;
+                    const mailUrl = contact.email
+                      ? `mailto:${contact.email}?subject=Your 3D Web Prompts Access&body=Hi ${contact.name},%0D%0A%0D%0AThank you for checking out Apex3D Vault!`
+                      : null;
+
+                    return (
+                      <tr key={idx} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="py-2.5 px-3">
+                          <div className="font-bold text-white flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                            <span>{contact.name}</span>
+                          </div>
+                          <div className="text-[10px] text-amber-300/80 mt-0.5">
+                            {contact.role}
+                          </div>
+                        </td>
+
+                        <td className="py-2.5 px-3 text-white/80">
+                          {contact.phone && (
+                            <div className="font-semibold text-white flex items-center gap-1">
+                              <span>{contact.phone}</span>
+                            </div>
+                          )}
+                          {contact.email && (
+                            <div className="text-[11px] text-white/50 truncate max-w-[180px]">
+                              {contact.email}
+                            </div>
+                          )}
+                        </td>
+
+                        <td className="py-2.5 px-3">
+                          <div className="text-white/80 flex items-center gap-1">
+                            <MapPin className="w-3 h-3 text-emerald-400" />
+                            <span>{contact.city}</span>
+                          </div>
+                          <div className="text-[10px] text-white/40 uppercase">
+                            {contact.channel}
+                          </div>
+                        </td>
+
+                        <td className="py-2.5 px-3 text-white/70 max-w-[180px] truncate" title={contact.inspectedPrompt}>
+                          {contact.inspectedPrompt}
+                        </td>
+
+                        <td className="py-2.5 px-3">
+                          {contact.hasPaid ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/20 text-green-300 text-[10px] border border-green-500/30">
+                              <CheckCircle2 className="w-2.5 h-2.5" /> Paid Buyer
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] border border-amber-500/30">
+                              <AlertCircle className="w-2.5 h-2.5" /> Free Lead
+                            </span>
+                          )}
+                        </td>
+
+                        <td className="py-2.5 px-3 text-right">
+                          <div className="inline-flex items-center gap-1.5 justify-end">
+                            {waUrl && (
+                              <a
+                                href={waUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={() => sound.playClick()}
+                                className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-[11px] font-semibold flex items-center gap-1 transition-all"
+                                title="Chat on WhatsApp"
+                              >
+                                <MessageSquare className="w-3 h-3" />
+                                <span>WhatsApp</span>
+                              </a>
+                            )}
+                            {mailUrl && (
+                              <a
+                                href={mailUrl}
+                                onClick={() => sound.playClick()}
+                                className="p-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-white/70 hover:text-white transition-all"
+                                title="Send Email"
+                              >
+                                <Mail className="w-3 h-3" />
+                              </a>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
 
