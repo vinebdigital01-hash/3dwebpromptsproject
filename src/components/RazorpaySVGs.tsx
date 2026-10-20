@@ -224,49 +224,91 @@ export const ExitDoorIllustration: React.FC<{ className?: string }> = ({ classNa
 );
 
 /**
- * Authentic UPI App Brand Icons
+ * Authentic UPI App Brand Icons (100% Vector, Pure Transparent, No White Boxes)
  */
+
 export const GooglePayIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5' }) => (
-  <svg viewBox="0 0 48 48" className={className}>
-    <path fill="#4285F4" d="M43.6 20.1H42V20H24v8h11.3C33.7 33.2 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 3l5.7-5.7C34.2 6.1 29.4 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.7-.4-3.9z" />
-    <path fill="#34A853" d="M6.3 14.7l6.6 4.8C14.7 16.1 19 14 24 14c3.1 0 5.8 1.1 8 3l5.7-5.7C34.2 6.1 29.4 4 24 4 16.3 4 9.7 8.4 6.3 14.7z" />
-    <path fill="#FBBC05" d="M24 44c5.2 0 10-1.9 13.5-5.3l-6.3-5.2C29.2 35 26.8 36 24 36c-5.3 0-9.7-2.8-11.3-8l-6.5 5C9.6 39.5 16.2 44 24 44z" />
-    <path fill="#EA4335" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.4-2.3 4.5-4.2 5.9l6.3 5.2c4.1-3.8 6.6-9.4 6.6-15.2 0-1.3-.1-2.7-.4-3.9z" />
+  <svg viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <g transform="translate(0, 5)">
+      <path
+        d="M232.5 42.17C207.25 27.59 174.97 36.25 160.37 61.5L123.59 125.22C112.95 143.62 126.65 150.05 141.93 159.21L177.32 179.64C189.31 186.55 204.62 182.45 211.53 170.48L249.34 105C262.05 82.99 254.51 54.87 232.5 42.17Z"
+        fill="#EA4335"
+      />
+      <path
+        d="M190.88 68.54L155.49 48.11C135.95 37.27 124.89 36.55 116.87 49.3L64.67 139.7C50.09 164.94 58.77 197.21 84 211.76C106.01 224.46 134.13 216.92 146.83 194.92L200.03 102.76C206.97 90.78 202.87 75.46 190.88 68.54Z"
+        fill="#FBBC04"
+      />
+      <path
+        d="M197.7 22.07L172.84 7.71C145.34-8.16 110.18 1.25 94.31 28.75L46.98 110.72C39.99 122.82 44.14 138.3 56.23 145.28L84.07 161.35C97.82 169.29 115.39 164.58 123.34 150.83L177.41 57.18C188.61 37.78 213.41 31.14 232.81 42.34L197.7 22.07Z"
+        fill="#34A853"
+      />
+      <path
+        d="M101.03 52.2L74.16 36.72C62.18 29.82 46.87 33.91 39.95 45.87L7.71 101.58C-8.16 129 1.25 164.08 28.75 179.9L49.21 191.69L74.02 205.98L84.79 212.18C65.67 199.38 59.6 173.74 71.29 153.55L79.64 139.13L110.21 86.3C117.11 74.38 113 59.1 101.03 52.2Z"
+        fill="#4285F4"
+      />
+    </g>
   </svg>
 );
 
 export const PhonePeIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5' }) => (
-  <svg viewBox="0 0 40 40" className={className}>
-    <circle cx="20" cy="20" r="20" fill="#5F259F" />
-    <text
-      x="20"
-      y="27"
-      fill="#ffffff"
-      fontFamily="Inter, sans-serif"
-      fontWeight="800"
-      fontSize="20"
-      textAnchor="middle"
-    >
-      पे
-    </text>
+  <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <circle cx="24" cy="24" r="23" fill="#5F259F" />
+    <path
+      d="M20.4 19.88h5.9v9.38c-.8.4-1.87.54-2.68.54-2.14 0-3.22-1.07-3.22-3.48v-6.44zm14.48-2.14a1.77 1.77 0 0 0-1.74-1.74h-3.22l-7.37-8.44c-.67-.8-1.74-1.07-2.81-.8l-2.55.8c-.4.14-.54.67-.27.94l8.04 7.64h-12.2c-.4 0-.67.27-.67.67v1.34c0 .94.8 1.74 1.74 1.74h1.88v6.43c0 4.83 2.55 7.64 6.84 7.64 1.34 0 2.41-.13 3.75-.67v4.29c0 1.21.94 2.14 2.14 2.14h1.88a.86.86 0 0 0 .8-.8v-23.03h3.08c.4 0 .67-.27.67-.67v-1.34z"
+      fill="#FFFFFF"
+    />
   </svg>
 );
 
-export const PaytmIcon: React.FC<{ className?: string }> = ({ className = 'w-6 h-5' }) => (
-  <svg viewBox="0 0 56 20" className={className}>
-    <rect width="56" height="20" rx="4" fill="#002E6E" />
-    <text
-      x="28"
-      y="14"
-      fill="#00BAF2"
-      fontFamily="Inter, sans-serif"
-      fontWeight="900"
-      fontSize="11"
-      letterSpacing="-0.5px"
-      textAnchor="middle"
-    >
-      Paytm
-    </text>
+export const PaytmIcon: React.FC<{ className?: string }> = ({ className = 'w-7 h-4' }) => (
+  <svg viewBox="0 0 32 14" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <g fill="#002970" className="dark:fill-white">
+      <path d="M1.29 2.75c-.16 0-.29.13-.29.29v7.4c0 .16.12.28.27.29h1.36c.16 0 .3-.13.3-.3v-2.07h1.28c.97 0 1.75-.78 1.75-1.75v-1.92c0-.97-.79-1.75-1.75-1.75H1.29zm1.65 1.97h.85c.17 0 .31.14.31.32v1.04c0 .17-.14.31-.31.32h-.85V4.72z" />
+      <path d="M7.58 2.76c-.16 0-.29.13-.29.28v1.28c0 .17.14.3.31.3h1.76c.15.02.26.14.27.29v.17c-.01.15-.12.26-.26.28h-.88c-1.03 0-1.87.84-1.87 1.87v1.59c0 .98.79 1.77 1.77 1.77h2.42c.42 0 .76-.33.77-.75V4.65c0-1.03-.84-1.87-1.87-1.87-.1 0-.21.01-.31.03H7.58zm1.2 4.43h.55c.17 0 .3.14.31.3v1.17c-.05.12-.16.2-.29.2h-.56c-.17 0-.3-.13-.31-.3V7.49c0-.17.14-.3.3-.3z" />
+      <path d="M12.58 2.75c-.16 0-.3.14-.3.3v3.09c0 1.06.86 1.91 1.91 1.91h.85c.16.02.28.15.28.32 0 .16-.12.29-.27.31h-1.98c-.16 0-.3.14-.3.3v1.36c0 .17.13.3.3.3h2.19c1.06 0 1.91-.86 1.91-1.92V3.05c0-.16-.13-.3-.3-.3h-1.33c-.17 0-.3.14-.3.3v2.82c0 .17-.14.31-.31.31h-.56c-.18 0-.32-.14-.32-.32V3.05c0-.16-.13-.3-.3-.3h-.67z" />
+    </g>
+    <g fill="#00BAF2">
+      <path d="M20.81 1.21c-.85.24-.68 1.44-2.23 1.54h-.15c-.13.03-.23.15-.23.29v1.36c0 .17.13.3.3.3h.8v5.78c0 .16.13.29.29.29h1.33c.16 0 .29-.13.29-.3V4.7h.75c.16 0 .3-.13.3-.3V3.04c0-.17-.14-.3-.3-.3h-.76V1.48c0-.15-.12-.27-.27-.27h-.07z" />
+      <path d="M26.09 2.67c-.5 0-.96.19-1.3.5V3.02c-.01-.16-.14-.28-.3-.28h-1.33c-.17 0-.3.14-.3.3v7.4c0 .17.13.3.3.3h1.33c.15 0 .28-.11.29-.26V5.17c0-.26.21-.48.47-.49h.24c.11.01.21.05.28.11.11.1.18.24.18.4v5.28h1.34c.16 0 .29-.13.29-.29V4.87c0-.17.09-.32.22-.41.07-.05.15-.08.24-.09h.25c.26.02.46.24.46.5v5.57h1.34c.16 0 .3-.14.3-.3V4.47c0-.22-.04-.44-.11-.64-.27-.8-1.01-1.36-1.88-1.36h-.02c-.57 0-1.08.24-1.44.62-.36-.38-.87-.62-1.44-.62z" />
+    </g>
+  </svg>
+);
+
+export const CredIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5' }) => (
+  <svg
+    viewBox="0 0 32 37"
+    fill="none"
+    stroke="#121212"
+    strokeWidth="2.4"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <path d="M5 5.5h22a2 2 0 0 1 2 2v16.5l-13 10L3 24V7.5a2 2 0 0 1 2-2z" />
+    <path d="M11 10.5h12v4.5" />
+    <path d="M7 14.5h10" />
+    <path d="M7 14.5v7.5l9 6.5 7-5.5v-4" />
+    <path d="M12.5 19v2.5l3.5 2.5 3.5-2.5V19" />
+  </svg>
+);
+
+export const AmazonPayIcon: React.FC<{ className?: string }> = ({ className = 'w-7 h-4' }) => (
+  <svg viewBox="0 0 46 22" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <g fill="#232F3E" className="dark:fill-white">
+      <path d="M8.2 2.5c-2.3 0-3.9 1.6-3.9 3.8v7.2h2.2V11c.5.8 1.4 1.3 2.5 1.3 2.3 0 4-1.8 4-4.9s-1.7-4.9-4.8-4.9zm-.3 7.8c-1.5 0-2.6-1.2-2.6-3 0-1.8 1.1-3 2.6-3 1.5 0 2.6 1.2 2.6 3 0 1.8-1.1 3-2.6 3z" />
+      <path d="M19.1 5.3c-.6-.5-1.5-.8-2.6-.8-2.5 0-4 1.5-4 3.5 0 2.1 1.4 3.4 3.5 3.4 1 0 1.9-.3 2.5-.9v.7h2.1V5.7c0-2.2-1.4-3.4-3.8-3.4-1.5 0-2.8.5-3.6 1.3l1 1.4c.6-.6 1.4-.9 2.5-.9 1.3 0 2 .6 2 1.8v.3zm-.1 3.5c0 1.1-.9 1.9-2.1 1.9-1 0-1.7-.6-1.7-1.6 0-1 .7-1.6 2-1.6.7 0 1.3.1 1.8.4v.9z" />
+      <path d="M23.1 4.7l2.8 7.3-1.6 3.8h2.3l4.7-11.1h-2.3l-2.8 7.2-2.3-7.2h-2.4z" />
+    </g>
+    {/* Amazon Smile curved arrow */}
+    <path
+      d="M3.5 15.5c7.8 4.2 18.2 4.4 26.2.2.4-.2.9.2.6.6-7.4 5.2-19.1 5.3-27.4.4-.3-.2 0-.8.6-1.2z"
+      fill="#FF9900"
+    />
+    <path
+      d="M31.2 14.8c.4-.5 1.7-.3 2.4-.1.3.1.3.3.1.5-.9.9-2.3 2.2-3.4 2.8-.2.1-.4 0-.3-.2.3-.9 1-2.4 1.2-3z"
+      fill="#FF9900"
+    />
   </svg>
 );
 
@@ -278,67 +320,16 @@ export const BhimIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-
   </svg>
 );
 
-export const CredIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5' }) => (
-  <svg viewBox="0 0 32 32" className={className}>
-    <circle cx="16" cy="16" r="16" fill="#121212" />
-    {/* Clean CRED minimal geometric emblem */}
-    <path
-      d="M10 9 H22 V23 H10 Z M13 12 V20 H19 V12 Z"
-      fill="#ffffff"
-    />
-  </svg>
-);
-
 export const PaytmCircleIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5' }) => (
-  <svg viewBox="0 0 32 32" className={className}>
-    <circle cx="16" cy="16" r="16" fill="#002970" />
-    <text
-      x="16"
-      y="20"
-      fill="#00b9f5"
-      fontFamily="Inter, -apple-system, sans-serif"
-      fontWeight="900"
-      fontSize="8"
-      letterSpacing="-0.3px"
-      textAnchor="middle"
-    >
-      pay
-    </text>
-  </svg>
+  <PaytmIcon className={className} />
 );
 
 export const PopIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5' }) => (
-  <svg viewBox="0 0 32 32" className={className}>
-    <circle cx="16" cy="16" r="16" fill="#E61E50" />
-    <text
-      x="16"
-      y="21"
-      fill="#ffffff"
-      fontFamily="Inter, -apple-system, sans-serif"
-      fontWeight="900"
-      fontSize="10"
-      textAnchor="middle"
-    >
-      pop
-    </text>
-  </svg>
+  <AmazonPayIcon className={className} />
 );
 
 export const NaviIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5' }) => (
-  <svg viewBox="0 0 32 32" className={className}>
-    <circle cx="16" cy="16" r="16" fill="#2E0854" />
-    <text
-      x="16"
-      y="21"
-      fill="#00E575"
-      fontFamily="Inter, -apple-system, sans-serif"
-      fontWeight="900"
-      fontSize="9"
-      textAnchor="middle"
-    >
-      navi
-    </text>
-  </svg>
+  <CredIcon className={className} />
 );
 
 export const CardLogosGroup: React.FC = () => (

@@ -43,11 +43,8 @@ import {
   GooglePayIcon,
   PhonePeIcon,
   PaytmIcon,
-  PaytmCircleIcon,
-  BhimIcon,
   CredIcon,
-  PopIcon,
-  NaviIcon,
+  AmazonPayIcon,
   CardLogosGroup,
   BankLogosGroup,
   WalletLogosGroup,
@@ -414,6 +411,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       targetUri = `tez://upi/pay?tn=${encodedNote}&pa=${merchantUpi}&am=${amount}&cu=INR`;
     } else if (appName === 'CRED') {
       targetUri = `cred://upi/pay?tn=${encodedNote}&pa=${merchantUpi}&am=${amount}&cu=INR`;
+    } else if (appName === 'Amazon Pay') {
+      targetUri = `amazonpay://pay?tn=${encodedNote}&pa=${merchantUpi}&am=${amount}&cu=INR`;
     }
 
     const start = Date.now();
@@ -835,8 +834,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   <div className="flex items-center gap-1.5">
                     <GooglePayIcon className="w-4 h-4" />
                     <PhonePeIcon className="w-4 h-4" />
-                    <PaytmIcon className="w-5 h-3.5" />
-                    <BhimIcon className="w-4 h-4" />
+                    <PaytmIcon className="w-5 h-3" />
+                    <CredIcon className="w-3.5 h-4" />
+                    <AmazonPayIcon className="w-5 h-3" />
                   </div>
                 </div>
 
@@ -939,13 +939,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     Scan the QR using any UPI App
                   </div>
 
-                  <div className="flex items-center justify-center gap-2.5">
-                    <PopIcon className="w-5 h-5 hover:scale-110 transition-transform shrink-0" />
+                  <div className="flex items-center justify-center gap-3">
                     <GooglePayIcon className="w-5 h-5 hover:scale-110 transition-transform shrink-0" />
-                    <CredIcon className="w-5 h-5 hover:scale-110 transition-transform shrink-0" />
                     <PhonePeIcon className="w-5 h-5 hover:scale-110 transition-transform shrink-0" />
-                    <PaytmCircleIcon className="w-5 h-5 hover:scale-110 transition-transform shrink-0" />
-                    <NaviIcon className="w-5 h-5 hover:scale-110 transition-transform shrink-0" />
+                    <PaytmIcon className="w-7 h-4 hover:scale-110 transition-transform shrink-0" />
+                    <CredIcon className="w-4 h-5 hover:scale-110 transition-transform shrink-0" />
+                    <AmazonPayIcon className="w-7 h-4 hover:scale-110 transition-transform shrink-0" />
                   </div>
                 </div>
               </div>
@@ -1130,7 +1129,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     onClick={() => handleLaunchUpiApp('Paytm')}
                     className="p-3 rounded-xl border border-slate-200 hover:border-blue-500 bg-white shadow-sm flex items-center gap-2 text-left active:scale-[0.98] transition-all"
                   >
-                    <PaytmCircleIcon className="w-5 h-5 shrink-0" />
+                    <PaytmIcon className="w-7 h-4 shrink-0" />
                     <div>
                       <div className="text-xs font-bold text-slate-900 leading-tight">Paytm UPI</div>
                       <div className="text-[9px] text-blue-600 font-semibold">Instant</div>
@@ -1143,10 +1142,26 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     onClick={() => handleLaunchUpiApp('CRED')}
                     className="p-3 rounded-xl border border-slate-200 hover:border-black bg-white shadow-sm flex items-center gap-2 text-left active:scale-[0.98] transition-all"
                   >
-                    <CredIcon className="w-5 h-5 shrink-0" />
+                    <CredIcon className="w-4 h-5 shrink-0" />
                     <div>
                       <div className="text-xs font-bold text-slate-900 leading-tight">CRED UPI</div>
                       <div className="text-[9px] text-slate-500 font-semibold">Cashback</div>
+                    </div>
+                  </button>
+
+                  {/* Amazon Pay */}
+                  <button
+                    type="button"
+                    onClick={() => handleLaunchUpiApp('Amazon Pay')}
+                    className="p-3 rounded-xl border border-slate-200 hover:border-amber-500 bg-white shadow-sm flex items-center gap-2.5 text-left active:scale-[0.98] transition-all col-span-2"
+                  >
+                    <AmazonPayIcon className="w-7 h-4 shrink-0" />
+                    <div className="flex-1 flex items-center justify-between">
+                      <div>
+                        <div className="text-xs font-bold text-slate-900 leading-tight">Amazon Pay</div>
+                        <div className="text-[9px] text-amber-600 font-semibold">Instant UPI & Rewards</div>
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-medium">Tap to pay &rarr;</span>
                     </div>
                   </button>
                 </div>
