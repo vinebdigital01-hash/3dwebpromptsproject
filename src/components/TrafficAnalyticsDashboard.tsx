@@ -33,8 +33,14 @@ import {
   Layers,
   ArrowRight,
   ShieldAlert,
+  ShieldCheck,
 } from 'lucide-react';
-import { VisitorSession, TrafficChannel } from '../lib/visitorTracker';
+import {
+  VisitorSession,
+  TrafficChannel,
+  isAdminDevice,
+  setAdminDeviceExclusion,
+} from '../lib/visitorTracker';
 import {
   subscribeToVisitorSessions,
   purgeAllVisitorAnalyticsFromFirestore,
@@ -275,6 +281,42 @@ export const TrafficAnalyticsDashboard: React.FC<TrafficAnalyticsDashboardProps>
 
   return (
     <div className="space-y-6 animate-role-fade-in text-white pb-12">
+      {/* ========================================================================= */}
+      {/* 0. ADMIN SELF-TRAFFIC PROTECTION BANNER */}
+      {/* ========================================================================= */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-gradient-to-r from-blue-950/40 via-[#0c1424] to-[#070b14] border border-blue-500/25 shadow-lg shadow-black/40">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shrink-0">
+            <ShieldCheck className="w-5 h-5 text-emerald-400" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-white font-mono uppercase tracking-wide">
+                Admin Self-Traffic Shield:
+              </span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                ACTIVE · INVISIBLE
+              </span>
+            </div>
+            <p className="text-[11px] text-white/60 mt-0.5 font-mono">
+              Your device visits, clicks, and pageviews are filtered out so they do not pollute visitor stats or fire Meta Pixel events.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={handlePurgeAnalytics}
+            disabled={isPurging}
+            className="px-3 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 text-xs font-mono flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+            title="Reset test visitor analytics to 0"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>{isPurging ? 'Purging...' : 'Purge Test Visits'}</span>
+          </button>
+        </div>
+      </div>
+
       {/* ========================================================================= */}
       {/* 1. TOP EXECUTIVE KPI CARDS */}
       {/* ========================================================================= */}

@@ -88,6 +88,44 @@ export interface VisitorSession {
 
 const SESSION_KEY = 'apex3d_vis_session_id';
 const SESSION_DATA_KEY = 'apex3d_vis_session_cache';
+const EXCLUDE_ADMIN_KEY = 'apex3d_exclude_admin_tracking';
+
+/**
+ * 🛡️ Check if current browser client belongs to an Administrator / Store Owner
+ * Automatically flags and excludes admin visits from analytics to prevent self-traffic skew.
+ */
+export function isAdminDevice(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const hasAdminSession = !!localStorage.getItem('apex3d_admin_session_v2');
+    const hasExplicitExclude = localStorage.getItem(EXCLUDE_ADMIN_KEY) === 'true';
+    const isAtAdminUrl =
+      window.location.hash.includes('#admin') ||
+      window.location.pathname.startsWith('/admin');
+
+    if (hasAdminSession || hasExplicitExclude || isAtAdminUrl) {
+      if (!hasExplicitExclude) {
+        localStorage.setItem(EXCLUDE_ADMIN_KEY, 'true');
+      }
+      return true;
+    }
+  } catch {}
+  return false;
+}
+
+/**
+ * Toggle admin device exclusion flag
+ */
+export function setAdminDeviceExclusion(excluded: boolean): void {
+  if (typeof window === 'undefined') return;
+  try {
+    if (excluded) {
+      localStorage.setItem(EXCLUDE_ADMIN_KEY, 'true');
+    } else {
+      localStorage.removeItem(EXCLUDE_ADMIN_KEY);
+    }
+  } catch {}
+}
 
 let activeSession: VisitorSession | null = null;
 let isInitialized = false;
@@ -225,7 +263,7 @@ async function fetchGeoLocation(): Promise<{
  * Dynamically inject Meta Pixel and Microsoft Clarity if configured in Admin Settings or env
  */
 export function initializeThirdPartyScripts(): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined' || isAdminDevice()) return;
 
   try {
     const settings = getAdminSettings();
@@ -326,6 +364,10 @@ export function dispatchMetaEvent(
   params?: Record<string, any>,
   leadData?: { email?: string; phone?: string; name?: string }
 ): string {
+  if (isAdminDevice()) {
+    return 'admin_excluded';
+  }
+
   const eventId = `evt_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
 
   // 1. Browser Meta Pixel (fbq)
@@ -393,7 +435,7 @@ export function trackVisitorEvent(
   label: string,
   metadata?: Record<string, any>
 ): void {
-  if (typeof window === 'undefined' || !activeSession) return;
+  if (typeof window === 'undefined' || isAdminDevice() || !activeSession) return;
 
   const nowIso = new Date().toISOString();
   const eventId = `EVT-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
@@ -459,6 +501,16 @@ export function trackVisitorEvent(
  */
 export function initVisitorTracking(): void {
   if (typeof window === 'undefined' || isInitialized) return;
+
+  if (isAdminDevice()) {
+    try {
+      sessionStorage.removeItem(SESSION_KEY);
+      sessionStorage.removeItem(SESSION_DATA_KEY);
+    } catch {}
+    isInitialized = true;
+    return;
+  }
+
   isInitialized = true;
 
   // Initialize Meta Pixel & Microsoft Clarity if configured

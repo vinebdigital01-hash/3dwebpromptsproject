@@ -136,7 +136,7 @@ import { InvoiceModal } from './InvoiceModal';
 import { LicenseModal } from './LicenseModal';
 import { BroadcastCenter } from './BroadcastCenter';
 import { TrafficAnalyticsDashboard } from './TrafficAnalyticsDashboard';
-import { initializeThirdPartyScripts } from '../lib/visitorTracker';
+import { initializeThirdPartyScripts, setAdminDeviceExclusion } from '../lib/visitorTracker';
 import { isMediaImage } from '../lib/mediaUtils';
 
 interface AdminConsoleProps {
@@ -298,6 +298,13 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
       localStorage.removeItem('vineb_user_role');
       localStorage.removeItem('apex3d_deleted_leads_v1');
       localStorage.removeItem('apex3d_purged_all_at_v1');
+    } catch {}
+
+    // Exclude this Admin/Owner device from all visitor analytics & Meta Pixel tracking
+    setAdminDeviceExclusion(true);
+    try {
+      sessionStorage.removeItem('apex3d_vis_session_id');
+      sessionStorage.removeItem('apex3d_vis_session_cache');
     } catch {}
 
     // 1. Initial direct fetch from Firebase Firestore (Zero localStorage)
