@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
+  Activity,
   ShieldCheck,
   CheckCircle2,
   XCircle,
@@ -134,16 +135,17 @@ import { VaultItem } from '../data/vaultCatalog';
 import { InvoiceModal } from './InvoiceModal';
 import { LicenseModal } from './LicenseModal';
 import { BroadcastCenter } from './BroadcastCenter';
+import { TrafficAnalyticsDashboard } from './TrafficAnalyticsDashboard';
 import { isMediaImage } from '../lib/mediaUtils';
 
 interface AdminConsoleProps {
   onBackToSite: () => void;
 }
 
-type AdminTab = 'approvals' | 'retargeting' | 'ghosts' | 'orders' | 'cms' | 'broadcast' | 'team' | 'settings';
+type AdminTab = 'analytics' | 'approvals' | 'retargeting' | 'ghosts' | 'orders' | 'cms' | 'broadcast' | 'team' | 'settings';
 
 export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
-  const [tab, setTab] = useState<AdminTab>('approvals');
+  const [tab, setTab] = useState<AdminTab>('analytics');
 
   // RBAC & Authentication State
   const [session, setSession] = useState<AdminSession | null>(() => getCurrentAdminSession());
@@ -1517,6 +1519,21 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
           <button
             onClick={() => {
               sound.playClick();
+              setTab('analytics');
+            }}
+            className={`px-4 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 shrink-0 ${
+              tab === 'analytics'
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/30 font-bold'
+                : 'text-white/60 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <Activity className="w-4 h-4 text-emerald-400" />
+            <span>📈 Traffic &amp; Analytics (Live)</span>
+          </button>
+
+          <button
+            onClick={() => {
+              sound.playClick();
               setTab('approvals');
             }}
             className={`px-4 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 shrink-0 ${
@@ -1650,6 +1667,13 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
             )}
           </button>
         </div>
+
+        {/* ------------------------------------------
+            TAB 0: LIVE TRAFFIC & ADS JOURNEY ANALYTICS
+           ------------------------------------------ */}
+        {tab === 'analytics' && (
+          <TrafficAnalyticsDashboard onShowToast={showToast} />
+        )}
 
         {/* ------------------------------------------
             TAB 1: PENDING APPROVALS

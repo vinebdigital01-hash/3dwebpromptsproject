@@ -814,4 +814,85 @@ export async function fetchCloudQuotaRecord(key: string): Promise<any | null> {
   }
 }
 
+/**
+ * 📈 Persist Visitor Session Telemetry to Cloud Firestore 'visitor_sessions'
+ */
+export async function saveVisitorSessionToFirestore(session: any): Promise<void> {
+  if (typeof window === 'undefined' || !session || !session.sessionId) return;
+  try {
+    const cleanSession = sanitizeForFirestore({
+      ...session,
+      updatedAt: new Date().toISOString(),
+    });
+    const sessionRef = doc(db, 'visitor_sessions', session.sessionId);
+    await setDoc(sessionRef, cleanSession, { merge: true });
+  } catch (err) {
+    console.debug('Failed to save visitor session to firestore:', err);
+  }
+}
+
+/**
+ * ⚡ Log discrete Visitor Behavioral Event to Cloud Firestore 'visitor_events'
+ */
+export async function logVisitorEventToFirestore(event: any): Promise<void> {
+  if (typeof window === 'undefined' || !event || !event.id) return;
+  try {
+    const cleanEvent = sanitizeForFirestore(event);
+    const eventRef = doc(db, 'visitor_events', event.id);
+    await setDoc(eventRef, cleanEvent, { merge: true });
+  } catch (err) {
+    console.debug('Failed to log visitor event to firestore:', err);
+  }
+}
+
+/**
+ * 📡 Subscribe to Real-Time Visitor Sessions for Admin Analytics Dashboard
+ */
+export function subscribeToVisitorSessions(callback: (sessions: any[]) => void): () => void {
+  try {
+    const unsub = onSnapshot(
+      collection(db, 'visitor_sessions'),
+      (snapshot) => {
+        const list: any[] = [];
+        snapshot.forEach((d) => {
+          const data = d.data();
+          if (data && data.sessionId) list.push(data);
+        });
+        list.sort((a, b) => {
+          const timeA = new Date(a.lastActiveAt || a.firstSeenAt || 0).getTime();
+          const timeB = new Date(b.lastActiveAt || b.firstSeenAt || 0).getTime();
+          return timeB - timeA;
+        });
+        callback(list);
+      },
+      (err) => console.debug('Visitor sessions snapshot notice:', err)
+    );
+    return unsub;
+  } catch (err) {
+    console.debug('Failed to subscribe to visitor sessions:', err);
+    return () => {};
+  }
+}
+
+/**
+ * 🧹 Purge all visitor analytics records from Firestore
+ */
+export async function purgeAllVisitorAnalyticsFromFirestore(): Promise<void> {
+  if (typeof window === 'undefined') return;
+  try {
+    for (const collName of ['visitor_sessions', 'visitor_events']) {
+      try {
+        const snap = await getDocs(collection(db, collName)).catch(() => null);
+        if (snap) {
+          for (const docSnap of snap.docs) {
+            await deleteDoc(doc(db, collName, docSnap.id)).catch(() => {});
+          }
+        }
+      } catch {}
+    }
+  } catch (err) {
+    console.debug('Purge visitor analytics error:', err);
+  }
+}
+
 

@@ -27,6 +27,11 @@ import {
   getAdAttribution,
   LeadOrder,
 } from '../lib/leadTracker';
+import {
+  trackCheckoutInitiate,
+  trackCheckoutDropoff,
+  trackPaymentSuccess,
+} from '../lib/visitorTracker';
 import { sendInstantLeadMagnetOrAbandonedEmail } from '../lib/resendEmail';
 import { getAdminSettings, AdminSettings } from '../lib/adminSettings';
 import { sanitizeInput, validateEmail, validateIndianPhone, getEmailValidationError, isDisposableEmail } from '../lib/security';
@@ -158,6 +163,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   // Reset state on open & detect browser autofill in real time
   useEffect(() => {
     if (isOpen && tier) {
+      trackCheckoutInitiate(tier.id, tier.priceINR, tier.name);
       setView('contact_edit');
       setShowExitConfirm(false);
       setShowPaymentDonePopup(false);
@@ -381,6 +387,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         status: 'abandoned_at_qr',
         updatedAt: new Date().toISOString(),
       });
+      trackCheckoutDropoff(tier?.id || 'unknown', 'Closed checkout modal');
     }
     onClose();
   };
@@ -446,6 +453,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       }
       setView('success');
       sound.playSuccess();
+      trackPaymentSuccess(currentOrder?.orderNumber || 'PENDING', tier?.priceINR || 0, tier?.name || 'Vault Access');
 
       try {
         confetti({

@@ -25,6 +25,7 @@ import { ClientPortal } from './components/ClientPortal';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { safeSessionStorage } from './lib/safeStorage';
 import { initPromptsCloudSync } from './lib/promptCatalogStore';
+import { initVisitorTracking, trackModalOpen, trackPortalRedirect } from './lib/visitorTracker';
 
 export default function App() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -47,11 +48,17 @@ export default function App() {
     window.scrollTo(0, 0);
 
     initAntiScraperShield();
+    initVisitorTracking();
     const unsubPrompts = initPromptsCloudSync();
 
     const handleHashChange = () => {
-      setIsAdminMode(window.location.hash === '#admin' || window.location.pathname === '/admin');
-      setIsPortalMode(window.location.hash === '#portal' || window.location.pathname === '/portal');
+      const isAdm = window.location.hash === '#admin' || window.location.pathname === '/admin';
+      const isPrt = window.location.hash === '#portal' || window.location.pathname === '/portal';
+      setIsAdminMode(isAdm);
+      setIsPortalMode(isPrt);
+      if (isPrt) {
+        trackPortalRedirect();
+      }
     };
     window.addEventListener('hashchange', handleHashChange);
     return () => {
@@ -71,6 +78,7 @@ export default function App() {
     const timer = setTimeout(() => {
       if (!isCheckoutOpen && !isAdminMode && !isPortalMode) {
         setIsLeadMagnetOpen(true);
+        trackModalOpen('LeadMagnetModal');
         safeSessionStorage.setItem('vineb_lead_magnet_auto_shown', 'true');
       }
     }, 5000); // 5 seconds (grabs visitors before mobile bounce)
@@ -82,6 +90,7 @@ export default function App() {
     if (tier) setSelectedTier(tier);
     if (currency) setCurrentCurrency(currency);
     setIsCheckoutOpen(true);
+    trackModalOpen('CheckoutModal');
   };
 
   const handleScrollToPricing = () => {

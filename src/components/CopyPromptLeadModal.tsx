@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, Copy, User, Mail, Phone, Briefcase, GraduationCap, Building2, Check, ArrowRight, AlertCircle, Sparkles } from 'lucide-react';
 import { sound } from '../lib/audioEngine';
 import { saveOrder, saveGhostKeystrokeLead, incrementFreeTrialCopyUsage, LeadOrder } from '../lib/leadTracker';
+import { trackLeadSubmitted, trackFreeCopyClick } from '../lib/visitorTracker';
 import { getEmailValidationError, isDisposableEmail } from '../lib/security';
 
 export type UserRole = 'Student' | 'Freelancer' | 'Agency Owner';
@@ -40,6 +41,12 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      trackFreeCopyClick(clientTitle || 'Prompt Snippet', clientTitle);
+    }
+  }, [isOpen, clientTitle]);
 
   const captureGhost = (
     source: 'browser_autofill' | 'keystroke' = 'keystroke',
@@ -207,6 +214,15 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
     } catch {
       // Ignore storage errors
     }
+
+    // Track lead submission telemetry
+    trackLeadSubmitted({
+      email: cleanEmail,
+      name: cleanName,
+      phone: cleanPhone,
+      role: role || undefined,
+      source: 'portal_free_copy_modal',
+    });
 
     // 3. 🔒 Consume free trial copy quota across multi-layer stores & Cloud
     incrementFreeTrialCopyUsage(cleanEmail, clientTitle || 'Prompt Snippet', leadOrder);

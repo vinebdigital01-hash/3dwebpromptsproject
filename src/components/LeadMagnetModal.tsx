@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { sound } from '../lib/audioEngine';
 import { saveOrder, saveGhostKeystrokeLead, LeadOrder } from '../lib/leadTracker';
+import { trackLeadSubmitted } from '../lib/visitorTracker';
 import { sendInstantLeadMagnetOrAbandonedEmail } from '../lib/resendEmail';
 import { getEmailValidationError, isDisposableEmail } from '../lib/security';
 import { safeLocalStorage, safeSessionStorage } from '../lib/safeStorage';
@@ -309,6 +310,15 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
       };
       safeSessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(memberSession));
       saveOrder(memberSession);
+
+      // Track lead submission telemetry
+      trackLeadSubmitted({
+        email: email.trim().toLowerCase(),
+        name: name.trim(),
+        phone: cleanPhone,
+        role: role || undefined,
+        source: 'lead_magnet_pdf',
+      });
     } catch {
       // Storage error safely caught
     }
