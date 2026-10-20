@@ -55,7 +55,7 @@ export const DEFAULT_ADMIN_SETTINGS: AdminSettings = {
   metaConversionsApiToken:
     (typeof import.meta !== 'undefined' && import.meta.env?.VITE_META_CAPI_TOKEN) ||
     'EAAcrhPzk3TUBSxOMHu0dI3VlEDjSKCTDcDhnB3mJgwFDke1fAO3hTJee0jEZALjRxYlCN8On0gBxyWGerNAESyVkqJ6NZCKZCAgCZASN5KxqFsVb0OrX8xz9PE7OkOWGjm8EfYukDAgFIZAPZA7BLcqtakt5O8U0Kgn8CGxhzzUaUNOjumf50HPcdU8puq2wZDZD',
-  clarityProjectId: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_CLARITY_PROJECT_ID) || '',
+  clarityProjectId: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_CLARITY_PROJECT_ID) || 'z0ji2tnxzb',
 };
 
 /**

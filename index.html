@@ -53,6 +53,28 @@
       })();
     </script>
     <!-- End Meta Pixel Code -->
+
+    <!-- Microsoft Clarity Code -->
+    <script type="text/javascript">
+      (function(c,l,a,r,i,t,y){
+        // Suppress on admin device to keep recordings clean of owner testing
+        try {
+          if (
+            window.location.hash.indexOf('#admin') !== -1 ||
+            window.location.pathname.indexOf('/admin') === 0 ||
+            localStorage.getItem('apex3d_admin_session_v2') ||
+            localStorage.getItem('apex3d_exclude_admin_tracking') === 'true'
+          ) {
+            return;
+          }
+        } catch (e) {}
+
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i+"?ref=bwt";
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+      })(window, document, "clarity", "script", "z0ji2tnxzb");
+    </script>
+    <!-- End Microsoft Clarity Code -->
   </head>
   <body class="bg-[#050508] text-[#f4f4f7] antialiased selection:bg-blue-600/40 selection:text-white overflow-x-hidden">
     <!-- Meta Pixel noscript fallback -->
