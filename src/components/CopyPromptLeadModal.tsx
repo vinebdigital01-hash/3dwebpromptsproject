@@ -179,7 +179,27 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
     // Copy prompt snippet to clipboard
     if (promptSnippet) {
       try {
-        navigator.clipboard.writeText(promptSnippet);
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(promptSnippet).catch(() => {
+            const ta = document.createElement('textarea');
+            ta.value = promptSnippet;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+          });
+        } else {
+          const ta = document.createElement('textarea');
+          ta.value = promptSnippet;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+        }
       } catch (err) {
         console.error('Failed to copy to clipboard', err);
       }

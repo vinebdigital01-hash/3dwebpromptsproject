@@ -16,11 +16,23 @@ export interface VaultItem {
   poster: string;
   fpsBadge: string;
   allowFreeTrialCopy?: boolean;
+  isFree?: boolean;
+  showOnHomepage?: boolean;
+  isDeleted?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export function isPromptFree(item: VaultItem): boolean {
+  return Boolean(item.isFree || item.allowFreeTrialCopy || item.showOnHomepage);
 }
 
 export const VAULT_CATALOG: VaultItem[] = [
   {
     id: 'valmora',
+    isFree: true,
+    allowFreeTrialCopy: true,
+    showOnHomepage: true,
     title: 'VALMORA — Haute-Couture Kinetic Spatial Architecture',
     subtitle: 'High-Fashion Editorial Landing Page with Fluid Motion Physics',
     category: 'Luxury',
@@ -61,6 +73,9 @@ VISUAL & INTERACTIVE BLUEPRINT:
   },
   {
     id: 'selene',
+    isFree: true,
+    allowFreeTrialCopy: true,
+    showOnHomepage: true,
     title: 'SELENE — Lunar Expedition Earthrise Site Rebuild',
     subtitle: 'Celestial Parallax & 384,400 km Dynamic Trajectory Engine',
     category: 'Advanced 3D',
@@ -143,6 +158,9 @@ TECHNICAL SPECIFICATIONS:
   },
   {
     id: 'fluxora',
+    isFree: true,
+    allowFreeTrialCopy: true,
+    showOnHomepage: true,
     title: 'Fluxora — Human Craft Agency Visor Architecture',
     subtitle: 'Amber Visor Light Rake & High-Trust Client Proof Stack',
     category: 'Cyber & Agency',
@@ -181,7 +199,9 @@ DESIGN SYSTEM & VISUAL HOOK:
   },
   {
     id: 'hazmat-cyber',
+    isFree: true,
     allowFreeTrialCopy: true,
+    showOnHomepage: true,
     title: 'Hazmat Cybersecurity Master 3D Prompt',
     subtitle: 'Reactive WebGL Shield & Threat Grid Architecture',
     category: 'Cyber & Agency',
@@ -367,7 +387,9 @@ Implement specular border highlights that reflect pointer coordinates, multi-tie
   },
   {
     id: 'fintech-liquidity-pool',
+    isFree: true,
     allowFreeTrialCopy: true,
+    showOnHomepage: true,
     title: 'Institutional FinTech 3D Liquidity Order Book',
     subtitle: 'Real-Time WebGL Depth Mountain & High-Frequency Volume Mesh',
     category: 'FinTech',
@@ -575,7 +597,9 @@ Implement specular border highlights that reflect pointer coordinates, multi-tie
   },
   {
     id: 'liquid-viscosity-shader',
+    isFree: true,
     allowFreeTrialCopy: true,
+    showOnHomepage: true,
     title: 'High-Viscosity Procedural Liquid & Mercury Shader',
     subtitle: 'Real-Time Surface Tension & Chromatic Sheen Physics',
     category: 'Advanced 3D',

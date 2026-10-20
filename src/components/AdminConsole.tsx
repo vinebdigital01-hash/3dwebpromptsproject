@@ -262,14 +262,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
     }
 
     setMarketingHistory(getAllMarketingDispatches());
-
-    try {
-      const cloudPrompts = await fetchPromptsFromFirestore();
-      if (cloudPrompts && cloudPrompts.length > 0) setPromptsList(cloudPrompts);
-      else setPromptsList(getAllVaultPrompts());
-    } catch {
-      setPromptsList(getAllVaultPrompts());
-    }
+    setPromptsList(getAllVaultPrompts());
 
     try {
       const cloudTeam = await fetchAdminsFromFirestore();
@@ -357,9 +350,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
     };
     const handleMarketingUpdate = () => setMarketingHistory(getAllMarketingDispatches());
     const handlePromptsUpdate = () => {
-      fetchPromptsFromFirestore().then((p) => {
-        if (p && p.length > 0) setPromptsList(p);
-      }).catch(() => setPromptsList(getAllVaultPrompts()));
+      setPromptsList(getAllVaultPrompts());
     };
     const handleAuthChange = (e: any) => setSession(e.detail || null);
     const handleTeamChange = (e: any) => {
@@ -715,6 +706,8 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
       videoUrl: newVideoUrl.trim() || 'https://images.refero.design/styles/refero.design/video/a3ee62c8-c674-48a3-84a9-e8269eefd621.mp4',
       poster: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=1400&auto=format&fit=crop&q=80',
       fpsBadge: '60 FPS WEBGL',
+      isFree: newAllowFreeTrialCopy,
+      showOnHomepage: newAllowFreeTrialCopy,
       allowFreeTrialCopy: newAllowFreeTrialCopy,
       promptArchitecture: newSyntax.trim(),
     };
@@ -726,14 +719,27 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
     setNewSubtitle('');
     setNewSyntax('');
     setNewAllowFreeTrialCopy(false);
-    showToast(`New Prompt Blueprint "${newPromptItem.title}" Added to Vault & Live for Clients!`);
+    showToast(
+      newAllowFreeTrialCopy
+        ? `New Blueprint "${newPromptItem.title}" Published & Live as Free Prompt on Homepage!`
+        : `New Prompt Blueprint "${newPromptItem.title}" Added to Paid Vault!`
+    );
   };
 
   const handleToggleFreeTrialCopy = (id: string, currentValue: boolean) => {
     sound.playClick();
-    const updated = updateVaultPrompt(id, { allowFreeTrialCopy: !currentValue });
+    const nextVal = !currentValue;
+    const updated = updateVaultPrompt(id, {
+      isFree: nextVal,
+      showOnHomepage: nextVal,
+      allowFreeTrialCopy: nextVal,
+    });
     setPromptsList(updated);
-    showToast(!currentValue ? '✨ Enabled free trial copy sample for this prompt!' : '🔒 Prompt locked to Paid Vault only.');
+    showToast(
+      nextVal
+        ? '✨ Added prompt to Homepage Free Prompts!'
+        : '🔒 Prompt locked to Paid Vault only (Hidden from Homepage).'
+    );
   };
 
   const handleDeletePrompt = (id: string, title: string) => {
@@ -761,7 +767,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
     setEditPosterUrl(item.poster || '');
     setEditDescription(item.description || '');
     setEditSyntax(item.promptArchitecture || '');
-    setEditAllowFreeTrialCopy(!!item.allowFreeTrialCopy);
+    setEditAllowFreeTrialCopy(Boolean(item.isFree || item.showOnHomepage || item.allowFreeTrialCopy));
     setEditTestedModels((item.testedModels || []).join(', '));
     setEditTags((item.tags || []).join(', '));
     setIsEditPromptModalOpen(true);
@@ -791,6 +797,8 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
       poster: editPosterUrl.trim(),
       description: editDescription.trim() || editSubtitle.trim(),
       promptArchitecture: editSyntax.trim(),
+      isFree: editAllowFreeTrialCopy,
+      showOnHomepage: editAllowFreeTrialCopy,
       allowFreeTrialCopy: editAllowFreeTrialCopy,
       testedModels: parsedTestedModels.length > 0 ? parsedTestedModels : editingPrompt.testedModels,
       tags: parsedTags.length > 0 ? parsedTags : editingPrompt.tags,
@@ -3074,10 +3082,10 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                     <div>
                       <span className="text-xs font-mono font-bold text-white flex items-center gap-1.5">
                         <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Allow Free Trial Users to copy this prompt as their 1 lifetime sample</span>
+                        <span>Show on Homepage as Free Prompt (Visitors can copy code &amp; get redirected to /#portal)</span>
                       </span>
                       <p className="text-[10px] text-white/50 mt-0.5">
-                        Free users can only copy at most 1 free sample prompt total. If unchecked, this prompt is strictly locked behind a paid pass.
+                        If checked, this prompt is published live on the public homepage free ledger. Visitors enter their details, copy the full syntax to their clipboard, and get redirected to /#portal. If unchecked, this prompt is paid vault only.
                       </p>
                     </div>
                   </label>
@@ -3143,14 +3151,14 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                         <span className="text-[9px] sm:text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/60">
                           {item.category}
                         </span>
-                        {item.allowFreeTrialCopy ? (
+                        {(item.isFree || item.allowFreeTrialCopy || item.showOnHomepage) ? (
                           <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
                             <Sparkles className="w-2.5 h-2.5" />
-                            <span>FREE SAMPLE</span>
+                            <span>HOMEPAGE FREE SAMPLE</span>
                           </span>
                         ) : (
                           <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-white/5 text-zinc-400 border border-white/10">
-                            PAID ONLY
+                            PAID VAULT ONLY
                           </span>
                         )}
                       </div>
@@ -3161,23 +3169,23 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                   <div className="flex items-center gap-2 sm:gap-3 shrink-0 flex-wrap self-end sm:self-center">
                     <button
                       type="button"
-                      onClick={() => handleToggleFreeTrialCopy(item.id, !!item.allowFreeTrialCopy)}
+                      onClick={() => handleToggleFreeTrialCopy(item.id, Boolean(item.isFree || item.allowFreeTrialCopy || item.showOnHomepage))}
                       className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-[10px] font-mono font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
-                        item.allowFreeTrialCopy
+                        (item.isFree || item.allowFreeTrialCopy || item.showOnHomepage)
                           ? 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40'
                           : 'bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white border border-white/10'
                       }`}
-                      title={item.allowFreeTrialCopy ? 'Click to make Paid Vault Only' : 'Click to enable as a Free Sample for free users'}
+                      title={(item.isFree || item.allowFreeTrialCopy || item.showOnHomepage) ? 'Click to make Paid Vault Only (Hide from Homepage)' : 'Click to show on Homepage as a Free Sample prompt'}
                     >
-                      {item.allowFreeTrialCopy ? (
+                      {(item.isFree || item.allowFreeTrialCopy || item.showOnHomepage) ? (
                         <>
                           <Check className="w-3 h-3 text-emerald-400" />
-                          <span>Free Sample Active</span>
+                          <span>Homepage Free (Active)</span>
                         </>
                       ) : (
                         <>
                           <Lock className="w-3 h-3 text-zinc-400" />
-                          <span>Make Free Sample</span>
+                          <span>Show on Homepage (Free)</span>
                         </>
                       )}
                     </button>
@@ -4067,10 +4075,10 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                   <div>
                     <span className="text-xs font-mono font-bold text-white flex items-center gap-1.5">
                       <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Allow Free Users to copy this prompt as their 1 lifetime sample</span>
+                      <span>Show on Homepage as Free Prompt (Visitors can copy code &amp; get redirected to /#portal)</span>
                     </span>
                     <p className="text-[10px] text-white/50 mt-0.5">
-                      Free users can only copy 1 free sample prompt total. If unchecked, this prompt remains exclusively locked behind a paid pass.
+                      If checked, this prompt is published live on the public homepage free ledger. Visitors enter their details, copy the full syntax, and get redirected to /#portal. If unchecked, this prompt remains exclusively locked behind a paid pass.
                     </p>
                   </div>
                 </label>

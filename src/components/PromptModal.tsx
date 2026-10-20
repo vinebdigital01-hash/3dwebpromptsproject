@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Lock, Terminal, Layers, Cpu, ArrowRight, Copy } from 'lucide-react';
-import { VaultItem } from '../data/vaultCatalog';
+import { X, Lock, Terminal, Layers, Cpu, ArrowRight, Copy, Sparkles } from 'lucide-react';
+import { VaultItem, isPromptFree } from '../data/vaultCatalog';
 import { sound } from '../lib/audioEngine';
 import { CopyPromptLeadModal } from './CopyPromptLeadModal';
 
@@ -90,6 +90,16 @@ export const PromptModal: React.FC<PromptModalProps> = ({ item, onClose, onUnloc
         {/* Header Metadata Section */}
         <div className="px-6 sm:px-8 pt-6 pb-4 border-b border-white/5 shrink-0">
           <div className="flex flex-wrap items-center gap-2 mb-2.5 font-mono text-[11px]">
+            {isPromptFree(item) ? (
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-emerald-400" />
+                <span>FREE SAMPLE BLUEPRINT</span>
+              </span>
+            ) : (
+              <span className="px-2.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-400 font-medium">
+                PAID VAULT EXCLUSIVE
+              </span>
+            )}
             <span className="px-2.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 font-medium">
               {item.category}
             </span>
@@ -235,7 +245,7 @@ export const PromptModal: React.FC<PromptModalProps> = ({ item, onClose, onUnloc
         onSuccessRedirect={() => {
           setIsLeadModalOpen(false);
           onClose();
-          onUnlockClick();
+          window.location.hash = '#portal';
         }}
       />
     </div>

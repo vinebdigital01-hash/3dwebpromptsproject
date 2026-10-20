@@ -615,6 +615,7 @@ export const FlagshipLandingShowcase: React.FC<FlagshipLandingShowcaseProps> = (
             setCopiedId(leadTargetPrompt.id);
             setTimeout(() => setCopiedId(null), 3000);
           }
+          window.location.hash = '#portal';
         }}
         onLeadSubmitted={() => {
           if (leadTargetPrompt) {

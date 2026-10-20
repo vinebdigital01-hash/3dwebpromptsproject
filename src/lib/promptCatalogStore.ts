@@ -1,10 +1,10 @@
 // ==========================================
 // APEX3D VAULT - Prompt Catalog Store & CMS Engine
 // Syncs default catalog with custom prompts created in Admin Console
-// and persists across Cloud Database in real-time
+// and persists across Cloud Database in real-time without relying on localStorage
 // ==========================================
 
-import { VAULT_CATALOG, VaultItem } from '../data/vaultCatalog';
+import { VAULT_CATALOG, VaultItem, isPromptFree } from '../data/vaultCatalog';
 import {
   savePromptToFirestore,
   deletePromptFromFirestore,
@@ -15,66 +15,80 @@ import {
 const CUSTOM_PROMPTS_KEY = 'apex3d_custom_prompts_v1';
 const DELETED_PROMPT_IDS_KEY = 'apex3d_deleted_prompts_v1';
 
-/**
- * Get custom prompts stored in localStorage
- */
-function getCustomPrompts(): VaultItem[] {
-  if (typeof window === 'undefined') return [];
+// In-memory cache for ultra-fast access across components & zero latency
+const inMemoryCloudPrompts = new Map<string, VaultItem>();
+const inMemoryDeletedIds = new Set<string>();
+
+// Pre-load from localStorage cache if available for instant paint
+if (typeof window !== 'undefined') {
   try {
     const raw = localStorage.getItem(CUSTOM_PROMPTS_KEY);
     if (raw) {
-      return JSON.parse(raw);
+      const parsed: VaultItem[] = JSON.parse(raw);
+      parsed.forEach((p) => {
+        if (p && p.id) inMemoryCloudPrompts.set(p.id, p);
+      });
     }
-  } catch (err) {
-    console.error('Failed to parse custom prompts:', err);
+    const rawDel = localStorage.getItem(DELETED_PROMPT_IDS_KEY);
+    if (rawDel) {
+      const parsedDel: string[] = JSON.parse(rawDel);
+      parsedDel.forEach((id) => inMemoryDeletedIds.add(id));
+    }
+  } catch {
+    // Ignore cache load errors
   }
-  return [];
 }
 
 /**
- * Get IDs of deleted prompts (even from default catalog)
- */
-function getDeletedPromptIds(): string[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = localStorage.getItem(DELETED_PROMPT_IDS_KEY);
-    if (raw) {
-      return JSON.parse(raw);
-    }
-  } catch (err) {
-    console.error('Failed to parse deleted prompt IDs:', err);
-  }
-  return [];
-}
-
-/**
- * Returns all active prompts: Custom Prompts + Default Prompts minus Deleted ones and overrides
+ * Returns all active prompts: Custom Prompts + Default Prompts minus Deleted ones and cloud overrides
  */
 export function getAllVaultPrompts(): VaultItem[] {
-  const custom = getCustomPrompts();
-  const deletedIds = new Set(getDeletedPromptIds());
-  const customIds = new Set(custom.map((p) => p.id));
+  const customList: VaultItem[] = [];
+  const defaultList: VaultItem[] = [];
 
-  // Filter default catalog by deleted IDs AND custom prompt overrides (prevents duplicate prompts!)
-  const activeDefaults = VAULT_CATALOG.filter(
-    (item) => !deletedIds.has(item.id) && !customIds.has(item.id)
-  );
+  const defaultIds = new Set(VAULT_CATALOG.map((item) => item.id));
 
-  // Combine custom prompts (at top) with defaults
-  return [...custom, ...activeDefaults];
+  // 1. Process default items with any cloud/admin overrides
+  VAULT_CATALOG.forEach((defaultItem) => {
+    // Check if deleted
+    if (inMemoryDeletedIds.has(defaultItem.id)) return;
+
+    // Check if there is an override in memory
+    const override = inMemoryCloudPrompts.get(defaultItem.id);
+    if (override) {
+      if (override.isDeleted) return;
+      defaultList.push({ ...defaultItem, ...override });
+    } else {
+      defaultList.push(defaultItem);
+    }
+  });
+
+  // 2. Process custom prompts created via Admin CMS
+  inMemoryCloudPrompts.forEach((prompt, id) => {
+    if (!defaultIds.has(id) && !inMemoryDeletedIds.has(id) && !prompt.isDeleted) {
+      customList.push(prompt);
+    }
+  });
+
+  // Sort custom prompts newest first, followed by default catalog
+  return [...customList, ...defaultList];
 }
 
 /**
- * Add a new prompt (persists to localStorage, Cloud Database, and dispatches sync event)
+ * Add a new prompt (persists directly to Firestore Cloud Database and syncs locally)
  */
 export function addVaultPrompt(prompt: VaultItem): VaultItem[] {
   if (typeof window === 'undefined') return getAllVaultPrompts();
-  try {
-    const custom = getCustomPrompts();
-    const updatedCustom = [prompt, ...custom.filter((p) => p.id !== prompt.id)];
-    localStorage.setItem(CUSTOM_PROMPTS_KEY, JSON.stringify(updatedCustom));
 
+  try {
+    inMemoryCloudPrompts.set(prompt.id, prompt);
+    inMemoryDeletedIds.delete(prompt.id);
+
+    // Save to Firestore Cloud Database
     savePromptToFirestore(prompt).catch((err) => console.debug('Cloud save notice:', err));
+
+    // Update fallback cache
+    syncToLocalStorage();
 
     window.dispatchEvent(new CustomEvent('apex_prompts_updated', { detail: { action: 'add', prompt } }));
   } catch (err) {
@@ -84,24 +98,26 @@ export function addVaultPrompt(prompt: VaultItem): VaultItem[] {
 }
 
 /**
- * Delete a prompt by ID (handles both custom prompts and default catalog)
+ * Delete a prompt by ID (persists directly to Firestore Cloud Database)
  */
 export function deleteVaultPrompt(id: string): VaultItem[] {
   if (typeof window === 'undefined') return getAllVaultPrompts();
-  try {
-    // 1. Remove from custom if present
-    const custom = getCustomPrompts();
-    const updatedCustom = custom.filter((p) => p.id !== id);
-    localStorage.setItem(CUSTOM_PROMPTS_KEY, JSON.stringify(updatedCustom));
 
-    // 2. Mark as deleted in deleted IDs
-    const deletedIds = getDeletedPromptIds();
-    if (!deletedIds.includes(id)) {
-      deletedIds.push(id);
-      localStorage.setItem(DELETED_PROMPT_IDS_KEY, JSON.stringify(deletedIds));
+  try {
+    inMemoryDeletedIds.add(id);
+    const existing = inMemoryCloudPrompts.get(id);
+    if (existing) {
+      existing.isDeleted = true;
+      inMemoryCloudPrompts.set(id, existing);
+    } else {
+      inMemoryCloudPrompts.set(id, { id, isDeleted: true } as any);
     }
 
+    // Persist deletion to Firestore
     deletePromptFromFirestore(id).catch((err) => console.debug('Cloud delete notice:', err));
+    savePromptToFirestore({ id, isDeleted: true }).catch((err) => console.debug('Cloud mark deleted notice:', err));
+
+    syncToLocalStorage();
 
     window.dispatchEvent(new CustomEvent('apex_prompts_updated', { detail: { action: 'delete', id } }));
   } catch (err) {
@@ -111,10 +127,11 @@ export function deleteVaultPrompt(id: string): VaultItem[] {
 }
 
 /**
- * Update an existing prompt (saves locally and to Cloud Database)
+ * Update an existing prompt (persists directly to Firestore Cloud Database)
  */
 export function updateVaultPrompt(id: string, updates: Partial<VaultItem>): VaultItem[] {
   if (typeof window === 'undefined') return getAllVaultPrompts();
+
   try {
     const all = getAllVaultPrompts();
     const existing = all.find((p) => p.id === id);
@@ -122,19 +139,13 @@ export function updateVaultPrompt(id: string, updates: Partial<VaultItem>): Vaul
 
     const modified: VaultItem = { ...existing, ...updates };
 
-    const custom = getCustomPrompts();
-    const existingCustomIdx = custom.findIndex((p) => p.id === id);
+    inMemoryCloudPrompts.set(id, modified);
+    inMemoryDeletedIds.delete(id);
 
-    let updatedCustom: VaultItem[];
-    if (existingCustomIdx >= 0) {
-      custom[existingCustomIdx] = modified;
-      updatedCustom = [...custom];
-    } else {
-      updatedCustom = [modified, ...custom.filter((p) => p.id !== id)];
-    }
-    localStorage.setItem(CUSTOM_PROMPTS_KEY, JSON.stringify(updatedCustom));
-
+    // Persist to Firestore Cloud Database
     savePromptToFirestore(modified).catch((err) => console.debug('Cloud update notice:', err));
+
+    syncToLocalStorage();
 
     window.dispatchEvent(new CustomEvent('apex_prompts_updated', { detail: { action: 'update', prompt: modified } }));
   } catch (err) {
@@ -149,6 +160,8 @@ export function updateVaultPrompt(id: string, updates: Partial<VaultItem>): Vaul
 export function resetToDefaultPrompts(): VaultItem[] {
   if (typeof window === 'undefined') return VAULT_CATALOG;
   try {
+    inMemoryCloudPrompts.clear();
+    inMemoryDeletedIds.clear();
     localStorage.removeItem(CUSTOM_PROMPTS_KEY);
     localStorage.removeItem(DELETED_PROMPT_IDS_KEY);
     window.dispatchEvent(new CustomEvent('apex_prompts_updated', { detail: { action: 'reset' } }));
@@ -165,12 +178,11 @@ let hasInitializedPromptsCloudSync = false;
  * Ensures prompts edited or marked free by Admin appear for all clients and devices instantly
  */
 export function initPromptsCloudSync(): () => void {
-  if (typeof window === 'undefined' || hasInitializedPromptsCloudSync) {
+  if (typeof window === 'undefined') {
     return () => {};
   }
-  hasInitializedPromptsCloudSync = true;
 
-  // 1. Initial pull
+  // 1. Initial pull from Firestore
   fetchPromptsFromFirestore()
     .then((cloudPrompts) => {
       if (cloudPrompts && cloudPrompts.length > 0) {
@@ -179,31 +191,44 @@ export function initPromptsCloudSync(): () => void {
     })
     .catch((err) => console.debug('Initial cloud prompts fetch notice:', err));
 
-  // 2. Real-time subscription
-  return subscribeToFirestorePrompts((cloudPrompts) => {
+  // 2. Real-time subscription to Firestore collection
+  const unsub = subscribeToFirestorePrompts((cloudPrompts) => {
     if (cloudPrompts && cloudPrompts.length > 0) {
       mergeCloudPrompts(cloudPrompts);
     }
   });
+
+  return unsub;
 }
 
 function mergeCloudPrompts(cloudPrompts: VaultItem[]) {
   try {
-    const localCustom = getCustomPrompts();
-    const map = new Map<string, VaultItem>();
-
-    // Add local custom first
-    localCustom.forEach((p) => map.set(p.id, p));
-
-    // Merge cloud prompts
+    let changed = false;
     cloudPrompts.forEach((cp) => {
-      map.set(cp.id, cp);
+      if (cp && cp.id) {
+        if (cp.isDeleted) {
+          inMemoryDeletedIds.add(cp.id);
+        }
+        inMemoryCloudPrompts.set(cp.id, cp);
+        changed = true;
+      }
     });
 
-    const merged = Array.from(map.values());
-    localStorage.setItem(CUSTOM_PROMPTS_KEY, JSON.stringify(merged));
-    window.dispatchEvent(new CustomEvent('apex_prompts_updated', { detail: { action: 'cloud_sync' } }));
+    if (changed) {
+      syncToLocalStorage();
+      window.dispatchEvent(new CustomEvent('apex_prompts_updated', { detail: { action: 'cloud_sync' } }));
+    }
   } catch (err) {
     console.debug('Error merging cloud prompts:', err);
+  }
+}
+
+function syncToLocalStorage() {
+  try {
+    const list = Array.from(inMemoryCloudPrompts.values());
+    localStorage.setItem(CUSTOM_PROMPTS_KEY, JSON.stringify(list));
+    localStorage.setItem(DELETED_PROMPT_IDS_KEY, JSON.stringify(Array.from(inMemoryDeletedIds)));
+  } catch {
+    // Ignore storage quota errors
   }
 }

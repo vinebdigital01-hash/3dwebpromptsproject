@@ -24,6 +24,7 @@ import { AdminConsole } from './components/AdminConsole';
 import { ClientPortal } from './components/ClientPortal';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { safeSessionStorage } from './lib/safeStorage';
+import { initPromptsCloudSync } from './lib/promptCatalogStore';
 
 export default function App() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -46,13 +47,17 @@ export default function App() {
     window.scrollTo(0, 0);
 
     initAntiScraperShield();
+    const unsubPrompts = initPromptsCloudSync();
 
     const handleHashChange = () => {
       setIsAdminMode(window.location.hash === '#admin' || window.location.pathname === '/admin');
       setIsPortalMode(window.location.hash === '#portal' || window.location.pathname === '/portal');
     };
     window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    return () => {
+      unsubPrompts();
+      window.removeEventListener('hashchange', handleHashChange);
+    };
   }, []);
 
   // Automatic popup in 5 seconds if user is just browsing and has no active intent to checkout yet
