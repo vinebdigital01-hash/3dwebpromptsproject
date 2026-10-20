@@ -7,6 +7,7 @@ import {
   saveVisitorSessionToFirestore,
   logVisitorEventToFirestore,
 } from './firebase';
+import { getAdminSettings } from './adminSettings';
 
 export type TrafficChannel = 'meta_ads' | 'google_ads' | 'organic_search' | 'organic_social' | 'direct';
 
@@ -221,6 +222,61 @@ async function fetchGeoLocation(): Promise<{
 }
 
 /**
+ * Dynamically inject Meta Pixel and Microsoft Clarity if configured in Admin Settings or env
+ */
+export function initializeThirdPartyScripts(): void {
+  if (typeof window === 'undefined') return;
+
+  try {
+    const settings = getAdminSettings();
+    const metaPixelId = (settings?.metaPixelId || (import.meta as any)?.env?.VITE_META_PIXEL_ID || '').trim();
+    const clarityId = (settings?.clarityProjectId || (import.meta as any)?.env?.VITE_CLARITY_PROJECT_ID || '').trim();
+
+    // 1. Meta Pixel Injection
+    if (metaPixelId && !(window as any).fbq) {
+      try {
+        (function(f: any, b: any, e: any, v: any, n?: any, t?: any, s?: any) {
+          if (f.fbq) return;
+          n = f.fbq = function() {
+            n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
+          };
+          if (!f._fbq) f._fbq = n;
+          n.push = n;
+          n.loaded = true;
+          n.version = '2.0';
+          n.queue = [];
+          t = b.createElement(e);
+          t.async = true;
+          t.src = v;
+          s = b.getElementsByTagName(e)[0];
+          s.parentNode.insertBefore(t, s);
+        })(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
+
+        (window as any).fbq('init', metaPixelId);
+      } catch (e) {
+        console.debug('Meta Pixel init notice:', e);
+      }
+    }
+
+    // 2. Microsoft Clarity Session Replays Injection
+    if (clarityId && !(window as any).clarity) {
+      try {
+        (function(c: any, l: any, a: any, r: any, i: any, t?: any, y?: any) {
+          c[a] = c[a] || function() { (c[a].q = c[a].q || []).push(arguments); };
+          t = l.createElement(r);
+          t.async = 1;
+          t.src = 'https://www.clarity.ms/tag/' + i;
+          y = l.getElementsByTagName(r)[0];
+          y.parentNode.insertBefore(t, y);
+        })(window, document, 'clarity', 'script', clarityId);
+      } catch (e) {
+        console.debug('Clarity init notice:', e);
+      }
+    }
+  } catch {}
+}
+
+/**
  * Forward event to Meta Pixel (fbq) if available
  */
 function forwardToMetaPixel(eventName: string, params?: Record<string, any>) {
@@ -319,6 +375,9 @@ export function trackVisitorEvent(
 export function initVisitorTracking(): void {
   if (typeof window === 'undefined' || isInitialized) return;
   isInitialized = true;
+
+  // Initialize Meta Pixel & Microsoft Clarity if configured
+  initializeThirdPartyScripts();
 
   const nowIso = new Date().toISOString();
 

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Play, Pause, Volume2, VolumeX, Maximize2, Sparkles, ArrowRight, ShieldCheck, Copy, Check, Terminal, ExternalLink, Lock } from 'lucide-react';
 import { sound } from '../lib/audioEngine';
 import { CopyPromptLeadModal } from './CopyPromptLeadModal';
+import { trackPromptInspect } from '../lib/visitorTracker';
 
 interface FlagshipLandingShowcaseProps {
   onUnlockClick: () => void;
@@ -450,7 +451,10 @@ export const FlagshipLandingShowcase: React.FC<FlagshipLandingShowcaseProps> = (
             {/* Action Buttons — Thumb-friendly & prominent */}
             <div className="flex items-stretch sm:items-center gap-2.5 sm:gap-3 shrink-0 pt-1 md:pt-0">
               <button
-                onClick={() => setInspectedPrompt(activeItem)}
+                onClick={() => {
+                  trackPromptInspect(activeItem.id, activeItem.name);
+                  setInspectedPrompt(activeItem);
+                }}
                 className="flex-1 sm:flex-initial px-4 sm:px-5 py-3 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-white font-mono text-xs font-semibold transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer shadow-lg"
               >
                 <Terminal className="w-4 h-4 text-blue-400" />

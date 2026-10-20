@@ -7,6 +7,7 @@ import { isMediaImage } from '../lib/mediaUtils';
 import { PromptModal } from './PromptModal';
 import { CopyPromptLeadModal } from './CopyPromptLeadModal';
 import { sound } from '../lib/audioEngine';
+import { trackPromptInspect } from '../lib/visitorTracker';
 
 interface VaultEditorialLedgerProps {
   onUnlockClick: () => void;
@@ -237,6 +238,7 @@ export const VaultEditorialLedger: React.FC<VaultEditorialLedgerProps> = ({ onUn
 
   const handleInspectClick = (item: VaultItem) => {
     sound.playSweep();
+    trackPromptInspect(item.id, item.title);
     setInspectItem(item);
   };
 

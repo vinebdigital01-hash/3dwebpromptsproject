@@ -74,6 +74,7 @@ import { UpgradeShowcaseModal } from './UpgradeShowcaseModal';
 import { CopyPromptLeadModal } from './CopyPromptLeadModal';
 import { TierId } from './PricingSection';
 import { checkPasswordResetRateLimit, recordPasswordResetSent } from '../lib/resendEmail';
+import { trackPromptInspect } from '../lib/visitorTracker';
 
 interface ClientPortalProps {
   onBackToSite: () => void;
@@ -161,6 +162,12 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
 
   // Inspection Lightbox Modal State
   const [inspectingPrompt, setInspectingPrompt] = useState<VaultItem | null>(null);
+
+  const handleOpenInspectPrompt = (item: VaultItem) => {
+    sound.playClick();
+    trackPromptInspect(item.id, item.title);
+    setInspectingPrompt(item);
+  };
 
   // Copy State & Toast
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -280,7 +287,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
         const target = all.find((p) => p.id === promptIdParam);
         if (target) {
           setSpotlightPrompt(target);
-          setInspectingPrompt(target);
+          handleOpenInspectPrompt(target);
         }
       }
     } catch {
@@ -1546,10 +1553,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                         )}
 
                         <button
-                          onClick={() => {
-                            sound.playClick();
-                            setInspectingPrompt(spotlightPrompt);
-                          }}
+                          onClick={() => handleOpenInspectPrompt(spotlightPrompt)}
                           className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[10px] sm:text-[11px] font-mono border border-white/20 backdrop-blur-md transition-all flex items-center gap-1.5 cursor-pointer"
                         >
                           <Maximize2 className="w-3 h-3" />
@@ -1692,10 +1696,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                     </button>
 
                     <button
-                      onClick={() => {
-                        sound.playClick();
-                        setInspectingPrompt(spotlightPrompt);
-                      }}
+                      onClick={() => handleOpenInspectPrompt(spotlightPrompt)}
                       className="px-4 py-3 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] text-white text-xs font-mono transition-colors flex items-center justify-center cursor-pointer shrink-0"
                       title="Inspect Raw Architecture"
                     >
@@ -1962,8 +1963,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              sound.playClick();
-                              setInspectingPrompt(item);
+                              handleOpenInspectPrompt(item);
                             }}
                             className="text-[11px] font-mono text-zinc-400 hover:text-white flex items-center gap-1 transition-colors"
                           >

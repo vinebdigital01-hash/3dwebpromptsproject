@@ -25,6 +25,9 @@ export interface AdminSettings {
   // Email Automation (Resend)
   resendApiKey: string;
   resendFromEmail: string;
+  // Ads Attribution & Session Replays
+  metaPixelId?: string;
+  clarityProjectId?: string;
 }
 
 const SETTINGS_STORAGE_KEY = 'apex3d_admin_settings_v1';
@@ -47,6 +50,8 @@ export const DEFAULT_ADMIN_SETTINGS: AdminSettings = {
   lastCloudSyncAt: null,
   resendApiKey: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_RESEND_API_KEY) || '',
   resendFromEmail: 'Vine B Digital // 3D Vault <vault@vinebdigital.store>',
+  metaPixelId: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_META_PIXEL_ID) || '',
+  clarityProjectId: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_CLARITY_PROJECT_ID) || '',
 };
 
 /**

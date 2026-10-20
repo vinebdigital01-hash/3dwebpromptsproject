@@ -136,6 +136,7 @@ import { InvoiceModal } from './InvoiceModal';
 import { LicenseModal } from './LicenseModal';
 import { BroadcastCenter } from './BroadcastCenter';
 import { TrafficAnalyticsDashboard } from './TrafficAnalyticsDashboard';
+import { initializeThirdPartyScripts } from '../lib/visitorTracker';
 import { isMediaImage } from '../lib/mediaUtils';
 
 interface AdminConsoleProps {
@@ -238,6 +239,10 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
   // Automated Resend Drip Follow-ups State
   const [isDripRunning, setIsDripRunning] = useState(false);
   const [dripResult, setDripResult] = useState<{ day1: number; day2: number; timestamp: string } | null>(null);
+
+  // Meta Pixel & Microsoft Clarity State
+  const [metaPixelId, setMetaPixelId] = useState(settings.metaPixelId || '');
+  const [clarityProjectId, setClarityProjectId] = useState(settings.clarityProjectId || '');
 
   // Ghost Leads Grouping & Timeline State
   const [ghostViewMode, setGhostViewMode] = useState<'grouped' | 'raw'>('grouped');
@@ -836,9 +841,12 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
       cloudSyncEnabled,
       resendApiKey: resendApiKey.trim(),
       resendFromEmail: resendFromEmail.trim(),
+      metaPixelId: metaPixelId.trim(),
+      clarityProjectId: clarityProjectId.trim(),
     });
     setSettings(updated);
-    showToast('Store settings & payment configuration saved live!');
+    initializeThirdPartyScripts();
+    showToast('Store settings, Pixel & payment configuration saved live!');
   };
 
   const handleSendTestEmail = async () => {
@@ -3823,6 +3831,58 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                       <span>{testEmailResult.message}</span>
                     </div>
                   )}
+                </div>
+              </div>
+            </div>
+
+            {/* Section 5: Meta Ads Pixel & Microsoft Clarity Session Replays */}
+            <div className="p-6 rounded-2xl bg-[#090914] border border-white/10 space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <h3 className="text-xs font-mono uppercase tracking-wider text-blue-400 font-bold flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-emerald-400" />
+                  <span>05. Meta Pixel &amp; Session Replays (Free Ad Tracking &amp; Video Replays)</span>
+                </h3>
+
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                  <span>Zero Lag &bull; 100% Free Forever</span>
+                </span>
+              </div>
+
+              <p className="text-xs text-white/60">
+                Connect your Meta Ads Pixel for automated conversion event training (PageView, ViewContent, Lead, InitiateCheckout, Purchase), and Microsoft Clarity for watching recorded video screen replays of visitors browsing before they leave.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-white/70 mb-1">
+                    Meta Pixel ID (Facebook / Instagram Ads)
+                  </label>
+                  <input
+                    type="text"
+                    value={metaPixelId}
+                    onChange={(e) => setMetaPixelId(e.target.value)}
+                    placeholder="e.g. 102938475610293"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-xs font-mono text-white placeholder-white/20 focus:outline-none focus:border-blue-500"
+                  />
+                  <span className="text-[10px] text-white/40 mt-1 block">
+                    Found in Meta Events Manager &rarr; Data Sources &rarr; Pixel ID.
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-white/70 mb-1">
+                    Microsoft Clarity Project ID (Video Session Replays)
+                  </label>
+                  <input
+                    type="text"
+                    value={clarityProjectId}
+                    onChange={(e) => setClarityProjectId(e.target.value)}
+                    placeholder="e.g. p8ac719x"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-xs font-mono text-white placeholder-white/20 focus:outline-none focus:border-blue-500"
+                  />
+                  <span className="text-[10px] text-white/40 mt-1 block">
+                    100% Free Forever on clarity.microsoft.com &rarr; Settings &rarr; Project ID.
+                  </span>
                 </div>
               </div>
             </div>
