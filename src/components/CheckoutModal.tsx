@@ -37,7 +37,6 @@ import { sendInstantLeadMagnetOrAbandonedEmail } from '../lib/resendEmail';
 import { getAdminSettings, AdminSettings } from '../lib/adminSettings';
 import { sanitizeInput, validateEmail, validateIndianPhone, getEmailValidationError, isDisposableEmail } from '../lib/security';
 import {
-  RazorpayLogo,
   RazorpayBagsIllustration,
   ExitDoorIllustration,
   GooglePayIcon,
@@ -605,9 +604,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               <RazorpayBagsIllustration className="w-full h-auto" />
             </div>
 
-            <div className="flex items-center gap-1.5 text-xs text-slate-400 pt-1">
+            <div className="flex items-center gap-1.5 text-xs pt-1">
               <span className="text-[11px] font-normal text-slate-400">Secured by</span>
-              <RazorpayLogo className="h-3.5 text-white inline-block" />
+              <span className="text-xs font-black text-white tracking-tight flex items-center gap-0.5">
+                <span>Slice<span className="text-purple-400">.</span></span>
+              </span>
             </div>
             <div className="text-[10px] text-white/40 pt-1 truncate">
               Support: <a href={`mailto:${supportEmail}`} className="hover:text-white underline">{supportEmail}</a>
@@ -1024,7 +1025,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             <span>Customer ID: {phone.replace(/\D/g, '') || '8860090791'}</span>
             <span className="flex items-center gap-1">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Razorpay Magic Checkout Flow</span>
+              <span>Secured by Slice.</span>
             </span>
           </div>
         </div>
@@ -1042,7 +1043,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             </div>
             <div className="min-w-0">
               <div className="font-bold text-xs sm:text-sm text-white truncate">{merchantName}</div>
-              <div className="text-[10px] text-slate-400">Verified Razorpay Merchant</div>
+              <div className="text-[10px] text-slate-400">Secured by Slice.</div>
             </div>
           </div>
           <button

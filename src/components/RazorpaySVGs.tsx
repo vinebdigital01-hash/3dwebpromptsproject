@@ -262,7 +262,7 @@ export const PhonePeIcon: React.FC<{ className?: string }> = ({ className = 'w-5
 
 export const PaytmIcon: React.FC<{ className?: string }> = ({ className = 'w-7 h-4' }) => (
   <svg viewBox="0 0 32 14" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-    <g fill="#002970" className="dark:fill-white">
+    <g fill="#002970">
       <path d="M1.29 2.75c-.16 0-.29.13-.29.29v7.4c0 .16.12.28.27.29h1.36c.16 0 .3-.13.3-.3v-2.07h1.28c.97 0 1.75-.78 1.75-1.75v-1.92c0-.97-.79-1.75-1.75-1.75H1.29zm1.65 1.97h.85c.17 0 .31.14.31.32v1.04c0 .17-.14.31-.31.32h-.85V4.72z" />
       <path d="M7.58 2.76c-.16 0-.29.13-.29.28v1.28c0 .17.14.3.31.3h1.76c.15.02.26.14.27.29v.17c-.01.15-.12.26-.26.28h-.88c-1.03 0-1.87.84-1.87 1.87v1.59c0 .98.79 1.77 1.77 1.77h2.42c.42 0 .76-.33.77-.75V4.65c0-1.03-.84-1.87-1.87-1.87-.1 0-.21.01-.31.03H7.58zm1.2 4.43h.55c.17 0 .3.14.31.3v1.17c-.05.12-.16.2-.29.2h-.56c-.17 0-.3-.13-.31-.3V7.49c0-.17.14-.3.3-.3z" />
       <path d="M12.58 2.75c-.16 0-.3.14-.3.3v3.09c0 1.06.86 1.91 1.91 1.91h.85c.16.02.28.15.28.32 0 .16-.12.29-.27.31h-1.98c-.16 0-.3.14-.3.3v1.36c0 .17.13.3.3.3h2.19c1.06 0 1.91-.86 1.91-1.92V3.05c0-.16-.13-.3-.3-.3h-1.33c-.17 0-.3.14-.3.3v2.82c0 .17-.14.31-.31.31h-.56c-.18 0-.32-.14-.32-.32V3.05c0-.16-.13-.3-.3-.3h-.67z" />
@@ -278,8 +278,8 @@ export const CredIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-
   <svg
     viewBox="0 0 32 37"
     fill="none"
-    stroke="#121212"
-    strokeWidth="2.4"
+    stroke="#0f172a"
+    strokeWidth="2.5"
     strokeLinecap="round"
     strokeLinejoin="round"
     xmlns="http://www.w3.org/2000/svg"
@@ -295,7 +295,7 @@ export const CredIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-
 
 export const AmazonPayIcon: React.FC<{ className?: string }> = ({ className = 'w-7 h-4' }) => (
   <svg viewBox="0 0 46 22" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-    <g fill="#232F3E" className="dark:fill-white">
+    <g fill="#131921">
       <path d="M8.2 2.5c-2.3 0-3.9 1.6-3.9 3.8v7.2h2.2V11c.5.8 1.4 1.3 2.5 1.3 2.3 0 4-1.8 4-4.9s-1.7-4.9-4.8-4.9zm-.3 7.8c-1.5 0-2.6-1.2-2.6-3 0-1.8 1.1-3 2.6-3 1.5 0 2.6 1.2 2.6 3 0 1.8-1.1 3-2.6 3z" />
       <path d="M19.1 5.3c-.6-.5-1.5-.8-2.6-.8-2.5 0-4 1.5-4 3.5 0 2.1 1.4 3.4 3.5 3.4 1 0 1.9-.3 2.5-.9v.7h2.1V5.7c0-2.2-1.4-3.4-3.8-3.4-1.5 0-2.8.5-3.6 1.3l1 1.4c.6-.6 1.4-.9 2.5-.9 1.3 0 2 .6 2 1.8v.3zm-.1 3.5c0 1.1-.9 1.9-2.1 1.9-1 0-1.7-.6-1.7-1.6 0-1 .7-1.6 2-1.6.7 0 1.3.1 1.8.4v.9z" />
       <path d="M23.1 4.7l2.8 7.3-1.6 3.8h2.3l4.7-11.1h-2.3l-2.8 7.2-2.3-7.2h-2.4z" />
