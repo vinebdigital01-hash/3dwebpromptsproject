@@ -34,6 +34,7 @@ import {
   ArrowRight,
   ShieldAlert,
   ShieldCheck,
+  Link2,
 } from 'lucide-react';
 import {
   VisitorSession,
@@ -72,6 +73,38 @@ export const TrafficAnalyticsDashboard: React.FC<TrafficAnalyticsDashboardProps>
       onShowToast('🧪 Test Tracking Active: This device will now appear on the live dashboard! Open homepage in another tab to test.');
     }
   };
+
+  // State for Instant Ad Link Generator
+  const [customCampaign, setCustomCampaign] = useState('reel_ad_1');
+  const [customPlatform, setCustomPlatform] = useState<
+    'instagram_reels' | 'instagram_story' | 'facebook_feed' | 'google_ads'
+  >('instagram_reels');
+  const [copiedLinkKey, setCopiedLinkKey] = useState<string | null>(null);
+
+  const copyToClipboard = (text: string, key: string, label: string) => {
+    sound.playClick();
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+    }
+    setCopiedLinkKey(key);
+    onShowToast(`📋 Copied: ${label}`);
+    setTimeout(() => setCopiedLinkKey(null), 2500);
+  };
+
+  const generatedCustomUrl = useMemo(() => {
+    const cleanCamp = encodeURIComponent((customCampaign || 'ad_campaign').trim().replace(/\s+/g, '_'));
+    const base = 'https://3dwebprompts-vineb.vercel.app';
+    if (customPlatform === 'instagram_reels') {
+      return `${base}/?utm_source=instagram&utm_medium=reels&utm_campaign=${cleanCamp}`;
+    }
+    if (customPlatform === 'instagram_story') {
+      return `${base}/?utm_source=instagram&utm_medium=stories&utm_campaign=${cleanCamp}`;
+    }
+    if (customPlatform === 'facebook_feed') {
+      return `${base}/?utm_source=facebook&utm_medium=feed&utm_campaign=${cleanCamp}`;
+    }
+    return `${base}/?utm_source=google&utm_medium=cpc&utm_campaign=${cleanCamp}`;
+  }, [customCampaign, customPlatform]);
 
   // Subscribe to real-time visitor sessions from Cloud Firestore
   useEffect(() => {
@@ -596,6 +629,223 @@ export const TrafficAnalyticsDashboard: React.FC<TrafficAnalyticsDashboardProps>
             </table>
           </div>
         )}
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 3.5. INSTANT AD LINK GENERATOR & UTM PRESETS */}
+      {/* ========================================================================= */}
+      <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-[#0c1424] via-[#080d19] to-[#050811] border border-blue-500/20 shadow-xl">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-5">
+          <div>
+            <h3 className="text-sm font-bold text-white flex items-center gap-2 font-mono">
+              <Link2 className="w-4 h-4 text-blue-400" />
+              <span>Meta &amp; Google Ads Tracking Link Generator</span>
+            </h3>
+            <p className="text-xs text-white/50 mt-0.5">
+              Copy ready-made tracking links for your Instagram Reels, Stories, or Meta Ads Manager.
+            </p>
+          </div>
+          <span className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-300 border border-blue-500/20 self-start md:self-auto">
+            1-Click Copy &amp; Auto-Attribution
+          </span>
+        </div>
+
+        {/* 1-Click Quick Presets Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+          {/* Preset 1: Instagram Reels */}
+          <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/10 hover:border-pink-500/30 transition-all flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-bold text-pink-400 font-mono">🎬 Instagram Reels Ad</span>
+                <span className="text-[10px] font-mono text-white/40">Reel Ad</span>
+              </div>
+              <p className="text-[11px] text-white/50 font-mono line-clamp-2 break-all mb-3 bg-black/40 p-1.5 rounded-lg border border-white/5">
+                https://3dwebprompts-vineb.vercel.app/?utm_source=instagram&amp;utm_medium=reels&amp;utm_campaign=reel_ad_1
+              </p>
+            </div>
+            <button
+              onClick={() =>
+                copyToClipboard(
+                  'https://3dwebprompts-vineb.vercel.app/?utm_source=instagram&utm_medium=reels&utm_campaign=reel_ad_1',
+                  'reels',
+                  'Instagram Reels Ad Link'
+                )
+              }
+              className={`w-full py-1.5 px-3 rounded-lg text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                copiedLinkKey === 'reels'
+                  ? 'bg-emerald-500 text-black'
+                  : 'bg-pink-500/15 hover:bg-pink-500/25 text-pink-300 border border-pink-500/30'
+              }`}
+            >
+              <Copy className="w-3 h-3" />
+              <span>{copiedLinkKey === 'reels' ? 'Copied!' : 'Copy Reels Link'}</span>
+            </button>
+          </div>
+
+          {/* Preset 2: Instagram Story */}
+          <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/10 hover:border-purple-500/30 transition-all flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-bold text-purple-400 font-mono">📱 Instagram Story Ad</span>
+                <span className="text-[10px] font-mono text-white/40">Story Ad</span>
+              </div>
+              <p className="text-[11px] text-white/50 font-mono line-clamp-2 break-all mb-3 bg-black/40 p-1.5 rounded-lg border border-white/5">
+                https://3dwebprompts-vineb.vercel.app/?utm_source=instagram&amp;utm_medium=stories&amp;utm_campaign=story_ad_1
+              </p>
+            </div>
+            <button
+              onClick={() =>
+                copyToClipboard(
+                  'https://3dwebprompts-vineb.vercel.app/?utm_source=instagram&utm_medium=stories&utm_campaign=story_ad_1',
+                  'story',
+                  'Instagram Story Ad Link'
+                )
+              }
+              className={`w-full py-1.5 px-3 rounded-lg text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                copiedLinkKey === 'story'
+                  ? 'bg-emerald-500 text-black'
+                  : 'bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30'
+              }`}
+            >
+              <Copy className="w-3 h-3" />
+              <span>{copiedLinkKey === 'story' ? 'Copied!' : 'Copy Story Link'}</span>
+            </button>
+          </div>
+
+          {/* Preset 3: Facebook Feed */}
+          <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/10 hover:border-blue-500/30 transition-all flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-bold text-blue-400 font-mono">📘 Facebook Feed Ad</span>
+                <span className="text-[10px] font-mono text-white/40">Feed Ad</span>
+              </div>
+              <p className="text-[11px] text-white/50 font-mono line-clamp-2 break-all mb-3 bg-black/40 p-1.5 rounded-lg border border-white/5">
+                https://3dwebprompts-vineb.vercel.app/?utm_source=facebook&amp;utm_medium=feed&amp;utm_campaign=fb_ad_1
+              </p>
+            </div>
+            <button
+              onClick={() =>
+                copyToClipboard(
+                  'https://3dwebprompts-vineb.vercel.app/?utm_source=facebook&utm_medium=feed&utm_campaign=fb_ad_1',
+                  'fb',
+                  'Facebook Feed Ad Link'
+                )
+              }
+              className={`w-full py-1.5 px-3 rounded-lg text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                copiedLinkKey === 'fb'
+                  ? 'bg-emerald-500 text-black'
+                  : 'bg-blue-500/15 hover:bg-blue-500/25 text-blue-300 border border-blue-500/30'
+              }`}
+            >
+              <Copy className="w-3 h-3" />
+              <span>{copiedLinkKey === 'fb' ? 'Copied!' : 'Copy FB Link'}</span>
+            </button>
+          </div>
+
+          {/* Preset 4: Meta Ads Dynamic Parameters */}
+          <div className="p-3.5 rounded-xl bg-white/[0.02] border border-amber-500/20 hover:border-amber-500/40 transition-all flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-bold text-amber-400 font-mono">⚡ Meta Pro Parameter</span>
+                <span className="text-[10px] font-mono text-amber-300/60">Auto-Tag</span>
+              </div>
+              <p className="text-[11px] text-amber-200/60 font-mono line-clamp-2 break-all mb-3 bg-black/40 p-1.5 rounded-lg border border-white/5">
+                utm_source={'{'}{'{'}site_source_name{'}'}{'}'}&amp;utm_medium={'{'}{'{'}placement{'}'}{'}'}&amp;utm_campaign={'{'}{'{'}campaign.name{'}'}{'}'}
+              </p>
+            </div>
+            <button
+              onClick={() =>
+                copyToClipboard(
+                  'utm_source={{site_source_name}}&utm_medium={{placement}}&utm_campaign={{campaign.name}}&utm_content={{ad.name}}',
+                  'meta_dynamic',
+                  'Meta Dynamic URL Parameters'
+                )
+              }
+              className={`w-full py-1.5 px-3 rounded-lg text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                copiedLinkKey === 'meta_dynamic'
+                  ? 'bg-emerald-500 text-black'
+                  : 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30'
+              }`}
+            >
+              <Copy className="w-3 h-3" />
+              <span>{copiedLinkKey === 'meta_dynamic' ? 'Copied!' : 'Copy URL Parameter'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Custom Campaign URL Builder */}
+        <div className="p-4 rounded-xl bg-black/50 border border-white/10 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <span className="text-xs font-bold text-white font-mono uppercase tracking-wide flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+              <span>Custom Campaign Link Builder</span>
+            </span>
+            <span className="text-[11px] font-mono text-white/50">
+              Type your campaign name below to generate a tailored link
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* Input 1: Campaign Name */}
+            <div>
+              <label className="block text-[10px] font-mono uppercase text-white/50 mb-1">
+                Campaign Name
+              </label>
+              <input
+                type="text"
+                value={customCampaign}
+                onChange={(e) => setCustomCampaign(e.target.value)}
+                placeholder="e.g. diwali_scale_v1"
+                className="w-full px-3 py-2 rounded-lg bg-black/60 border border-white/10 text-xs font-mono text-white placeholder-white/40 focus:outline-none focus:border-blue-400"
+              />
+            </div>
+
+            {/* Input 2: Placement */}
+            <div>
+              <label className="block text-[10px] font-mono uppercase text-white/50 mb-1">
+                Platform / Placement
+              </label>
+              <select
+                value={customPlatform}
+                onChange={(e: any) => setCustomPlatform(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg bg-[#0d1424] border border-white/10 text-xs font-mono text-white focus:outline-none focus:border-blue-400"
+              >
+                <option value="instagram_reels">Instagram Reels (utm_medium=reels)</option>
+                <option value="instagram_story">Instagram Stories (utm_medium=stories)</option>
+                <option value="facebook_feed">Facebook Feed (utm_medium=feed)</option>
+                <option value="google_ads">Google Search Ads (utm_medium=cpc)</option>
+              </select>
+            </div>
+
+            {/* Output + Copy Button */}
+            <div>
+              <label className="block text-[10px] font-mono uppercase text-white/50 mb-1">
+                Generated Link
+              </label>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="text"
+                  readOnly
+                  value={generatedCustomUrl}
+                  className="w-full px-2.5 py-2 rounded-lg bg-black/70 border border-white/10 text-[11px] font-mono text-emerald-400 select-all truncate"
+                />
+                <button
+                  onClick={() =>
+                    copyToClipboard(generatedCustomUrl, 'custom', `Custom Ad Link: ${customCampaign}`)
+                  }
+                  className={`px-3 py-2 rounded-lg text-xs font-mono font-bold flex items-center gap-1 shrink-0 transition-colors cursor-pointer ${
+                    copiedLinkKey === 'custom'
+                      ? 'bg-emerald-500 text-black'
+                      : 'bg-blue-600 hover:bg-blue-500 text-white'
+                  }`}
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>{copiedLinkKey === 'custom' ? 'Copied' : 'Copy'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* ========================================================================= */}
