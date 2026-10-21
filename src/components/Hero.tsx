@@ -15,12 +15,6 @@ interface HeroProps {
   onFreeDownloadClick: () => void;
 }
 
-const BG_IMAGE_1 =
-  'https://images.higgs.ai/?default=1&output=webp&url=https%3A%2F%2Fd8j0ntlcm91z4.cloudfront.net%2Fuser_38xzZboKViGWJOttwIXH07lWA1P%2Fhf_20260609_125121_afb71ce9-9c64-4c54-90b5-c89c0764c052.png&w=1920&q=85';
-
-const BG_IMAGE_2 =
-  'https://images.higgs.ai/?default=1&output=webp&url=https%3A%2F%2Fd8j0ntlcm91z4.cloudfront.net%2Fuser_38xzZboKViGWJOttwIXH07lWA1P%2Fhf_20260609_135737_0da59642-725b-451a-997b-b0283d95a42a.png&w=1280&q=85';
-
 const ROLES = [
   '3D WebGL Architect',
   'High-Ticket Creative',
@@ -31,11 +25,9 @@ const ROLES = [
 export const Hero: React.FC<HeroProps> = ({ onUnlockClick, onTerminalClick, onFreeDownloadClick }) => {
   const [roleIndex, setRoleIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
-  const revealDivRef = useRef<HTMLDivElement>(null);
   const gridPatternRef = useRef<SVGGElement>(null);
 
   // Parallax elements refs for GSAP ScrollTrigger
-  const bgParallaxRef = useRef<HTMLDivElement>(null);
   const gridWrapperRef = useRef<HTMLDivElement>(null);
   const deviceStageRef = useRef<HTMLDivElement>(null);
   const eyebrowRef = useRef<HTMLDivElement>(null);
@@ -46,17 +38,6 @@ export const Hero: React.FC<HeroProps> = ({ onUnlockClick, onTerminalClick, onFr
   const socialProofRef = useRef<HTMLDivElement>(null);
   const scrollCueRef = useRef<HTMLDivElement>(null);
 
-  const mousePos = useRef({
-    currentX: -999,
-    currentY: -999,
-    targetX: -999,
-    targetY: -999,
-    gridTargetX: 0,
-    gridTargetY: 0,
-    gridX: 0,
-    gridY: 0,
-  });
-
   // Cycle roles every 2.4s
   useEffect(() => {
     const timer = setInterval(() => {
@@ -65,7 +46,7 @@ export const Hero: React.FC<HeroProps> = ({ onUnlockClick, onTerminalClick, onFr
     return () => clearInterval(timer);
   }, []);
 
-  // GSAP ScrollTrigger Multi-Plane Parallax for Hero Headline & Background Elements
+  // GSAP ScrollTrigger Parallax
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -79,41 +60,31 @@ export const Hero: React.FC<HeroProps> = ({ onUnlockClick, onTerminalClick, onFr
         invalidateOnRefresh: true,
       };
 
-      // 1. Background Imagery Parallax
-      if (bgParallaxRef.current) {
-        gsap.to(bgParallaxRef.current, {
-          yPercent: 18,
-          scale: 1.04,
-          ease: 'none',
-          scrollTrigger: scrollTriggerConfig,
-        });
-      }
-
-      // 2. Cyber grid background layer
+      // Cyber grid background layer
       if (gridWrapperRef.current) {
         gsap.to(gridWrapperRef.current, {
-          yPercent: 10,
+          yPercent: 12,
           opacity: 0.05,
           ease: 'none',
           scrollTrigger: scrollTriggerConfig,
         });
       }
 
-      // 3. Device Showcase Stage Parallax
+      // Device Showcase Stage Parallax
       if (deviceStageRef.current) {
         gsap.to(deviceStageRef.current, {
-          y: -45,
-          opacity: 0.75,
+          y: -40,
+          opacity: 0.8,
           ease: 'none',
           scrollTrigger: scrollTriggerConfig,
         });
       }
 
-      // 4. Hero Headline Elements Multi-plane Differential Parallax
+      // Headline Elements Parallax
       if (eyebrowRef.current) {
         gsap.to(eyebrowRef.current, {
-          y: -36,
-          opacity: 0.35,
+          y: -30,
+          opacity: 0.4,
           ease: 'none',
           scrollTrigger: scrollTriggerConfig,
         });
@@ -121,7 +92,7 @@ export const Hero: React.FC<HeroProps> = ({ onUnlockClick, onTerminalClick, onFr
 
       if (headlineRef.current) {
         gsap.to(headlineRef.current, {
-          y: -65,
+          y: -55,
           opacity: 0.3,
           ease: 'none',
           scrollTrigger: scrollTriggerConfig,
@@ -130,8 +101,8 @@ export const Hero: React.FC<HeroProps> = ({ onUnlockClick, onTerminalClick, onFr
 
       if (subheadingRef.current) {
         gsap.to(subheadingRef.current, {
-          y: -50,
-          opacity: 0.38,
+          y: -42,
+          opacity: 0.4,
           ease: 'none',
           scrollTrigger: scrollTriggerConfig,
         });
@@ -139,8 +110,8 @@ export const Hero: React.FC<HeroProps> = ({ onUnlockClick, onTerminalClick, onFr
 
       if (descriptionRef.current) {
         gsap.to(descriptionRef.current, {
-          y: -40,
-          opacity: 0.45,
+          y: -35,
+          opacity: 0.5,
           ease: 'none',
           scrollTrigger: scrollTriggerConfig,
         });
@@ -148,8 +119,8 @@ export const Hero: React.FC<HeroProps> = ({ onUnlockClick, onTerminalClick, onFr
 
       if (ctaGroupRef.current) {
         gsap.to(ctaGroupRef.current, {
-          y: -28,
-          opacity: 0.55,
+          y: -25,
+          opacity: 0.6,
           ease: 'none',
           scrollTrigger: scrollTriggerConfig,
         });
@@ -157,8 +128,8 @@ export const Hero: React.FC<HeroProps> = ({ onUnlockClick, onTerminalClick, onFr
 
       if (socialProofRef.current) {
         gsap.to(socialProofRef.current, {
-          y: -18,
-          opacity: 0.65,
+          y: -15,
+          opacity: 0.7,
           ease: 'none',
           scrollTrigger: scrollTriggerConfig,
         });
@@ -183,146 +154,49 @@ export const Hero: React.FC<HeroProps> = ({ onUnlockClick, onTerminalClick, onFr
     return () => ctx.revert();
   }, []);
 
-  // Spotlight mask and grid parallax loop
-  useEffect(() => {
-    const container = containerRef.current;
-    const revealDiv = revealDivRef.current;
-    if (!container || !revealDiv) return;
-
-    let animId: number;
-    let isVisible = true;
-    let lastRenderX = -9999;
-    let lastRenderY = -9999;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        isVisible = entry.isIntersecting;
-      },
-      { threshold: 0.05 }
-    );
-    observer.observe(container);
-
-    let cachedRect: DOMRect = revealDiv.getBoundingClientRect();
-    const updateRect = () => {
-      if (revealDiv) cachedRect = revealDiv.getBoundingClientRect();
-    };
-    window.addEventListener('resize', updateRect, { passive: true });
-
-    const onMouseMove = (e: MouseEvent) => {
-      const x = e.clientX - cachedRect.left;
-      const y = e.clientY - cachedRect.top;
-      mousePos.current.targetX = x;
-      mousePos.current.targetY = y;
-
-      const normX = x / (cachedRect.width || 1) - 0.5;
-      const normY = y / (cachedRect.height || 1) - 0.5;
-      mousePos.current.gridTargetX = normX * 16;
-      mousePos.current.gridTargetY = normY * 16;
-    };
-
-    container.addEventListener('mousemove', onMouseMove, { passive: true });
-
-    const loop = () => {
-      if (!isVisible) {
-        animId = requestAnimationFrame(loop);
-        return;
-      }
-
-      mousePos.current.currentX += (mousePos.current.targetX - mousePos.current.currentX) * 0.12;
-      mousePos.current.currentY += (mousePos.current.targetY - mousePos.current.currentY) * 0.12;
-
-      mousePos.current.gridX += (mousePos.current.gridTargetX - mousePos.current.gridX) * 0.06;
-      mousePos.current.gridY += (mousePos.current.gridTargetY - mousePos.current.gridY) * 0.06;
-
-      if (gridPatternRef.current) {
-        gridPatternRef.current.setAttribute(
-          'transform',
-          `translate(${mousePos.current.gridX.toFixed(1)}, ${mousePos.current.gridY.toFixed(1)})`
-        );
-      }
-
-      const curX = mousePos.current.currentX;
-      const curY = mousePos.current.currentY;
-      if (Math.abs(curX - lastRenderX) > 0.5 || Math.abs(curY - lastRenderY) > 0.5) {
-        lastRenderX = curX;
-        lastRenderY = curY;
-
-        if (curX > -100 && curY > -100) {
-          const mask = `radial-gradient(circle 260px at ${curX.toFixed(1)}px ${curY.toFixed(1)}px, black 35%, rgba(0, 0, 0, 0.5) 60%, transparent 100%)`;
-          revealDiv.style.maskImage = mask;
-          revealDiv.style.webkitMaskImage = mask;
-        }
-      }
-
-      animId = requestAnimationFrame(loop);
-    };
-
-    animId = requestAnimationFrame(loop);
-
-    return () => {
-      cancelAnimationFrame(animId);
-      observer.disconnect();
-      window.removeEventListener('resize', updateRect);
-      container.removeEventListener('mousemove', onMouseMove);
-    };
-  }, []);
-
   return (
     <div
       id="hero"
       ref={containerRef}
       className="relative min-h-[100dvh] w-full bg-[#050508] overflow-hidden flex flex-col justify-between pt-20 sm:pt-24 pb-6 sm:pb-8 px-4 sm:px-8 lg:px-12 select-none will-change-transform transform-gpu"
     >
-      {/* Layer 1: Parallax Grid Background (z-0) with GSAP ScrollTrigger */}
-      <div ref={gridWrapperRef} className="absolute inset-0 pointer-events-none opacity-20 z-0 will-change-transform transform-gpu">
+      {/* 1. CLEAN APPLE KEYNOTE STUDIO OVERHEAD LIGHTING (No old blurry stock photos!) */}
+      <div className="absolute inset-0 pointer-events-none z-0">
+        {/* Soft Overhead Key Studio Light */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_85%_55%_at_50%_-5%,rgba(59,130,246,0.14),rgba(15,23,42,0.4)_50%,transparent_75%)]" />
+        {/* Soft Secondary Floor Light */}
+        <div className="absolute inset-x-0 bottom-0 h-[45%] bg-[radial-gradient(ellipse_75%_40%_at_50%_100%,rgba(99,102,241,0.08),transparent_70%)]" />
+        {/* Subtle Vignette Gradient */}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#050508]" />
+      </div>
+
+      {/* 2. REFINED SUBTLE CYBER GRID (z-0) */}
+      <div ref={gridWrapperRef} className="absolute inset-0 pointer-events-none opacity-15 z-0 will-change-transform transform-gpu">
         <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <pattern
-              id="cyber-grid"
-              width="48"
-              height="48"
+              id="clean-cyber-grid"
+              width="54"
+              height="54"
               patternUnits="userSpaceOnUse"
             >
               <g ref={gridPatternRef}>
                 <path
-                  d="M 48 0 L 0 0 0 48"
+                  d="M 54 0 L 0 0 0 54"
                   fill="none"
-                  stroke="#64748b"
-                  strokeWidth="0.6"
+                  stroke="#475569"
+                  strokeWidth="0.5"
                 />
               </g>
             </pattern>
           </defs>
-          <rect width="100%" height="100%" fill="url(#cyber-grid)" />
+          <rect width="100%" height="100%" fill="url(#clean-cyber-grid)" />
         </svg>
       </div>
 
-      {/* Layer 2 & 3: Background Imagery Wrapper with GSAP ScrollTrigger Parallax (z-10 to z-30) */}
-      <div
-        ref={bgParallaxRef}
-        className="absolute -top-[15%] -bottom-[15%] -left-[5%] -right-[5%] pointer-events-none will-change-transform transform-gpu overflow-hidden"
-      >
-        {/* Layer 2: Base Cinematic Image / Spatial Hardware with Ken Burns (z-10) */}
-        <div
-          className="absolute inset-0 bg-cover bg-center animate-ken-burns z-10 opacity-55"
-          style={{ backgroundImage: `url('${BG_IMAGE_1}')` }}
-        />
-
-        {/* Dark Gradient Overlay for Contrast */}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/85 to-black/60 z-20 pointer-events-none" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#050508] via-transparent to-black/70 z-20 pointer-events-none" />
-
-        {/* Layer 3: Cursor Spotlight Reveal Layer (z-30) */}
-        <div
-          ref={revealDivRef}
-          className="absolute inset-0 bg-cover bg-center pointer-events-none z-30 transition-opacity duration-300 opacity-80"
-          style={{ backgroundImage: `url('${BG_IMAGE_2}')` }}
-        />
-      </div>
-
-      {/* Layer 5: Two-Column Conversion & Device Stage Layout (z-50) */}
-      <div className="relative z-50 w-full max-w-7xl mx-auto my-auto grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-8 xl:gap-12 items-center pt-2 sm:pt-4 pb-4">
-        {/* LEFT COLUMN (Cols 1-6 on LG): High-Converting Copy & Direct CTAs */}
+      {/* 3. TWO-COLUMN RESPONSIVE LAYOUT (z-20) */}
+      <div className="relative z-20 w-full max-w-7xl mx-auto my-auto grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-8 xl:gap-12 items-center pt-2 sm:pt-4 pb-4">
+        {/* LEFT COLUMN: High-Converting Copy & Direct CTAs */}
         <div className="lg:col-span-6 xl:col-span-6 flex flex-col justify-center text-left">
           {/* Eyebrow */}
           <div
@@ -441,7 +315,7 @@ export const Hero: React.FC<HeroProps> = ({ onUnlockClick, onTerminalClick, onFr
           </div>
         </div>
 
-        {/* RIGHT COLUMN (Cols 7-12 on LG): Apple Keynote Dual Device Stage */}
+        {/* RIGHT COLUMN: Apple Keynote Dual Device Stage */}
         <div
           ref={deviceStageRef}
           className="lg:col-span-6 xl:col-span-6 flex flex-col items-center justify-center will-change-transform transform-gpu w-full mt-4 lg:mt-0"
@@ -453,7 +327,7 @@ export const Hero: React.FC<HeroProps> = ({ onUnlockClick, onTerminalClick, onFr
       {/* Bottom Scroll Cue */}
       <div
         ref={scrollCueRef}
-        className="relative z-50 flex flex-col items-center justify-center pt-2 will-change-transform transform-gpu"
+        className="relative z-20 flex flex-col items-center justify-center pt-2 will-change-transform transform-gpu"
       >
         <a
           href="#theater"
