@@ -93,7 +93,7 @@ export const PromptModal: React.FC<PromptModalProps> = ({ item, onClose, onUnloc
             {isPromptFree(item) ? (
               <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold flex items-center gap-1">
                 <Sparkles className="w-3 h-3 text-emerald-400" />
-                <span>FREE SAMPLE BLUEPRINT</span>
+                <span>FREE BLUEPRINT</span>
               </span>
             ) : (
               <span className="px-2.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-400 font-medium">

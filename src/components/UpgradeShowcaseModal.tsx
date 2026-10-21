@@ -133,7 +133,7 @@ const PERK_TABS: PerkTab[] = [
     icon: <Zap className="w-3.5 h-3.5 text-amber-400" />,
     headline: 'Say Goodbye to Copy Limits',
     details:
-      'Free trial includes 1 lifetime sample. Paid passes unlock 1 copy/day (₹49 1-Day Pass), 3 copies/day (1-Month), 15 copies/day (6-Month), or infinite unmetered copies (Lifetime VIP).',
+      'Free trial includes 1 lifetime free copy. Paid passes unlock 1 copy/day (₹49 1-Day Pass), 3 copies/day (1-Month), 15 copies/day (6-Month), or infinite unmetered copies (Lifetime VIP).',
     bullet: 'No more waiting 24 hours to copy another prompt for client projects.',
   },
   {

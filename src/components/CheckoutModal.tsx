@@ -302,7 +302,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         email: cleanEmail,
         phone: cleanPhone,
         tierId: 'member',
-        tierName: 'Free Trial Member (1 Sample Copy)',
+        tierName: 'Free Trial Member (1 Free Copy)',
         amountINR: 0,
         status: 'approved',
         createdAt: new Date().toISOString(),

@@ -1034,7 +1034,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
           phone: lead.phone || '',
           role: lead.role,
           latestStatus: computedStatus,
-          highestTierName: lead.tierName || (isLeadFreeTrial ? 'Free Sample Prompt' : 'Custom Plan'),
+          highestTierName: lead.tierName || (isLeadFreeTrial ? 'Free Prompt' : 'Custom Plan'),
           highestAmountINR: lead.amountINR || 0,
           attemptCount: 1,
           latestCreatedAt: lead.createdAt || new Date().toISOString(),
@@ -1557,7 +1557,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
             </div>
             <div className="text-[9px] sm:text-[10px] text-purple-300/80 mt-1 font-mono">
               {freeTrialCount > 0
-                ? `${freeTrialCount} claimed sample · ${groupedGhostLeads.length - freeTrialCount} dropped`
+                ? `${freeTrialCount} claimed free · ${groupedGhostLeads.length - freeTrialCount} dropped`
                 : 'Unique high-intent leads'}
             </div>
           </div>
@@ -2147,7 +2147,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                   )}
                 </h2>
                 <p className="text-xs text-white/50">
-                  Visitors who copied free sample prompts or dropped off during checkout. Repeat interactions are unified with intent multipliers (x2, x3).
+                  Visitors who copied free prompts or dropped off during checkout. Repeat interactions are unified with intent multipliers (x2, x3).
                 </p>
               </div>
 
@@ -2668,7 +2668,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                                     }`}
                                   >
                                     {isAttFree
-                                      ? '🎁 Free Sample Copied'
+                                      ? '🎁 Free Copied'
                                       : att.status === 'abandoned_at_qr'
                                       ? 'Abandoned at QR'
                                       : 'Typed (Unsubmitted)'}
@@ -2729,7 +2729,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                             }`}
                           >
                             {isLeadFree
-                              ? '🎁 Free Sample Copied'
+                              ? '🎁 Free Copied'
                               : lead.status === 'unsubmitted_keystroke'
                               ? 'Typed (Unsubmitted)'
                               : 'Abandoned at QR'}
@@ -3246,7 +3246,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                         {(item.isFree || item.allowFreeTrialCopy || item.showOnHomepage) ? (
                           <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
                             <Sparkles className="w-2.5 h-2.5" />
-                            <span>HOMEPAGE FREE SAMPLE</span>
+                            <span>HOMEPAGE FREE</span>
                           </span>
                         ) : (
                           <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-white/5 text-zinc-400 border border-white/10">
@@ -3267,7 +3267,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                           ? 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40'
                           : 'bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white border border-white/10'
                       }`}
-                      title={(item.isFree || item.allowFreeTrialCopy || item.showOnHomepage) ? 'Click to make Paid Vault Only (Hide from Homepage)' : 'Click to show on Homepage as a Free Sample prompt'}
+                      title={(item.isFree || item.allowFreeTrialCopy || item.showOnHomepage) ? 'Click to make Paid Vault Only (Hide from Homepage)' : 'Click to show on Homepage as a Free prompt'}
                     >
                       {(item.isFree || item.allowFreeTrialCopy || item.showOnHomepage) ? (
                         <>

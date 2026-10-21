@@ -1207,7 +1207,7 @@ export function incrementFreeTrialCopyUsage(
         email: userIdentifier,
         name: 'Visitor (Prompt Copy)',
         tierId: 'prompt_copy',
-        tierName: promptId ? `Free Sample: ${promptId}` : 'Free Sample Prompt',
+        tierName: promptId ? `Free: ${promptId}` : 'Free Prompt',
         amountINR: 0,
         source: 'prompt_copy',
       });

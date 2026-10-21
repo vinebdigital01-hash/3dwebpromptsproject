@@ -14,7 +14,7 @@ interface VaultEditorialLedgerProps {
 }
 
 const CATEGORIES = [
-  'All Free Samples',
+  'All Free',
   'Luxury Brands',
   'Spatial & WebGL',
   'High-Ticket Agency',
@@ -93,7 +93,7 @@ const FreePromptCard: React.FC<{
         <div className="absolute top-2.5 inset-x-2.5 flex items-center justify-between gap-2 z-10 pointer-events-none">
           <span className="px-2.5 py-1 rounded-md text-[10px] font-mono font-bold bg-emerald-500/90 text-black shadow-md flex items-center gap-1">
             <Sparkles className="w-3 h-3 text-black" />
-            <span>FREE SAMPLE</span>
+            <span>FREE</span>
           </span>
 
           <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-black/75 backdrop-blur-md border border-white/20 text-amber-400">
@@ -184,7 +184,7 @@ export const VaultEditorialLedger: React.FC<VaultEditorialLedgerProps> = ({ onUn
   const [allPrompts, setAllPrompts] = useState<VaultItem[]>(() => getAllVaultPrompts());
   const [inspectItem, setInspectItem] = useState<VaultItem | null>(null);
   const [leadTargetPrompt, setLeadTargetPrompt] = useState<VaultItem | null>(null);
-  const [activeCategory, setActiveCategory] = useState<string>('All Free Samples');
+  const [activeCategory, setActiveCategory] = useState<string>('All Free');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
@@ -220,6 +220,7 @@ export const VaultEditorialLedger: React.FC<VaultEditorialLedgerProps> = ({ onUn
     return freePrompts.filter((item) => {
       // Category filter
       const matchesCategory =
+        activeCategory === 'All Free' ||
         activeCategory === 'All Free Samples' ||
         activeCategory === 'All' ||
         item.filterGroup === activeCategory;
@@ -272,10 +273,10 @@ export const VaultEditorialLedger: React.FC<VaultEditorialLedgerProps> = ({ onUn
           <div>
             <div className="flex items-center gap-2 text-xs font-mono text-emerald-400 uppercase tracking-widest mb-3">
               <Sparkles className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-              <span>FREE PRODUCTION SAMPLES • CLICK TO COPY &amp; ACCESS PORTAL</span>
+              <span>FREE PRODUCTION PROMPTS • CLICK TO COPY &amp; ACCESS PORTAL</span>
             </div>
             <h2 className="text-3xl sm:text-5xl font-bold tracking-tight text-white">
-              Free Sample Prompts &amp; <span className="accent-text-gradient font-display italic font-normal">Blueprints</span>
+              Free Prompts &amp; <span className="accent-text-gradient font-display italic font-normal">Blueprints</span>
             </h2>
           </div>
 
@@ -387,7 +388,7 @@ export const VaultEditorialLedger: React.FC<VaultEditorialLedgerProps> = ({ onUn
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 items-stretch">
             {filteredItems.length === 0 ? (
               <div className="col-span-full py-16 text-center text-white/40 text-sm font-mono">
-                No free prompt blueprints match "{searchQuery}". Try selecting "All Free Samples".
+                No free prompt blueprints match "{searchQuery}". Try selecting "All Free".
               </div>
             ) : (
               filteredItems.map((item, index) => (
@@ -408,7 +409,7 @@ export const VaultEditorialLedger: React.FC<VaultEditorialLedgerProps> = ({ onUn
           <div className="divide-y divide-white/10 border-y border-white/10">
             {filteredItems.length === 0 ? (
               <div className="py-16 text-center text-white/40 text-sm font-mono">
-                No free prompt blueprints match "{searchQuery}". Try selecting "All Free Samples".
+                No free prompt blueprints match "{searchQuery}". Try selecting "All Free".
               </div>
             ) : (
               filteredItems.map((item, index) => {
@@ -464,7 +465,7 @@ export const VaultEditorialLedger: React.FC<VaultEditorialLedgerProps> = ({ onUn
                           </h3>
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
                             <Sparkles className="w-2.5 h-2.5" />
-                            <span>FREE SAMPLE</span>
+                            <span>FREE</span>
                           </span>
                         </div>
                         <p className="text-xs text-white/60 mt-1 font-sans line-clamp-1 max-w-xl">

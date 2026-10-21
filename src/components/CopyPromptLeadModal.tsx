@@ -85,7 +85,7 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
       phone: rawPhone,
       role: selectedRole || undefined,
       tierId: 'prompt_copy',
-      tierName: clientTitle ? `Free Sample: ${clientTitle}` : 'Free Sample Prompt',
+      tierName: clientTitle ? `Free: ${clientTitle}` : 'Free Prompt',
       amountINR: 0,
       source,
     });
@@ -196,7 +196,7 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
       phone: cleanPhone,
       role: role || undefined,
       tierId: 'prompt_copy',
-      tierName: clientTitle ? `Free Sample: ${clientTitle}` : 'Free Sample Prompt',
+      tierName: clientTitle ? `Free: ${clientTitle}` : 'Free Prompt',
       amountINR: 0,
       status: 'free_trial_claimed',
       freeCopiesUsed: 1,

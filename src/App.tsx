@@ -214,7 +214,7 @@ export default function App() {
       {/* Verified Live Agency Activity Notifications */}
       <LiveSalesToasts />
 
-      {/* Free Sample Lead Capture Magnet Modal */}
+      {/* Free Lead Capture Magnet Modal */}
       <ErrorBoundary fallbackTitle="Lead Magnet Notice">
         <LeadMagnetModal
           isOpen={isLeadMagnetOpen}

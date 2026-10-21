@@ -676,13 +676,13 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
         sound.playClick();
         setUpgradeTriggerReason('quota_exceeded');
         setIsUpgradeShowcaseOpen(true);
-        showToast('⚠️ Free Trial Limit Reached: 1/1 sample used. Upgrade to unlock 500+ prompts!');
+        showToast('⚠️ Free Trial Limit Reached: 1/1 free prompt used. Upgrade to unlock 500+ prompts!');
         return;
       }
 
       // 🛡️ User Authentication / Contact Verification Gate:
       // If user is NOT logged in and doesn't have verified credentials (name, email, phone),
-      // require them to enter their details in the lead modal before copying the 1 free sample!
+      // require them to enter their details in the lead modal before copying the 1 free prompt!
       const isUserIdentified = Boolean(
         isPaidMember ||
         firebaseUser?.email ||
@@ -720,7 +720,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
       sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(updatedOrder));
       saveOrder(updatedOrder);
       setFreeTrialUsage(1);
-      showToast('✨ Free Sample Copied (1/1 Lifetime Quota Used)! Upgrade anytime for 500+ prompts.');
+      showToast('✨ Free Prompt Copied (1/1 Lifetime Quota Used)! Upgrade anytime for 500+ prompts.');
       return;
     }
 
@@ -784,7 +784,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
     const matchesCategory =
       selectedCategory === 'All'
         ? true
-        : selectedCategory === '✨ Free Samples'
+        : selectedCategory === '✨ Free' || selectedCategory === '✨ Free Samples'
         ? Boolean(item.allowFreeTrialCopy)
         : item.filterGroup === selectedCategory || item.category === selectedCategory;
 
@@ -1070,12 +1070,12 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                   });
                   const freePrompt = vaultPrompts.find((p) => p.allowFreeTrialCopy);
                   if (freePrompt) setSpotlightPrompt(freePrompt);
-                  showToast('🎁 Free Member Access Opened! 1 Sample Prompt Quota Ready.');
+                  showToast('🎁 Free Member Access Opened! 1 Free Prompt Quota Ready.');
                 }}
                 className="w-full py-2.5 px-4 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 hover:border-emerald-500/50 text-emerald-300 hover:text-emerald-200 text-xs font-mono font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-emerald-500/10 active:scale-[0.98]"
               >
                 <Sparkles className="w-4 h-4 text-emerald-400" />
-                <span>Explore Free Prompts (1 Free Copy Sample) →</span>
+                <span>Explore Free Prompts (1 Free Copy) →</span>
               </button>
             </div>
 
@@ -1259,7 +1259,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                   )}
                   <span>·</span>
                   <span className={!isPaidMember ? 'text-blue-400' : 'text-emerald-400'}>
-                    {!isPaidMember ? '1 Sample Quota' : 'Verified Licensee'}
+                    {!isPaidMember ? '1 Free Quota' : 'Verified Licensee'}
                   </span>
                 </div>
               </div>
@@ -1367,7 +1367,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
               <span className="text-zinc-500">SYNTAX QUOTA:</span>
               {!isPaidMember ? (
                 <span className={`font-bold tracking-wide ${freeTrialUsage >= 1 ? 'text-red-400' : 'text-emerald-400'}`}>
-                  {freeTrialUsage >= 1 ? '0 REMAINING (1/1 LIFETIME USED)' : '1 FREE SAMPLE REMAINING'}
+                  {freeTrialUsage >= 1 ? '0 REMAINING (1/1 LIFETIME USED)' : '1 FREE PROMPT REMAINING'}
                 </span>
               ) : (
                 <>
@@ -1626,7 +1626,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                         <div className="flex items-center justify-between text-[10px] font-mono text-emerald-400 mb-1.5 flex-wrap gap-1">
                           <span className="flex items-center gap-1 font-bold">
                             <Sparkles className="w-3 h-3 text-emerald-400" />
-                            <span>FREE SAMPLE PROMPT ARCHITECTURE</span>
+                            <span>FREE PROMPT ARCHITECTURE</span>
                           </span>
                           <span className="text-zinc-500">~{spotlightPrompt.tokens} TOKENS</span>
                         </div>
@@ -1636,13 +1636,13 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                           ) : freeTrialUsage >= 1 ? (
                             spotlightPrompt.promptArchitecture.slice(0, 140) +
                             '\n\n................................................................................' +
-                            '\n// [FREE TRIAL QUOTA USED: 1/1 SAMPLES USED]' +
+                            '\n// [FREE TRIAL QUOTA USED: 1/1 PROMPTS USED]' +
                             '\n// Upgrade starting at ₹49 to unlock 500+ commercial prompts!' +
                             '\n................................................................................'
                           ) : (
                             spotlightPrompt.promptArchitecture.slice(0, 140) +
                             '\n\n................................................................................' +
-                            '\n// [🔒 BLUEPRINT GATED — CLICK "COPY FREE SAMPLE" BELOW TO UNLOCK COMPLETE SYNTAX]' +
+                            '\n// [🔒 BLUEPRINT GATED — CLICK "COPY FREE" BELOW TO UNLOCK COMPLETE SYNTAX]' +
                             '\n// Enter your details to claim full verified production code directly to clipboard' +
                             '\n................................................................................'
                           )}
@@ -1685,7 +1685,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                       ) : !isPaidMember && spotlightPrompt.allowFreeTrialCopy ? (
                         <>
                           <Sparkles className="w-3.5 h-3.5" />
-                          <span>Copy Free Sample (1 Available)</span>
+                          <span>Copy Free (1 Available)</span>
                         </>
                       ) : (
                         <>
@@ -1728,7 +1728,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
                 {[
                   'All',
-                  '✨ Free Samples',
+                  '✨ Free',
                   'Spatial & WebGL',
                   'Luxury Brands',
                   'High-Ticket Agency',
@@ -1736,7 +1736,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                   'AI Agents & Systems',
                   'Design Systems',
                 ].map((cat) => {
-                  const isFreeCategory = cat === '✨ Free Samples';
+                  const isFreeCategory = cat === '✨ Free' || cat === '✨ Free Samples';
                   const freeCount = vaultPrompts.filter((p) => p.allowFreeTrialCopy).length;
                   return (
                     <button
@@ -1790,13 +1790,13 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                         Free Trial Member Access
                       </span>
                       <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold">
-                        {freeTrialUsage >= 1 ? '1/1 LIFETIME QUOTA USED' : '1 FREE SAMPLE COPY READY'}
+                        {freeTrialUsage >= 1 ? '1/1 LIFETIME QUOTA USED' : '1 FREE COPY READY'}
                       </span>
                     </div>
                     <p className="text-xs text-zinc-400 mt-1 leading-snug max-w-2xl">
                       {freeTrialUsage >= 1
-                        ? 'You have used your 1 free sample prompt copy. Upgrade starting at ₹49 to unlock 500+ commercial prompts and unmetered daily copies.'
-                        : 'Explore calibrated Three.js prompts marked "✨ FREE SAMPLE". Select any free prompt below to inspect the architecture and copy into Cursor or Claude.'}
+                        ? 'You have used your 1 free prompt copy. Upgrade starting at ₹49 to unlock 500+ commercial prompts and unmetered daily copies.'
+                        : 'Explore calibrated Three.js prompts marked "✨ FREE". Select any free prompt below to inspect the architecture and copy into Cursor or Claude.'}
                     </p>
                   </div>
                 </div>
@@ -1805,7 +1805,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                   <button
                     onClick={() => {
                       sound.playClick();
-                      setSelectedCategory('✨ Free Samples');
+                      setSelectedCategory('✨ Free');
                       const firstFree = vaultPrompts.find((p) => p.allowFreeTrialCopy);
                       if (firstFree) setSpotlightPrompt(firstFree);
                     }}
@@ -2065,7 +2065,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                               : !isPaidMember && item.allowFreeTrialCopy && freeTrialUsage >= 1
                               ? '🔒 Upgrade'
                               : !isPaidMember && item.allowFreeTrialCopy
-                              ? '✨ Free Sample'
+                              ? '✨ Free'
                               : 'Copy'}
                           </button>
                         </td>
@@ -2516,7 +2516,7 @@ Rules:
                       <div className="p-4 bg-black/80 font-mono text-xs text-blue-200/40 whitespace-pre-wrap leading-relaxed max-h-72 overflow-hidden select-none filter blur-[2px]">
                         {inspectingPrompt.promptArchitecture.slice(0, 140)}
                         {'\n\n................................................................................'}
-                        {'\n[🔒 FREE TRIAL QUOTA EXHAUSTED: 1/1 SAMPLES USED]'}
+                        {'\n[🔒 FREE TRIAL QUOTA EXHAUSTED: 1/1 PROMPTS USED]'}
                         {'\n[Upgrade starting at ₹49 to unlock 500+ commercial prompts & unmetered daily access]'}
                         {'\n................................................................................'}
                       </div>
@@ -2526,7 +2526,7 @@ Rules:
                         </div>
                         <h4 className="text-sm font-bold text-white mb-1">Free Trial Limit Reached (1/1 Used)</h4>
                         <p className="text-xs text-zinc-400 max-w-sm mb-4 leading-relaxed font-sans">
-                          You have used your 1 free sample prompt copy. Upgrade starting at ₹49 for unlimited daily access to all 500+ prompts.
+                          You have used your 1 free prompt copy. Upgrade starting at ₹49 for unlimited daily access to all 500+ prompts.
                         </p>
                         <button
                           onClick={() => {
@@ -2546,16 +2546,16 @@ Rules:
                         {inspectingPrompt.promptArchitecture.slice(0, 140)}
                         {'\n\n................................................................................'}
                         {'\n[🔒 ARCHITECTURAL BLUEPRINT GATED — 2,500+ TOKENS OF VERIFIED PRODUCTION CODE]'}
-                        {'\n[Click "Claim & Copy Free Sample" below to unlock full syntax directly to clipboard]'}
+                        {'\n[Click "Claim & Copy Free" below to unlock full syntax directly to clipboard]'}
                         {'\n................................................................................'}
                       </div>
                       <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/85 backdrop-blur-sm p-6 text-center">
                         <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-2">
                           <Sparkles className="w-5 h-5" />
                         </div>
-                        <h4 className="text-sm font-bold text-white mb-1">Free Sample Blueprint</h4>
+                        <h4 className="text-sm font-bold text-white mb-1">Free Blueprint</h4>
                         <p className="text-xs text-zinc-400 max-w-sm mb-4 leading-relaxed font-sans">
-                          Claim your 1 free sample blueprint. Click below to copy the full calibrated prompt architecture directly to your clipboard.
+                          Claim your 1 free blueprint. Click below to copy the full calibrated prompt architecture directly to your clipboard.
                         </p>
                         <button
                           onClick={() => {
@@ -2565,7 +2565,7 @@ Rules:
                           className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-mono font-bold uppercase transition-all shadow-lg shadow-emerald-500/20 cursor-pointer flex items-center gap-2"
                         >
                           <Sparkles className="w-4 h-4" />
-                          <span>Claim & Copy Free Sample</span>
+                          <span>Claim & Copy Free</span>
                         </button>
                       </div>
                     </div>
@@ -2610,7 +2610,7 @@ Rules:
                       : !isPaidMember && inspectingPrompt.allowFreeTrialCopy && freeTrialUsage >= 1
                       ? 'Upgrade to Copy (₹49)'
                       : !isPaidMember && inspectingPrompt.allowFreeTrialCopy
-                      ? 'Copy Free Sample'
+                      ? 'Copy Free'
                       : 'Copy Full Architecture'}
                   </button>
                 </div>
@@ -2678,8 +2678,8 @@ Rules:
             role: lead.role,
             tierId: 'prompt_copy',
             tierName: promptTarget?.title
-              ? `Free Sample: ${promptTarget.title}`
-              : 'Free Sample Prompt',
+              ? `Free: ${promptTarget.title}`
+              : 'Free Prompt',
             amountINR: 0,
             status: 'free_trial_claimed' as any,
             freeCopiesUsed: 1,
@@ -2699,7 +2699,7 @@ Rules:
             setCopiedId(promptTarget.id);
             setTimeout(() => setCopiedId(null), 2500);
           }
-          showToast(`🎉 1/1 Free Sample Copied! Welcome ${cleanName.split(' ')[0]}.`);
+          showToast(`🎉 1/1 Free Prompt Copied! Welcome ${cleanName.split(' ')[0]}.`);
         }}
       />
 
