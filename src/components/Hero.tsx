@@ -195,9 +195,9 @@ export const Hero: React.FC<HeroProps> = ({ onUnlockClick, onTerminalClick, onFr
       </div>
 
       {/* 3. TWO-COLUMN RESPONSIVE LAYOUT (z-20) */}
-      <div className="relative z-20 w-full max-w-7xl mx-auto my-auto grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-8 xl:gap-12 items-center pt-2 sm:pt-4 pb-4">
+      <div className="relative z-20 w-full max-w-[1400px] mx-auto my-auto grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-6 xl:gap-10 items-center pt-2 sm:pt-4 pb-4">
         {/* LEFT COLUMN: High-Converting Copy & Direct CTAs */}
-        <div className="lg:col-span-6 xl:col-span-6 flex flex-col justify-center text-left">
+        <div className="lg:col-span-5 xl:col-span-5 flex flex-col justify-center text-left">
           {/* Eyebrow */}
           <div
             ref={eyebrowRef}
@@ -315,10 +315,10 @@ export const Hero: React.FC<HeroProps> = ({ onUnlockClick, onTerminalClick, onFr
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Apple Keynote Dual Device Stage */}
+        {/* RIGHT COLUMN: Apple Keynote Dual Device Stage (Big MacBook + Small iPhone) */}
         <div
           ref={deviceStageRef}
-          className="lg:col-span-6 xl:col-span-6 flex flex-col items-center justify-center will-change-transform transform-gpu w-full mt-4 lg:mt-0"
+          className="lg:col-span-7 xl:col-span-7 flex flex-col items-center justify-center will-change-transform transform-gpu w-full mt-4 lg:mt-0"
         >
           <HeroDeviceStage />
         </div>

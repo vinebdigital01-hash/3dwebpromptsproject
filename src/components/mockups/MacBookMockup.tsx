@@ -35,7 +35,7 @@ export const MacBookMockup: React.FC<MacBookMockupProps> = ({
         {/* Display Outer Bezel */}
         <div className="relative w-full h-full rounded-t-[18px] sm:rounded-t-[22px] bg-[#0c0d0f] p-[7px] sm:p-[10px] md:p-[12px] flex flex-col justify-start overflow-hidden border border-black/80">
           {/* Top Bezel Notch */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 z-30 w-[14%] min-w-[70px] max-w-[120px] h-[14px] sm:h-[18px] md:h-[20px] bg-[#0c0d0f] rounded-b-[7px] sm:rounded-b-[9px] flex items-center justify-center gap-1.5 shadow-md border-b border-x border-black">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 z-30 w-[14%] min-w-[45px] max-w-[110px] h-[10px] sm:h-[16px] md:h-[18px] bg-[#0c0d0f] rounded-b-[6px] sm:rounded-b-[8px] flex items-center justify-center gap-1 sm:gap-1.5 shadow-md border-b border-x border-black">
             {/* Camera Lens */}
             <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#050507] ring-1 ring-white/10 flex items-center justify-center">
               <div className="w-0.5 h-0.5 rounded-full bg-blue-500/60" />
