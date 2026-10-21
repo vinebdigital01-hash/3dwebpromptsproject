@@ -104,8 +104,8 @@ export const HeroDeviceStage: React.FC<HeroDeviceStageProps> = ({
         return;
       }
       const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
-      // Over the first 220px of scroll on mobile, progress smoothly transitions 0 -> 1
-      const progress = Math.min(1, Math.max(0, scrollY / 220));
+      // Over the first 200px of scroll on mobile, progress smoothly transitions 0 -> 1
+      const progress = Math.min(1, Math.max(0, scrollY / 200));
       setScrollProgress(progress);
     };
 
@@ -165,21 +165,21 @@ export const HeroDeviceStage: React.FC<HeroDeviceStageProps> = ({
 
   // Lid angle:
   // On PC/desktop: always 0deg (upright, flat, no scroll sync)
-  // On mobile: starts at 42deg (semi-closed/tilted in 3D) and smoothly rotates open to 0deg as you scroll
-  const lidAngle = isDesktop ? 0 : 42 * (1 - scrollProgress);
+  // On mobile: starts at 20deg (gentle greeting tilt showing screen clearly) and smoothly opens to 0deg as user scrolls
+  const lidAngle = isDesktop ? 0 : 20 * (1 - scrollProgress);
 
   return (
-    <div className="relative w-full flex items-center justify-center select-none py-2 overflow-visible">
+    <div className="relative w-full flex items-center justify-center select-none py-1 sm:py-2 overflow-visible">
       {/* Soft colored ambient glow behind devices */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[85%] sm:w-[95%] h-[80%] rounded-full blur-3xl pointer-events-none -z-10 bg-blue-500/20" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] sm:w-[95%] h-[85%] rounded-full blur-2xl sm:blur-3xl pointer-events-none -z-10 bg-blue-500/25" />
 
       {/* Floating Hardware Composition */}
-      <div className="relative w-full max-w-[340px] xs:max-w-[380px] sm:max-w-[480px] md:max-w-[560px] lg:max-w-[640px] xl:max-w-[680px] flex items-center justify-center animate-float-6px will-change-transform">
+      <div className="relative w-full max-w-[330px] xs:max-w-[360px] sm:max-w-[480px] md:max-w-[560px] lg:max-w-[640px] xl:max-w-[680px] flex items-center justify-center animate-float-6px will-change-transform">
         
         {/* ==============================================================
             MACBOOK PRO
             - PC / Desktop: Upright, flat, static, no scroll sync
-            - Mobile: Scroll-synced close-to-open 3D lid rotation
+            - Mobile: Peeks above the bottom fold with live video & scroll-synced lid
             ============================================================== */}
         <div className="w-full flex flex-col items-center">
           {/* Hinged Lid & Display Assembly */}
@@ -222,6 +222,12 @@ export const HeroDeviceStage: React.FC<HeroDeviceStageProps> = ({
 
                 {/* Top dark gradient for menu contrast & readability */}
                 <div className="absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-black/80 via-black/35 to-transparent pointer-events-none z-10" />
+
+                {/* Top-Right LIVE DEMO Badge: Peeks into mobile fold immediately */}
+                <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-blue-600/80 backdrop-blur-md border border-blue-400/40 text-[8px] sm:text-[9px] font-mono text-white flex items-center gap-1.5 pointer-events-none z-20 shadow-md">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="font-semibold tracking-wider">LIVE DEMO</span>
+                </div>
 
                 {/* Bottom-left 60 FPS WebGL Badge */}
                 <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-md border border-white/15 text-[8px] sm:text-[9px] font-mono text-white/90 flex items-center gap-1.5 pointer-events-none z-10 shadow-sm">
