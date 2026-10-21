@@ -58,8 +58,11 @@ export const MacBookMockup: React.FC<MacBookMockupProps> = ({
               className="w-full h-full object-cover object-center"
             />
 
+            {/* Dark gradient at top of laptop screen so top navigation/menu text is clearly readable */}
+            <div className="absolute inset-x-0 top-0 h-16 sm:h-20 bg-gradient-to-b from-black/75 via-black/35 to-transparent pointer-events-none z-10" />
+
             {/* Subtle Screen Ambient Reflection (Top Edge Sheen) */}
-            <div className="absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-white/[0.04] to-transparent pointer-events-none" />
+            <div className="absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-white/[0.05] to-transparent pointer-events-none z-10" />
 
             {/* Bottom-left Watermark Pill: Active 60fps WebGL Tag */}
             <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-[9px] sm:text-[10px] font-mono text-white/80 flex items-center gap-1.5 pointer-events-none">

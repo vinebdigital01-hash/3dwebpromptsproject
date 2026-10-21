@@ -43,9 +43,12 @@ export const HeroDeviceStage: React.FC = () => {
     return ALL_HERO_PROMPTS[currentIndex] || ALL_HERO_PROMPTS[0];
   }, [currentIndex]);
 
-  // Gentle 3D Mouse Parallax on Desktop
+  // Gentle 3D Mouse Parallax on Desktop (disabled on touch devices)
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!containerRef.current || window.innerWidth < 1024) return;
+    if (!containerRef.current || typeof window === 'undefined') return;
+    const isTouch = window.matchMedia('(hover: none) or (pointer: coarse)').matches;
+    if (isTouch || window.innerWidth < 1024) return;
+
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left - rect.width / 2;
     const y = e.clientY - rect.top - rect.height / 2;
@@ -74,13 +77,13 @@ export const HeroDeviceStage: React.FC = () => {
       onMouseLeave={handleMouseLeave}
       onClick={handleCycleNext}
       title="Click to explore another 3D prompt demo"
-      className="relative w-full flex items-center justify-center select-none cursor-pointer group py-4 sm:py-6"
+      className="relative w-full flex items-center justify-center select-none cursor-pointer group py-2 sm:py-4 overflow-visible"
     >
       {/* 1. Large Soft Blue/Orange Glow Behind Devices */}
       <div
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[115%] h-[95%] rounded-full blur-[90px] sm:blur-[130px] pointer-events-none -z-10 transition-all duration-700 opacity-65"
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[115%] h-[95%] rounded-full blur-[80px] sm:blur-[120px] pointer-events-none -z-10 transition-all duration-700 opacity-60"
         style={{
-          background: 'radial-gradient(ellipse 65% 55% at 50% 50%, rgba(59,130,246,0.4), rgba(245,158,11,0.2) 60%, transparent 80%)',
+          background: 'radial-gradient(ellipse 65% 55% at 50% 50%, rgba(59,130,246,0.38), rgba(245,158,11,0.18) 60%, transparent 80%)',
         }}
       />
 
@@ -93,14 +96,14 @@ export const HeroDeviceStage: React.FC = () => {
         }}
       />
 
-      {/* 3. Floating Hardware Composition (6s loop, 8px float + Desktop Mouse Tilt) */}
+      {/* 3. Floating Hardware Composition (Laptop 92% of right column + Phone overlapping corner by ~12%) */}
       <div
-        className="relative w-full max-w-[540px] sm:max-w-[580px] lg:max-w-[620px] xl:max-w-[680px] flex items-center justify-center animate-gentle-float will-change-transform transform-gpu"
+        className="relative w-full max-w-[92%] sm:max-w-[92%] lg:max-w-[92%] flex items-center justify-center animate-gentle-float will-change-transform transform-gpu overflow-visible"
         style={{
           transform: `perspective(1000px) rotateX(${tilt.rotateX}deg) rotateY(${tilt.rotateY}deg)`,
         }}
       >
-        {/* Laptop Centered: Thin Metal Frame, Screen Fully Visible, Soft Reflection */}
+        {/* Laptop: 92% of the right column, screen fully visible, no clipped text */}
         <div className="w-full">
           <MacBookMockup
             videoUrl={activeDemo.videoUrl}
@@ -109,8 +112,11 @@ export const HeroDeviceStage: React.FC = () => {
           />
         </div>
 
-        {/* Phone in Front, Bottom-Right: Overlapping Laptop's Corner by only ~15%, Tilted -6°, Deep Shadow */}
-        <div className="absolute -bottom-3 sm:-bottom-4 -right-1 sm:-right-3 md:-right-5 w-[88px] xs:w-[102px] sm:w-[124px] md:w-[138px] xl:w-[152px] z-20 -rotate-6 transition-transform duration-300 drop-shadow-[0_25px_35px_rgba(0,0,0,0.95)]">
+        {/* Phone: 26% width on xl, 24% on lg, 30% on mobile. Overlaps laptop corner by only 12%, tilted -5°, deep shadow. Hidden on iPhone SE (<=375px) */}
+        <div
+          style={{ transform: 'rotate(-5deg)' }}
+          className="hidden min-[380px]:block absolute -bottom-2 sm:-bottom-3 -right-1 sm:-right-2 md:right-0 w-[30%] sm:w-[28%] lg:w-[24%] xl:w-[26%] z-20 transition-transform duration-300 drop-shadow-[0_20px_35px_rgba(0,0,0,0.95)]"
+        >
           <IPhoneMockup
             videoUrl={activeDemo.videoUrl}
             title={activeDemo.name}
