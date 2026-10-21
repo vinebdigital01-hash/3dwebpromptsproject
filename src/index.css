@@ -16,6 +16,8 @@
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
     -webkit-tap-highlight-color: transparent;
+    overflow-x: hidden;
+    max-width: 100vw;
   }
 
   body {
@@ -70,6 +72,12 @@
 
 .animate-gentle-float {
   animation: gentleFloat 6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-gentle-float {
+    animation: none !important;
+  }
 }
 
 .bg-noise {

@@ -11,7 +11,16 @@ export const Navbar: React.FC<NavbarProps> = ({ onUnlockClick, onLeadMagnetClick
   const [isMuted, setIsMuted] = useState(sound.isMuted);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Close "More" dropdown when clicking outside
   useEffect(() => {
@@ -29,14 +38,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onUnlockClick, onLeadMagnetClick
     setIsMuted(newState);
   };
 
-  // Top 3 primary links shown on iPad landscape (1024px) & up
+  // Top 3 primary links shown on iPad landscape (1024px) & desktop
   const baseLinks = [
     { label: '3D Cinema', href: '#theater' },
     { label: 'Client Work', href: '#transformations' },
     { label: 'Vault', href: '#catalog' },
   ];
 
-  // Links shown in main bar on desktop (xl >= 1280px), moved to "More" on iPad landscape (lg 1024-1279px)
+  // Secondary links: shown in main bar on desktop (xl >= 1280px), moved to "More" on iPad landscape (1024-1279px)
   const secondaryLinks = [
     { label: 'Pricing', href: '#pricing' },
     { label: 'FAQ', href: '#faq' },
@@ -64,13 +73,22 @@ export const Navbar: React.FC<NavbarProps> = ({ onUnlockClick, onLeadMagnetClick
 
   return (
     <>
-      {/* Floating Slim Bar with Safe-Area Top Spacing */}
-      <header className="fixed top-2 sm:top-4 left-0 right-0 z-50 flex justify-center px-3 sm:px-4 lg:px-6 pointer-events-none pt-[env(safe-area-inset-top,0px)]">
+      {/* 
+        Rule 0: One container max-width 1280px, margin: auto, padding-inline: clamp(20px, 4vw, 48px).
+        Position fixed, top 16px, height 64px (56px mobile), same container width.
+        Background: dark see-through (rgba(10,12,20,0.6)) + blur(16px) + 1px border at 8% white.
+        On Scroll: becomes solid rgba(10,12,20,0.95) + blur(24px) so content never shows through.
+      */}
+      <header className="fixed top-4 inset-x-0 mx-auto z-50 w-full max-w-[1280px] px-[clamp(20px,4vw,48px)] pointer-events-none pt-[env(safe-area-inset-top,0px)]">
         <nav
-          className="pointer-events-auto w-full max-w-[1240px] h-14 sm:h-16 rounded-full bg-[#07070a]/75 backdrop-blur-2xl border border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.6)] px-3 sm:px-5 lg:px-6 flex items-center justify-between gap-1.5 sm:gap-4 transition-all duration-300"
+          className={`pointer-events-auto w-full h-14 sm:h-16 rounded-full border border-white/[0.08] px-3 sm:px-5 lg:px-6 flex items-center justify-between transition-all duration-300 ${
+            isScrolled
+              ? 'bg-[#0a0c14]/95 backdrop-blur-[24px] shadow-[0_12px_40px_rgba(0,0,0,0.85)] border-white/15'
+              : 'bg-[#0a0c14]/60 backdrop-blur-[16px] shadow-[0_8px_32px_rgba(0,0,0,0.4)]'
+          }`}
           aria-label="Main Navigation"
         >
-          {/* LEFT: Logo + "APEX3D" (min-h-[44px] for tap target) */}
+          {/* LEFT: Logo + "APEX3D" (min-h-[44px] tap target, lines up flush with left padding) */}
           <a
             href="#"
             onClick={(e) => {
@@ -94,9 +112,9 @@ export const Navbar: React.FC<NavbarProps> = ({ onUnlockClick, onLeadMagnetClick
             </span>
           </a>
 
-          {/* CENTER: Adaptive Desktop & iPad Navigation (>= 1024px) */}
+          {/* CENTER: Desktop & iPad Landscape Links (>= 1024px) */}
           <div className="hidden lg:flex items-center gap-5 xl:gap-7">
-            {/* Always visible on lg & xl (3 primary links for iPad landscape) */}
+            {/* 3 links on iPad landscape (1024-1279px), all 5 on desktop (>=1280px) */}
             {baseLinks.map((link) => (
               <a
                 key={link.label}
@@ -115,7 +133,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onUnlockClick, onLeadMagnetClick
               </a>
             ))}
 
-            {/* Pricing & FAQ: Visible in top bar on xl (>= 1280px), moved to More on lg */}
+            {/* Pricing & FAQ: In bar on desktop (xl), moved to More on lg */}
             {secondaryLinks.map((link) => (
               <a
                 key={link.label}
@@ -134,7 +152,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onUnlockClick, onLeadMagnetClick
               </a>
             ))}
 
-            {/* "More" Dropdown: Adapts dynamically */}
+            {/* "More" Dropdown */}
             <div
               ref={moreRef}
               className="relative"
@@ -196,14 +214,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onUnlockClick, onLeadMagnetClick
             </div>
           </div>
 
-          {/* RIGHT: Action cluster with single-line guarantee & 44px tap targets */}
+          {/* RIGHT: Action Buttons (Single Line Guaranteed, min 44px tap targets) */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 whitespace-nowrap flex-nowrap">
-            {/* Sound Icon Button (Visible on desktop & tablets >= 640px) */}
+            {/* Sound Icon Button (Desktop >= 1024px) */}
             <button
               type="button"
               onClick={handleAudioToggle}
               title={isMuted ? 'Unmute Audio FX' : 'Mute Audio FX'}
-              className="hidden sm:flex w-9 h-9 sm:w-10 sm:h-10 min-w-[40px] min-h-[40px] rounded-full items-center justify-center text-white/70 hover:text-white hover:bg-white/10 border border-white/10 transition-colors cursor-pointer shrink-0"
+              className="hidden lg:flex w-9 h-9 sm:w-10 sm:h-10 min-w-[44px] min-h-[44px] rounded-full items-center justify-center text-white/70 hover:text-white hover:bg-white/10 border border-white/10 transition-colors cursor-pointer shrink-0"
               aria-label="Toggle sound fx"
             >
               {isMuted ? (
@@ -213,7 +231,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onUnlockClick, onLeadMagnetClick
               )}
             </button>
 
-            {/* Quiet Outline "Free PDF" Button (Desktop only >= 1024px) */}
+            {/* Quiet Outline "Free PDF" Button (Desktop >= 1024px) */}
             <button
               type="button"
               onClick={() => {
@@ -244,7 +262,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onUnlockClick, onLeadMagnetClick
               <span className="text-white/80">→</span>
             </button>
 
-            {/* Mobile / Tablet Menu Icon (< 1024px) */}
+            {/* Mobile & Tablet (< 1024px) Menu Hamburger */}
             <button
               type="button"
               onClick={() => {
@@ -285,7 +303,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onUnlockClick, onLeadMagnetClick
               <button
                 type="button"
                 onClick={handleAudioToggle}
-                className="w-10 h-10 rounded-full flex items-center justify-center text-white/80 bg-white/5 border border-white/10"
+                className="w-10 h-10 rounded-full flex items-center justify-center text-white/80 bg-white/5 border border-white/10 min-w-[44px] min-h-[44px]"
                 aria-label="Toggle sound"
               >
                 {isMuted ? <VolumeX className="w-4 h-4 text-white/40" /> : <Volume2 className="w-4 h-4 text-blue-400" />}
@@ -294,7 +312,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onUnlockClick, onLeadMagnetClick
               <button
                 type="button"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="w-10 h-10 rounded-full flex items-center justify-center text-white/80 hover:text-white bg-white/5 border border-white/10"
+                className="w-10 h-10 rounded-full flex items-center justify-center text-white/80 hover:text-white bg-white/5 border border-white/10 min-w-[44px] min-h-[44px]"
                 aria-label="Close menu"
               >
                 <X className="w-4 h-4" />
@@ -312,7 +330,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onUnlockClick, onLeadMagnetClick
                   e.preventDefault();
                   handleLinkClick(link.href);
                 }}
-                className="text-xl sm:text-2xl font-heading font-semibold text-white/80 hover:text-white py-2.5 border-b border-white/5 transition-colors flex items-center justify-between"
+                className="text-xl sm:text-2xl font-heading font-semibold text-white/80 hover:text-white py-2.5 border-b border-white/5 transition-colors flex items-center justify-between min-h-[44px]"
               >
                 <span>{link.label}</span>
                 <ArrowRight className="w-4 h-4 text-white/30" />

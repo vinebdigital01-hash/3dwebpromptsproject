@@ -43,17 +43,18 @@ export const HeroDeviceStage: React.FC = () => {
     return ALL_HERO_PROMPTS[currentIndex] || ALL_HERO_PROMPTS[0];
   }, [currentIndex]);
 
-  // Gentle 3D Mouse Parallax on Desktop (disabled on touch devices)
+  // Gentle 3D Mouse Parallax on Desktop (max 6deg, disabled on touch and prefers-reduced-motion)
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!containerRef.current || typeof window === 'undefined') return;
     const isTouch = window.matchMedia('(hover: none) or (pointer: coarse)').matches;
-    if (isTouch || window.innerWidth < 1024) return;
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (isTouch || prefersReduced || window.innerWidth < 1024) return;
 
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left - rect.width / 2;
     const y = e.clientY - rect.top - rect.height / 2;
-    const rotateX = -(y / (rect.height / 2)) * 3;
-    const rotateY = (x / (rect.width / 2)) * 3.5;
+    const rotateX = -(y / (rect.height / 2)) * 4.5; // max ~5deg
+    const rotateY = (x / (rect.width / 2)) * 5.5;  // max ~6deg
     setTilt({ rotateX, rotateY });
   };
 
@@ -77,7 +78,7 @@ export const HeroDeviceStage: React.FC = () => {
       onMouseLeave={handleMouseLeave}
       onClick={handleCycleNext}
       title="Click to explore another 3D prompt demo"
-      className="relative w-full flex items-center justify-center select-none cursor-pointer group py-2 sm:py-4 overflow-visible"
+      className="relative w-full flex flex-col items-center justify-center select-none cursor-pointer group py-2"
     >
       {/* 1. Large Soft Blue/Orange Glow Behind Devices */}
       <div
@@ -96,14 +97,14 @@ export const HeroDeviceStage: React.FC = () => {
         }}
       />
 
-      {/* 3. Floating Hardware Composition (Laptop 92% of right column + Phone overlapping corner by ~12%) */}
+      {/* 3. Floating Hardware Composition (Laptop 100% of right column, max 720px) */}
       <div
-        className="relative w-full max-w-[92%] sm:max-w-[92%] lg:max-w-[92%] flex items-center justify-center animate-gentle-float will-change-transform transform-gpu overflow-visible"
+        className="relative w-full max-w-[720px] flex items-center justify-center animate-gentle-float will-change-transform transform-gpu"
         style={{
           transform: `perspective(1000px) rotateX(${tilt.rotateX}deg) rotateY(${tilt.rotateY}deg)`,
         }}
       >
-        {/* Laptop: 92% of the right column, screen fully visible, no clipped text */}
+        {/* Laptop: 100% width of container, max 720px, 16/10 screen aspect ratio */}
         <div className="w-full">
           <MacBookMockup
             videoUrl={activeDemo.videoUrl}
@@ -112,16 +113,33 @@ export const HeroDeviceStage: React.FC = () => {
           />
         </div>
 
-        {/* Phone: 26% width on xl, 24% on lg, 30% on mobile. Overlaps laptop corner by only 12%, tilted -5°, deep shadow. Hidden on iPhone SE (<=375px) */}
+        {/* Phone: 
+            - Width: 22% of laptop (min 120px, max 170px) on desktop (>=1280px);
+              20% on 1024-1279px (min 110px); 32% on mobile (<1024px);
+              Hidden only below 360px.
+            - Position: right: 0 (INSIDE right column, zero clipping), bottom: -24px.
+            - Rotate: -5deg. Overlaps laptop by max 15%.
+            - Deep soft shadow.
+        */}
         <div
           style={{ transform: 'rotate(-5deg)' }}
-          className="hidden min-[380px]:block absolute -bottom-2 sm:-bottom-3 -right-1 sm:-right-2 md:right-0 w-[30%] sm:w-[28%] lg:w-[24%] xl:w-[26%] z-20 transition-transform duration-300 drop-shadow-[0_20px_35px_rgba(0,0,0,0.95)]"
+          className="hidden min-[360px]:block absolute bottom-[-18px] sm:bottom-[-24px] right-0 w-[32%] sm:w-[28%] lg:w-[20%] xl:w-[22%] min-w-[110px] xl:min-w-[120px] max-w-[170px] z-20 transition-transform duration-300 drop-shadow-[0_20px_35px_rgba(0,0,0,0.95)]"
         >
           <IPhoneMockup
             videoUrl={activeDemo.videoUrl}
             title={activeDemo.name}
             isMuted={true}
           />
+        </div>
+      </div>
+
+      {/* 4. Label Pill: Moved OUTSIDE laptop screen, floating below bottom-left corner with 16px gap, full text, no ellipsis */}
+      <div className="w-full max-w-[720px] mt-4 flex justify-start md:max-lg:justify-center px-1">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/80 backdrop-blur-md border border-white/10 text-xs font-mono text-white/90 shadow-lg whitespace-nowrap">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+          <span className="font-semibold text-white tracking-tight">{activeDemo.name}</span>
+          <span className="text-white/30">·</span>
+          <span className="text-blue-400 font-mono">{activeDemo.fpsBadge}</span>
         </div>
       </div>
     </div>

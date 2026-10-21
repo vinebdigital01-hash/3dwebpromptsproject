@@ -101,8 +101,8 @@ export const AgencyMarquee: React.FC = () => {
 
       {/* Authority Headline */}
       <div className="text-center mb-6 px-4">
-        <p className="text-[10px] sm:text-xs font-mono uppercase tracking-[0.25em] text-white/40">
-          TRUSTED BY <span className="text-white/80 font-bold">2,400+ LEADING CREATIVE AGENCIES</span> & STUDIOS BUILDING ON
+        <p className="text-[11px] font-mono uppercase tracking-[0.08em] leading-[1.6] text-white/50 max-w-[300px] mx-auto text-center">
+          TRUSTED BY <span className="text-white font-bold">2,400+</span> LEADING CREATIVE AGENCIES
         </p>
       </div>
 
