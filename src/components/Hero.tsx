@@ -35,10 +35,11 @@ export const Hero: React.FC<HeroProps> = ({
   return (
     <section id="hero" className="w-full relative select-none">
       {/* =========================================================================
-          1. MOBILE HERO (max-width: 767px) - Studio Grade (Linear / Vercel style)
-          Restrained, clean, crystal-clear FREE vs PAID cards, no artificial AI glow
+          1. MOBILE HERO (max-width: 767px)
+          Order: menu bar → badge → headline → MACBOOK → sub-line → FREE card → PAID card → small line → trust line
+          Goal: MacBook, headline, and FREE card all visible on the first screen (390x844)
           ========================================================================= */}
-      <div className="md:hidden w-full min-h-[100dvh] bg-[#0B0D12] overflow-x-hidden flex flex-col justify-start px-4 pt-[calc(56px+env(safe-area-inset-top,0px)+24px)] pb-10 relative">
+      <div className="md:hidden w-full min-h-[100dvh] bg-[#0B0D12] overflow-x-hidden flex flex-col justify-start px-4 pt-[calc(56px+env(safe-area-inset-top,0px)+16px)] pb-10 relative">
         {/* Faint ambient light at the top: radial-gradient(60% 40% at 50% 0%, rgba(59,130,246,0.10), transparent) */}
         <div
           className="absolute top-0 inset-x-0 h-[360px] pointer-events-none -z-10"
@@ -50,11 +51,10 @@ export const Hero: React.FC<HeroProps> = ({
         {/* Static Grain Texture at 3% opacity */}
         <div className="absolute inset-0 bg-noise opacity-[0.03] pointer-events-none -z-10" />
 
-        {/* ──────── 2. BADGE ────────
+        {/* ──────── 1. BADGE (margin-top 16px below menu bar via container padding) ────────
             Text: "30+ prompts free · no card needed", 12px weight 500, sentence case.
             6px solid green dot (#22C55E) on the left.
-            Border 1px rgba(255,255,255,0.10), bg rgba(255,255,255,0.03), radius 999px, height 28px.
-            24px gap below menu bar (via padding-top above). Never touches menu. */}
+            Border 1px rgba(255,255,255,0.10), bg rgba(255,255,255,0.03), radius 999px, height 28px. */}
         <div
           style={{ transitionDuration: '300ms' }}
           className={`h-[28px] px-3 rounded-full border border-white/10 bg-white/[0.03] inline-flex items-center gap-2 self-center shrink-0 transition-all will-change-[transform,opacity] ${
@@ -67,13 +67,13 @@ export const Hero: React.FC<HeroProps> = ({
           </span>
         </div>
 
-        {/* ──────── 3. HEADLINE ────────
+        {/* ──────── 2. HEADLINE ────────
             Exactly 3 lines: "Build $10,000" / "3D websites with" / "one prompt."
-            Size clamp(34px, 9.5vw, 40px), line-height 1.04, letter-spacing -0.035em, weight 650, color #F5F5F7.
+            Size clamp(32px, 9vw, 38px), line-height 1.04, letter-spacing -0.035em, weight 650, color #F5F5F7.
             "$10,000": Upright, solid #3B82F6, same sans font (no italic serif, no gradient). */}
         <h1
           style={{ transitionDelay: '50ms', transitionDuration: '300ms' }}
-          className={`mt-4 text-center font-heading font-semibold text-[clamp(34px,9.5vw,40px)] leading-[1.04] tracking-[-0.035em] text-[#F5F5F7] transition-all will-change-[transform,opacity] ${
+          className={`mt-3 text-center font-heading font-semibold text-[clamp(32px,9vw,38px)] leading-[1.04] tracking-[-0.035em] text-[#F5F5F7] transition-all will-change-[transform,opacity] ${
             mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
           }`}
         >
@@ -84,48 +84,99 @@ export const Hero: React.FC<HeroProps> = ({
           one prompt.
         </h1>
 
-        {/* ──────── 4. SUB-LINE ────────
-            "Become a 3D WebGL Architect charging $15k per site" — 16px weight 500, #D1D5DB.
-            No underline. Only "3D WebGL Architect" in #FFFFFF. Margin-top 14px. */}
-        <p
+        {/* ──────── 3. MACBOOK MOCKUP (Directly under headline, 20px top, 20px bottom) ────────
+            Width: 100% of content width (screen minus 16px each side). Real proportions (16:10), no tilt.
+            Auto-scrolling 2x WebP screenshot: moves top to bottom in 12s, pauses 1.5s, goes back in 12s.
+            Shadow: 0 24px 48px -16px rgba(0,0,0,0.8). No blue glow, no floating tags.
+            High priority fetchpriority="high", width & height set to prevent CLS. */}
+        <div
           style={{ transitionDelay: '100ms', transitionDuration: '300ms' }}
-          className={`mt-[14px] text-center text-[16px] font-medium text-[#D1D5DB] leading-snug transition-all will-change-[transform,opacity] ${
+          className={`w-full my-5 max-w-[360px] mx-auto select-none pointer-events-none transition-all will-change-[transform,opacity] ${
             mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
           }`}
         >
-          Become a <span className="text-[#FFFFFF]">3D WebGL Architect</span> charging $15k per site
-        </p>
+          <div className="w-full flex flex-col items-center">
+            {/* Display Assembly */}
+            <div className="relative w-full aspect-[16/10] rounded-t-[16px] p-[2px] bg-gradient-to-b from-[#4a4d53] via-[#26282c] to-[#141518] shadow-[0_24px_48px_-16px_rgba(0,0,0,0.8)]">
+              {/* Top Metallic Highlight */}
+              <div className="absolute inset-x-4 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none z-20" />
 
-        {/* ──────── 5. PARAGRAPH ────────
-            "Skip 6 months of learning WebGL and shaders. Copy tested prompts and ship 3D sites in minutes."
-            15px, line-height 1.55, #8B8F98, max 3 lines. Margin-top 10px. */}
+              {/* Display Bezel */}
+              <div className="absolute inset-[2px] rounded-t-[14px] bg-[#0c0d0f] p-[5px] sm:p-[6px] flex flex-col justify-start overflow-hidden border border-black/80">
+                {/* Notch */}
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 z-30 w-[14%] min-w-[42px] max-w-[65px] h-[8px] bg-[#0c0d0f] rounded-b-[5px] flex items-center justify-center gap-1 shadow-md border-b border-x border-black">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#050507] ring-1 ring-white/10" />
+                  <div className="w-1 h-1 rounded-full bg-emerald-400/80" />
+                </div>
+
+                {/* Screen Content: Auto-scrolling sharp 2x WebP screenshot */}
+                <div className="relative w-full h-full rounded-t-[10px] overflow-hidden bg-[#0B0D12] flex items-start justify-center">
+                  <img
+                    src="/website-preview.webp"
+                    alt="APEX3D 3D WebGL Prompts Vault Website Preview"
+                    width={720}
+                    height={1125}
+                    fetchPriority="high"
+                    decoding="async"
+                    className="w-full h-auto object-cover object-top animate-laptop-scroll will-change-transform"
+                  />
+
+                  {/* Top dark gradient */}
+                  <div className="absolute inset-x-0 top-0 h-6 bg-gradient-to-b from-black/60 to-transparent pointer-events-none z-10" />
+
+                  {/* Bottom 60px fade into #0B0D12 */}
+                  <div className="absolute inset-x-0 bottom-0 h-[60px] bg-gradient-to-t from-[#0B0D12] via-[#0B0D12]/80 to-transparent pointer-events-none z-10" />
+                </div>
+              </div>
+            </div>
+
+            {/* Aluminium Base Deck */}
+            <div className="relative w-[104%] -mt-[1px] flex flex-col items-center">
+              <div className="w-[16%] h-[2.5px] bg-gradient-to-r from-[#1c1d20] via-[#52565e] to-[#1c1d20] rounded-t-sm" />
+              <div className="relative w-full h-[8px] rounded-b-[10px] bg-gradient-to-b from-[#2a2c31] via-[#1a1b1e] to-[#0e0f11] shadow-[0_8px_16px_rgba(0,0,0,0.9)] border-t border-white/15 flex items-start justify-center">
+                <div className="w-10 h-0.5 bg-[#0c0d0f] rounded-b-sm border-b border-white/10" />
+              </div>
+              <div className="w-full flex justify-between px-[6%] -mt-[1px]">
+                <div className="w-4 h-[2px] bg-[#0a0a0c] rounded-b-full shadow-sm" />
+                <div className="w-4 h-[2px] bg-[#0a0a0c] rounded-b-full shadow-sm" />
+              </div>
+              <div className="w-[94%] h-3 bg-black/80 blur-lg -mt-1.5 rounded-full pointer-events-none" />
+            </div>
+          </div>
+        </div>
+
+        {/* ──────── 4. SUB-LINE (Directly under MacBook, one line at 375px & 360px) ────────
+            "Become a 3D WebGL Architect · $15k/site" — 14px-15px weight 500, #D1D5DB.
+            No underline. Only "3D WebGL Architect" in #FFFFFF. */}
         <p
           style={{ transitionDelay: '150ms', transitionDuration: '300ms' }}
-          className={`mt-[10px] text-center text-[15px] leading-[1.55] text-[#8B8F98] max-w-[340px] mx-auto transition-all will-change-[transform,opacity] ${
+          className={`text-center text-[14px] xs:text-[15px] font-medium text-[#D1D5DB] leading-snug whitespace-nowrap transition-all will-change-[transform,opacity] ${
             mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
           }`}
         >
-          Skip 6 months of learning WebGL and shaders. Copy tested prompts and ship 3D sites in minutes.
+          Become a <span className="text-[#FFFFFF]">3D WebGL Architect</span> · $15k/site
         </p>
 
-        {/* ──────── 6. FREE / PAID BLOCK (main focus) ────────
-            2 stacked offer cards, full width, gap 10px, margin-top 24px.
-            Text inside is LEFT aligned. Radius 14px. Padding 14px 16px.
-            Min height 76px. Pressed state: scale(0.98) for 120ms. No text wrap at 360px. */}
+        {/* Paragraph is intentionally omitted on mobile so the MacBook and FREE card fit perfectly */}
+
+        {/* ──────── 5. FREE / PAID BLOCK (main focus) ────────
+            2 stacked offer cards, full width, gap 10px, margin-top 14px.
+            Padding 12px 16px, min height 70px.
+            Card A (FREE) + Card B (PAID) + reassurance line. */}
         <div
           style={{ transitionDelay: '200ms', transitionDuration: '300ms' }}
-          className={`mt-6 w-full max-w-[360px] mx-auto flex flex-col gap-[10px] transition-all will-change-[transform,opacity] ${
+          className={`mt-3.5 w-full max-w-[360px] mx-auto flex flex-col gap-[10px] transition-all will-change-[transform,opacity] ${
             mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
           }`}
         >
-          {/* CARD A — FREE (on top, the main action) */}
+          {/* CARD A — FREE (on top, the main action, min-height 70px, padding 12px 16px) */}
           <button
             type="button"
             onClick={() => {
               try { sound.playSuccess(); } catch {}
               onFreeDownloadClick();
             }}
-            className="w-full min-h-[76px] p-[14px_16px] rounded-[14px] bg-[#2563EB] text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] active:scale-[0.98] transition-transform duration-120 flex flex-col justify-between cursor-pointer"
+            className="w-full min-h-[70px] p-[12px_16px] rounded-[14px] bg-[#2563EB] text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] active:scale-[0.98] transition-transform duration-120 flex flex-col justify-between cursor-pointer"
           >
             {/* Row 1: tag "FREE" + "₹0" */}
             <div className="flex items-center justify-between w-full">
@@ -138,7 +189,7 @@ export const Hero: React.FC<HeroProps> = ({
             </div>
 
             {/* Row 2: "Get 30+ starter prompts" + Arrow */}
-            <div className="flex items-center justify-between w-full mt-1.5">
+            <div className="flex items-center justify-between w-full mt-1">
               <span className="text-[17px] font-semibold text-white tracking-tight whitespace-nowrap">
                 Get 30+ starter prompts
               </span>
@@ -151,14 +202,14 @@ export const Hero: React.FC<HeroProps> = ({
             </div>
           </button>
 
-          {/* CARD B — PAID (below, the upgrade) */}
+          {/* CARD B — PAID (below, the upgrade, min-height 70px, padding 12px 16px) */}
           <button
             type="button"
             onClick={() => {
               try { sound.playSuccess(); } catch {}
               onUnlockClick();
             }}
-            className="w-full min-h-[76px] p-[14px_16px] rounded-[14px] bg-white/[0.03] border border-white/[0.12] text-left active:scale-[0.98] transition-transform duration-120 flex flex-col justify-between cursor-pointer"
+            className="w-full min-h-[70px] p-[12px_16px] rounded-[14px] bg-white/[0.03] border border-white/[0.12] text-left active:scale-[0.98] transition-transform duration-120 flex flex-col justify-between cursor-pointer"
           >
             {/* Row 1: tag "FULL VAULT" + Price "₹49" + strikethrough "₹499" */}
             <div className="flex items-center justify-between w-full">
@@ -176,7 +227,7 @@ export const Hero: React.FC<HeroProps> = ({
             </div>
 
             {/* Row 2: "Unlock all 500+ prompts" + Arrow */}
-            <div className="flex items-center justify-between w-full mt-1.5">
+            <div className="flex items-center justify-between w-full mt-1">
               <span className="text-[17px] font-semibold text-[#F5F5F7] tracking-tight whitespace-nowrap">
                 Unlock all 500+ prompts
               </span>
@@ -189,13 +240,13 @@ export const Hero: React.FC<HeroProps> = ({
             </div>
           </button>
 
-          {/* Tiny reassurance line under Card B */}
+          {/* Reassurance line under Card B */}
           <div className="mt-1 text-center text-[12px] text-[#6B7280] whitespace-nowrap">
             Start free. Upgrade only if you love it.
           </div>
         </div>
 
-        {/* ──────── 7. TRUST LINE ────────
+        {/* ──────── 6. TRUST LINE ────────
             3 overlapping avatars (22px, 2px border #0B0D12) + "Used by 2,000+ creators"
             13px #8B8F98, "2,000+" in #F5F5F7. Centered, margin-top 16px, one line at 360px. */}
         <div
@@ -217,68 +268,6 @@ export const Hero: React.FC<HeroProps> = ({
           <span>
             Used by <strong className="text-[#F5F5F7] font-medium">2,000+</strong> creators
           </span>
-        </div>
-
-        {/* ──────── 8. LAPTOP MOCKUP ────────
-            Margin-top 32px, width 92%, centered, no tilt.
-            NO "LIVE DEMO" pill, NO "60 FPS WEBGL" chip.
-            NO blue glow behind it. Only dark shadow: 0 30px 60px -20px rgba(0,0,0,0.8).
-            Screen sharp (2x WebP / 60 FPS video), not cropped. Bottom fades 60px into #0B0D12. */}
-        <div
-          style={{ transitionDelay: '300ms', transitionDuration: '300ms' }}
-          className={`mt-8 w-[92%] max-w-[360px] mx-auto transition-all will-change-[transform,opacity] ${
-            mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
-          }`}
-        >
-          <div className="w-full flex flex-col items-center">
-            {/* Display Assembly */}
-            <div className="relative w-full aspect-[16/10] rounded-t-[16px] p-[2px] bg-gradient-to-b from-[#4a4d53] via-[#26282c] to-[#141518] shadow-[0_30px_60px_-20px_rgba(0,0,0,0.8)]">
-              {/* Top Metallic Highlight */}
-              <div className="absolute inset-x-4 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none z-20" />
-
-              {/* Display Bezel */}
-              <div className="absolute inset-[2px] rounded-t-[14px] bg-[#0c0d0f] p-[6px] flex flex-col justify-start overflow-hidden border border-black/80">
-                {/* Notch */}
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 z-30 w-[14%] min-w-[42px] max-w-[65px] h-[9px] bg-[#0c0d0f] rounded-b-[5px] flex items-center justify-center gap-1 shadow-md border-b border-x border-black">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#050507] ring-1 ring-white/10" />
-                  <div className="w-1 h-1 rounded-full bg-emerald-400/80" />
-                </div>
-
-                {/* Inner Screen */}
-                <div className="relative w-full h-full rounded-t-[10px] overflow-hidden bg-black flex items-center justify-center">
-                  <video
-                    src="https://pub-1e5b4001b36b47e28e6a2fb775966a79.r2.dev/previews/valmora.mp4"
-                    poster="https://images.unsplash.com/photo-1509631179647-0177331693ae?w=900&auto=format&fit=crop&q=80"
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    preload="metadata"
-                    className="w-full h-full object-cover object-top"
-                  />
-
-                  {/* Top dark gradient */}
-                  <div className="absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-black/70 to-transparent pointer-events-none z-10" />
-
-                  {/* Bottom 60px fade into #0B0D12 */}
-                  <div className="absolute inset-x-0 bottom-0 h-[60px] bg-gradient-to-t from-[#0B0D12] via-[#0B0D12]/80 to-transparent pointer-events-none z-10" />
-                </div>
-              </div>
-            </div>
-
-            {/* Aluminium Base Deck */}
-            <div className="relative w-[104%] -mt-[1px] flex flex-col items-center">
-              <div className="w-[16%] h-[2.5px] bg-gradient-to-r from-[#1c1d20] via-[#52565e] to-[#1c1d20] rounded-t-sm" />
-              <div className="relative w-full h-[9px] rounded-b-[10px] bg-gradient-to-b from-[#2a2c31] via-[#1a1b1e] to-[#0e0f11] shadow-[0_10px_20px_rgba(0,0,0,0.9)] border-t border-white/15 flex items-start justify-center">
-                <div className="w-12 h-1 bg-[#0c0d0f] rounded-b-sm border-b border-white/10" />
-              </div>
-              <div className="w-full flex justify-between px-[6%] -mt-[1px]">
-                <div className="w-5 h-[2px] bg-[#0a0a0c] rounded-b-full shadow-sm" />
-                <div className="w-5 h-[2px] bg-[#0a0a0c] rounded-b-full shadow-sm" />
-              </div>
-              <div className="w-[94%] h-4 bg-black/80 blur-xl -mt-2 rounded-full pointer-events-none" />
-            </div>
-          </div>
         </div>
       </div>
 
