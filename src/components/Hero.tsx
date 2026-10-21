@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Sparkles, ArrowRight } from 'lucide-react';
-import { HeroDeviceStage } from './mockups/HeroDeviceStage';
+import { HeroDeviceStage, HERO_SHOWCASE_VIDEOS, ShowcaseVideo } from './mockups/HeroDeviceStage';
 import { sound } from '../lib/audioEngine';
 
 interface HeroProps {
@@ -28,8 +28,53 @@ export const Hero: React.FC<HeroProps> = ({
 }) => {
   const [mounted, setMounted] = useState(false);
 
+  // Pick a random prompt showcase video on reload or first visit for mobile MacBook
+  const [randomMobileVideo] = useState<ShowcaseVideo>(() => {
+    const randomIndex = Math.floor(Math.random() * HERO_SHOWCASE_VIDEOS.length);
+    return HERO_SHOWCASE_VIDEOS[randomIndex];
+  });
+  const mobileVideoRef = useRef<HTMLVideoElement>(null);
+  const mobileLidRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  // Ensure muted autoplay works seamlessly on iOS Safari & Android
+  useEffect(() => {
+    if (mobileVideoRef.current) {
+      mobileVideoRef.current.defaultMuted = true;
+      mobileVideoRef.current.muted = true;
+      mobileVideoRef.current.play().catch(() => {});
+    }
+  }, [randomMobileVideo]);
+
+  // Scroll sync ONLY on mobile devices (< 768px): close-to-open (38deg -> 0deg)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.innerWidth >= 768) return;
+
+    let rafId: number | null = null;
+    const updateLid = () => {
+      if (!mobileLidRef.current) return;
+      const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
+      // Close-to-open: starts at 38deg (semi-closed/tilted in 3D), rotates to 0deg (open)
+      const progress = Math.min(1, Math.max(0, scrollY / 220));
+      const angle = 38 * (1 - progress);
+      mobileLidRef.current.style.transform = `perspective(1000px) rotateX(${angle.toFixed(1)}deg)`;
+    };
+
+    const handleScroll = () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(updateLid);
+    };
+
+    updateLid();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      window.removeEventListener('scroll', handleScroll);
+    };
   }, []);
 
   return (
@@ -85,10 +130,9 @@ export const Hero: React.FC<HeroProps> = ({
         </h1>
 
         {/* ──────── 3. MACBOOK MOCKUP (Directly under headline, 20px top, 20px bottom) ────────
-            Width: 100% of content width (screen minus 16px each side). Real proportions (16:10), no tilt.
-            Auto-scrolling 2x WebP screenshot: moves top to bottom in 12s, pauses 1.5s, goes back in 12s.
-            Shadow: 0 24px 48px -16px rgba(0,0,0,0.8). No blue glow, no floating tags.
-            High priority fetchpriority="high", width & height set to prevent CLS. */}
+            - Shows random prompt video on reload / first load
+            - Scroll-synced close-to-open (38deg -> 0deg) on mobile devices only
+            - 100% content width, max 360px, shadow: 0 24px 48px -16px rgba(0,0,0,0.8) */}
         <div
           style={{ transitionDelay: '100ms', transitionDuration: '300ms' }}
           className={`w-full my-5 max-w-[360px] mx-auto select-none pointer-events-none transition-all will-change-[transform,opacity] ${
@@ -96,8 +140,16 @@ export const Hero: React.FC<HeroProps> = ({
           }`}
         >
           <div className="w-full flex flex-col items-center">
-            {/* Display Assembly */}
-            <div className="relative w-full aspect-[16/10] rounded-t-[16px] p-[2px] bg-gradient-to-b from-[#4a4d53] via-[#26282c] to-[#141518] shadow-[0_24px_48px_-16px_rgba(0,0,0,0.8)]">
+            {/* Display Assembly with 3D scroll sync (close-to-open) */}
+            <div
+              ref={mobileLidRef}
+              style={{
+                transformOrigin: 'bottom center',
+                transform: 'perspective(1000px) rotateX(38deg)',
+                transition: 'transform 0.08s ease-out',
+              }}
+              className="relative w-full aspect-[16/10] rounded-t-[16px] p-[2px] bg-gradient-to-b from-[#4a4d53] via-[#26282c] to-[#141518] shadow-[0_24px_48px_-16px_rgba(0,0,0,0.8)] will-change-transform"
+            >
               {/* Top Metallic Highlight */}
               <div className="absolute inset-x-4 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none z-20" />
 
@@ -106,26 +158,40 @@ export const Hero: React.FC<HeroProps> = ({
                 {/* Notch */}
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 z-30 w-[14%] min-w-[42px] max-w-[65px] h-[8px] bg-[#0c0d0f] rounded-b-[5px] flex items-center justify-center gap-1 shadow-md border-b border-x border-black">
                   <div className="w-1.5 h-1.5 rounded-full bg-[#050507] ring-1 ring-white/10" />
-                  <div className="w-1 h-1 rounded-full bg-emerald-400/80" />
+                  <div className="w-1 h-1 rounded-full bg-emerald-400/80 animate-pulse" />
                 </div>
 
-                {/* Screen Content: Auto-scrolling sharp 2x WebP screenshot */}
-                <div className="relative w-full h-full rounded-t-[10px] overflow-hidden bg-[#0B0D12] flex items-start justify-center">
-                  <img
-                    src="/website-preview.webp"
-                    alt="APEX3D 3D WebGL Prompts Vault Website Preview"
-                    width={720}
-                    height={1125}
-                    fetchPriority="high"
-                    decoding="async"
-                    className="w-full h-auto object-cover object-top animate-laptop-scroll will-change-transform"
+                {/* Inner Screen: Random Prompt Video on Reload / First Load */}
+                <div className="relative w-full h-full rounded-t-[10px] overflow-hidden bg-black flex items-center justify-center">
+                  <video
+                    ref={mobileVideoRef}
+                    key={randomMobileVideo.id}
+                    src={randomMobileVideo.videoUrl}
+                    poster={randomMobileVideo.posterUrl}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    preload="auto"
+                    className="w-full h-full object-cover object-top"
                   />
 
                   {/* Top dark gradient */}
                   <div className="absolute inset-x-0 top-0 h-6 bg-gradient-to-b from-black/60 to-transparent pointer-events-none z-10" />
 
-                  {/* Bottom 60px fade into #0B0D12 */}
-                  <div className="absolute inset-x-0 bottom-0 h-[60px] bg-gradient-to-t from-[#0B0D12] via-[#0B0D12]/80 to-transparent pointer-events-none z-10" />
+                  {/* 60 FPS WebGL live badge */}
+                  <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-md border border-white/15 text-[8px] font-mono text-white/90 flex items-center gap-1.5 pointer-events-none z-10 shadow-sm">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>60 FPS WEBGL</span>
+                  </div>
+
+                  {/* Active prompt title badge */}
+                  <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-[8px] font-mono text-white/70 pointer-events-none z-10">
+                    {randomMobileVideo.name}
+                  </div>
+
+                  {/* Bottom 40px fade into #0B0D12 */}
+                  <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#0B0D12]/90 via-[#0B0D12]/40 to-transparent pointer-events-none z-10" />
                 </div>
               </div>
             </div>

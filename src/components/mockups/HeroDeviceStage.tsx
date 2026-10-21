@@ -58,6 +58,27 @@ export const HERO_SHOWCASE_VIDEOS: ShowcaseVideo[] = [
     videoUrl: 'https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/designs/anchor-ai-landing.mp4',
     posterUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1400&auto=format&fit=crop&q=80',
   },
+  {
+    id: 'spatial-os',
+    name: 'SPATIAL OS',
+    subtitle: 'Kinetic WebGL Canvas & Dimensional UI',
+    videoUrl: 'https://images.refero.design/styles/refero.design/video/7b76f1c1-600b-444f-a1a1-c51c831ec51a.mp4',
+    posterUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1400&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'obsidian-cyber',
+    name: 'OBSIDIAN CYBER',
+    subtitle: 'Dark Raymarched Shader & Volumetric Atmosphere',
+    videoUrl: 'https://images.refero.design/styles/refero.design/video/6e6ad2ff-26c5-4fb6-90dc-ee4c3d596ca7.mp4',
+    posterUrl: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=1400&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'fluid-luxury',
+    name: 'FLUID LUXURY',
+    subtitle: 'Curved Glass Distortion & Dynamic Specular',
+    videoUrl: 'https://images.refero.design/styles/refero.design/video/8b7c1764-b8c0-4d71-9b7e-6bd84bce04ad.mp4',
+    posterUrl: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=1400&auto=format&fit=crop&q=80',
+  },
 ];
 
 interface HeroDeviceStageProps {
