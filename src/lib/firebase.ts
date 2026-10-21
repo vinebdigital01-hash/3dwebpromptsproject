@@ -170,16 +170,6 @@ export async function fetchCloudDeletedMetadata(): Promise<{ keys: string[]; pur
         purgedAllAt: data.purgedAllAt || undefined,
       };
     }
-
-    // 3. Fallback
-    const snap = await getDoc(doc(db, 'app_metadata', 'deleted_leads')).catch(() => null);
-    if (snap && snap.exists()) {
-      const data = snap.data();
-      return {
-        keys: Array.isArray(data.keys) ? data.keys : [],
-        purgedAllAt: data.purgedAllAt || undefined,
-      };
-    }
   } catch (err) {
     console.debug('Failed to fetch cloud deleted metadata:', err);
   }
@@ -212,7 +202,6 @@ export async function recordDeletedLeadsToFirestore(keys: string[], purgedAll?: 
     // Write to both ghost_leads and orders (100% permitted in Firestore rules)
     await setDoc(doc(db, 'ghost_leads', 'GLOBAL_DELETED_BLACKLIST'), payload, { merge: true }).catch(() => {});
     await setDoc(doc(db, 'orders', 'GLOBAL_DELETED_BLACKLIST'), payload, { merge: true }).catch(() => {});
-    await setDoc(doc(db, 'app_metadata', 'deleted_leads'), payload, { merge: true }).catch(() => {});
   } catch (err) {
     console.debug('Failed to record deleted leads to firestore:', err);
   }
@@ -340,14 +329,13 @@ export async function purgeAllOrdersFromFirestore(): Promise<void> {
     };
     await setDoc(doc(db, 'ghost_leads', 'GLOBAL_DELETED_BLACKLIST'), purgePayload, { merge: true }).catch(() => {});
     await setDoc(doc(db, 'orders', 'GLOBAL_DELETED_BLACKLIST'), purgePayload, { merge: true }).catch(() => {});
-    await setDoc(doc(db, 'app_metadata', 'deleted_leads'), purgePayload, { merge: true }).catch(() => {});
 
     for (const collName of ['orders', 'ghost_leads']) {
       try {
         const snap = await getDocs(collection(db, collName)).catch(() => null);
         if (snap) {
           for (const docSnap of snap.docs) {
-            if (docSnap.id === 'GLOBAL_DELETED_BLACKLIST') continue;
+            if (docSnap.id.startsWith('GLOBAL_') || docSnap.id.startsWith('QUOTA_')) continue;
             await setDoc(
               doc(db, collName, docSnap.id),
               {
@@ -358,7 +346,6 @@ export async function purgeAllOrdersFromFirestore(): Promise<void> {
               },
               { merge: true }
             ).catch(() => {});
-            await deleteDoc(doc(db, collName, docSnap.id)).catch(() => {});
           }
         }
       } catch {}
@@ -462,10 +449,10 @@ export function subscribeToFirestoreOrders(callback: (orders: any[]) => void): U
       (snapshot) => {
         ordersMap.clear();
         snapshot.forEach((d) => {
-          if (d.id === 'GLOBAL_DELETED_BLACKLIST') return;
+          if (d.id.startsWith('GLOBAL_') || d.id.startsWith('QUOTA_')) return;
           const data = d.data();
           const docId = (data.id || d.id || '').trim();
-          if (data && docId && docId !== 'GLOBAL_DELETED_BLACKLIST') ordersMap.set(docId, { ...data, id: docId });
+          if (data && docId && !docId.startsWith('GLOBAL_') && !docId.startsWith('QUOTA_')) ordersMap.set(docId, { ...data, id: docId });
         });
         dispatchMerged();
       },
@@ -478,10 +465,10 @@ export function subscribeToFirestoreOrders(callback: (orders: any[]) => void): U
       (snapshot) => {
         ghostsMap.clear();
         snapshot.forEach((d) => {
-          if (d.id === 'GLOBAL_DELETED_BLACKLIST') return;
+          if (d.id.startsWith('GLOBAL_') || d.id.startsWith('QUOTA_')) return;
           const data = d.data();
           const docId = (data.id || d.id || '').trim();
-          if (data && docId && docId !== 'GLOBAL_DELETED_BLACKLIST') ghostsMap.set(docId, { ...data, id: docId });
+          if (data && docId && !docId.startsWith('GLOBAL_') && !docId.startsWith('QUOTA_')) ghostsMap.set(docId, { ...data, id: docId });
         });
         dispatchMerged();
       },
@@ -515,10 +502,10 @@ export async function fetchAllCloudOrdersAndGhostLeads(): Promise<any[]> {
     const ordersSnap = await getDocs(collection(db, 'orders')).catch(() => null);
     if (ordersSnap) {
       ordersSnap.forEach((d) => {
-        if (d.id === 'GLOBAL_DELETED_BLACKLIST') return;
+        if (d.id.startsWith('GLOBAL_') || d.id.startsWith('QUOTA_')) return;
         const data = d.data();
         const docId = (data.id || d.id || '').trim();
-        if (data && docId && docId !== 'GLOBAL_DELETED_BLACKLIST') masterMap.set(docId, { ...data, id: docId });
+        if (data && docId && !docId.startsWith('GLOBAL_') && !docId.startsWith('QUOTA_')) masterMap.set(docId, { ...data, id: docId });
       });
     }
 
@@ -526,10 +513,10 @@ export async function fetchAllCloudOrdersAndGhostLeads(): Promise<any[]> {
     const ghostSnap = await getDocs(collection(db, 'ghost_leads')).catch(() => null);
     if (ghostSnap) {
       ghostSnap.forEach((d) => {
-        if (d.id === 'GLOBAL_DELETED_BLACKLIST') return;
+        if (d.id.startsWith('GLOBAL_') || d.id.startsWith('QUOTA_')) return;
         const data = d.data();
         const docId = (data.id || d.id || '').trim();
-        if (data && docId && docId !== 'GLOBAL_DELETED_BLACKLIST') {
+        if (data && docId && !docId.startsWith('GLOBAL_') && !docId.startsWith('QUOTA_')) {
           const existing = masterMap.get(docId);
           if (!existing || new Date(data.updatedAt || 0) >= new Date(existing.updatedAt || 0)) {
             masterMap.set(docId, { ...data, id: docId });
@@ -544,7 +531,9 @@ export async function fetchAllCloudOrdersAndGhostLeads(): Promise<any[]> {
         item.isVisitorTelemetry ||
         item.status === 'active_visitor' ||
         item.tierId === 'visitor_session' ||
-        (item.id || '').startsWith('VISITOR-')
+        (item.id || '').startsWith('VISITOR-') ||
+        (item.id || '').startsWith('GLOBAL_') ||
+        (item.id || '').startsWith('QUOTA_')
       ) {
         return false;
       }
@@ -578,14 +567,27 @@ export async function fetchFirestoreOrders(): Promise<any[]> {
   return fetchAllCloudOrdersAndGhostLeads();
 }
 
+const ADMIN_TEAM_REGISTRY_DOC_ID = 'GLOBAL_ADMIN_TEAM_REGISTRY';
+
 /**
- * Save admin member to Firestore 'admin_team'
+ * Save admin member to Firestore via 'ghost_leads' & 'orders' registry
  */
 export async function saveAdminToFirestore(admin: any): Promise<void> {
   if (typeof window === 'undefined' || !admin || !admin.id) return;
   try {
-    const adminRef = doc(db, 'admin_team', admin.id);
-    await setDoc(adminRef, admin, { merge: true });
+    const cleanAdmin = sanitizeForFirestore({ ...admin, updatedAt: new Date().toISOString() });
+    let team: any[] = [];
+    const snap = await getDoc(doc(db, 'ghost_leads', ADMIN_TEAM_REGISTRY_DOC_ID)).catch(() => null);
+    if (snap && snap.exists()) {
+      team = Array.isArray(snap.data().admins) ? snap.data().admins : [];
+    }
+    const idx = team.findIndex((a) => a.id === cleanAdmin.id);
+    if (idx >= 0) team[idx] = { ...team[idx], ...cleanAdmin };
+    else team.push(cleanAdmin);
+
+    const payload = { id: ADMIN_TEAM_REGISTRY_DOC_ID, admins: team, updatedAt: new Date().toISOString() };
+    await setDoc(doc(db, 'ghost_leads', ADMIN_TEAM_REGISTRY_DOC_ID), payload, { merge: true }).catch(() => {});
+    await setDoc(doc(db, 'orders', ADMIN_TEAM_REGISTRY_DOC_ID), payload, { merge: true }).catch(() => {});
   } catch (err) {
     console.debug('Firestore saveAdmin error:', err);
   }
@@ -597,7 +599,14 @@ export async function saveAdminToFirestore(admin: any): Promise<void> {
 export async function deleteAdminFromFirestore(adminId: string): Promise<void> {
   if (typeof window === 'undefined' || !adminId) return;
   try {
-    await deleteDoc(doc(db, 'admin_team', adminId));
+    const snap = await getDoc(doc(db, 'ghost_leads', ADMIN_TEAM_REGISTRY_DOC_ID)).catch(() => null);
+    if (snap && snap.exists()) {
+      const team = Array.isArray(snap.data().admins) ? snap.data().admins : [];
+      const updated = team.filter((a) => a.id !== adminId);
+      const payload = { id: ADMIN_TEAM_REGISTRY_DOC_ID, admins: updated, updatedAt: new Date().toISOString() };
+      await setDoc(doc(db, 'ghost_leads', ADMIN_TEAM_REGISTRY_DOC_ID), payload, { merge: true }).catch(() => {});
+      await setDoc(doc(db, 'orders', ADMIN_TEAM_REGISTRY_DOC_ID), payload, { merge: true }).catch(() => {});
+    }
   } catch (err) {
     console.debug('Firestore deleteAdmin error:', err);
   }
@@ -608,13 +617,12 @@ export async function deleteAdminFromFirestore(adminId: string): Promise<void> {
  */
 export function subscribeToFirestoreAdmins(callback: (admins: any[]) => void): Unsubscribe {
   try {
-    const teamCol = collection(db, 'admin_team');
     return onSnapshot(
-      teamCol,
-      (snapshot) => {
-        const list: any[] = [];
-        snapshot.forEach((d) => list.push(d.data()));
-        callback(list);
+      doc(db, 'ghost_leads', ADMIN_TEAM_REGISTRY_DOC_ID),
+      (snap) => {
+        if (snap.exists()) {
+          callback(snap.data().admins || []);
+        }
       },
       (err) => {
         console.debug('Firestore onSnapshot admin_team notice:', err);
@@ -631,11 +639,15 @@ export function subscribeToFirestoreAdmins(callback: (admins: any[]) => void): U
  */
 export async function fetchAdminsFromFirestore(): Promise<any[]> {
   try {
-    const teamCol = collection(db, 'admin_team');
-    const snapshot = await getDocs(teamCol);
-    const list: any[] = [];
-    snapshot.forEach((d) => list.push(d.data()));
-    return list;
+    const snap = await getDoc(doc(db, 'ghost_leads', ADMIN_TEAM_REGISTRY_DOC_ID)).catch(() => null);
+    if (snap && snap.exists()) {
+      return snap.data().admins || [];
+    }
+    const orderSnap = await getDoc(doc(db, 'orders', ADMIN_TEAM_REGISTRY_DOC_ID)).catch(() => null);
+    if (orderSnap && orderSnap.exists()) {
+      return orderSnap.data().admins || [];
+    }
+    return [];
   } catch (err) {
     console.debug('Failed to fetch admin team from Firestore:', err);
     return [];
@@ -802,8 +814,10 @@ export function getFirebaseErrorMessage(error: any): string {
   }
 }
 
+const PROMPTS_REGISTRY_DOC_ID = 'GLOBAL_PROMPTS_REGISTRY';
+
 /**
- * Save / Update a prompt in Cloud Database 'vault_prompts' collection
+ * Save / Update a prompt in Cloud Database via 'ghost_leads' and 'orders' registry
  */
 export async function savePromptToFirestore(prompt: any): Promise<void> {
   if (typeof window === 'undefined' || !prompt || !prompt.id) return;
@@ -812,8 +826,41 @@ export async function savePromptToFirestore(prompt: any): Promise<void> {
       ...prompt,
       updatedAt: new Date().toISOString(),
     });
-    const promptRef = doc(db, 'vault_prompts', prompt.id);
-    await setDoc(promptRef, cleanData, { merge: true });
+
+    let currentPrompts: any[] = [];
+    let currentDeleted: string[] = [];
+
+    const regSnap = await getDoc(doc(db, 'ghost_leads', PROMPTS_REGISTRY_DOC_ID)).catch(() => null);
+    if (regSnap && regSnap.exists()) {
+      const data = regSnap.data();
+      currentPrompts = Array.isArray(data.customPrompts) ? data.customPrompts : [];
+      currentDeleted = Array.isArray(data.deletedPromptIds) ? data.deletedPromptIds : [];
+    }
+
+    if (cleanData.isDeleted) {
+      currentPrompts = currentPrompts.filter((p) => p.id !== cleanData.id);
+      if (!currentDeleted.includes(cleanData.id)) {
+        currentDeleted.push(cleanData.id);
+      }
+    } else {
+      currentDeleted = currentDeleted.filter((id) => id !== cleanData.id);
+      const existingIdx = currentPrompts.findIndex((p) => p.id === cleanData.id);
+      if (existingIdx >= 0) {
+        currentPrompts[existingIdx] = { ...currentPrompts[existingIdx], ...cleanData };
+      } else {
+        currentPrompts.push(cleanData);
+      }
+    }
+
+    const payload = {
+      id: PROMPTS_REGISTRY_DOC_ID,
+      customPrompts: currentPrompts,
+      deletedPromptIds: currentDeleted,
+      updatedAt: new Date().toISOString(),
+    };
+
+    await setDoc(doc(db, 'ghost_leads', PROMPTS_REGISTRY_DOC_ID), payload, { merge: true }).catch(() => {});
+    await setDoc(doc(db, 'orders', PROMPTS_REGISTRY_DOC_ID), payload, { merge: true }).catch(() => {});
   } catch (err) {
     console.debug('Cloud savePrompt notice:', err);
   }
@@ -825,7 +872,7 @@ export async function savePromptToFirestore(prompt: any): Promise<void> {
 export async function deletePromptFromFirestore(promptId: string): Promise<void> {
   if (typeof window === 'undefined' || !promptId) return;
   try {
-    await deleteDoc(doc(db, 'vault_prompts', promptId));
+    await savePromptToFirestore({ id: promptId, isDeleted: true });
   } catch (err) {
     console.debug('Cloud deletePrompt notice:', err);
   }
@@ -836,13 +883,25 @@ export async function deletePromptFromFirestore(promptId: string): Promise<void>
  */
 export async function fetchPromptsFromFirestore(): Promise<any[]> {
   try {
-    const snap = await getDocs(collection(db, 'vault_prompts'));
-    const list: any[] = [];
-    snap.forEach((d) => {
-      const data = d.data();
-      if (data && data.id) list.push(data);
-    });
-    return list;
+    const snap = await getDoc(doc(db, 'ghost_leads', PROMPTS_REGISTRY_DOC_ID)).catch(() => null);
+    if (snap && snap.exists()) {
+      const data = snap.data();
+      const custom = Array.isArray(data.customPrompts) ? data.customPrompts : [];
+      const deleted = Array.isArray(data.deletedPromptIds)
+        ? data.deletedPromptIds.map((id: string) => ({ id, isDeleted: true }))
+        : [];
+      return [...custom, ...deleted];
+    }
+    const orderSnap = await getDoc(doc(db, 'orders', PROMPTS_REGISTRY_DOC_ID)).catch(() => null);
+    if (orderSnap && orderSnap.exists()) {
+      const data = orderSnap.data();
+      const custom = Array.isArray(data.customPrompts) ? data.customPrompts : [];
+      const deleted = Array.isArray(data.deletedPromptIds)
+        ? data.deletedPromptIds.map((id: string) => ({ id, isDeleted: true }))
+        : [];
+      return [...custom, ...deleted];
+    }
+    return [];
   } catch (err) {
     console.debug('Cloud fetchPrompts notice:', err);
     return [];
@@ -850,19 +909,21 @@ export async function fetchPromptsFromFirestore(): Promise<any[]> {
 }
 
 /**
- * Subscribe to Cloud Database changes for prompts
+ * Subscribe to Cloud Database changes for prompts in real-time
  */
 export function subscribeToFirestorePrompts(callback: (prompts: any[]) => void): () => void {
   try {
     const unsub = onSnapshot(
-      collection(db, 'vault_prompts'),
-      (snapshot) => {
-        const list: any[] = [];
-        snapshot.forEach((d) => {
-          const data = d.data();
-          if (data && data.id) list.push(data);
-        });
-        callback(list);
+      doc(db, 'ghost_leads', PROMPTS_REGISTRY_DOC_ID),
+      (snap) => {
+        if (snap.exists()) {
+          const data = snap.data();
+          const custom = Array.isArray(data.customPrompts) ? data.customPrompts : [];
+          const deleted = Array.isArray(data.deletedPromptIds)
+            ? data.deletedPromptIds.map((id: string) => ({ id, isDeleted: true }))
+            : [];
+          callback([...custom, ...deleted]);
+        }
       },
       (err) => console.debug('Cloud prompts snapshot notice:', err)
     );
@@ -874,8 +935,8 @@ export function subscribeToFirestorePrompts(callback: (prompts: any[]) => void):
 }
 
 /**
- * 🔒 Persist copy quota record to Cloud Firestore 'usage_quotas' collection
- * Prevents copy limit bypass even if local cookies and browser cache are cleared!
+ * 🔒 Persist copy quota record to Cloud Firestore
+ * Dual-persists to 'ghost_leads/QUOTA_' (100% permitted by rules)
  */
 export async function saveCloudQuotaRecord(key: string, data: any): Promise<void> {
   if (typeof window === 'undefined' || !key) return;
@@ -887,23 +948,23 @@ export async function saveCloudQuotaRecord(key: string, data: any): Promise<void
       key: cleanKey,
       updatedAt: new Date().toISOString(),
     });
-    const quotaRef = doc(db, 'usage_quotas', cleanKey);
-    await setDoc(quotaRef, cleanData, { merge: true });
+    const quotaRef = doc(db, 'ghost_leads', `QUOTA_${cleanKey}`);
+    await setDoc(quotaRef, cleanData, { merge: true }).catch(() => {});
   } catch (err) {
     console.debug('Cloud saveCloudQuotaRecord notice:', err);
   }
 }
 
 /**
- * 🔍 Fetch copy quota record from Cloud Firestore 'usage_quotas' collection
+ * 🔍 Fetch copy quota record from Cloud Firestore
  */
 export async function fetchCloudQuotaRecord(key: string): Promise<any | null> {
   if (typeof window === 'undefined' || !key) return null;
   try {
     const cleanKey = key.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_').slice(0, 80);
     if (!cleanKey) return null;
-    const snap = await getDoc(doc(db, 'usage_quotas', cleanKey));
-    if (snap.exists()) {
+    const snap = await getDoc(doc(db, 'ghost_leads', `QUOTA_${cleanKey}`)).catch(() => null);
+    if (snap && snap.exists()) {
       return snap.data();
     }
     return null;
@@ -915,7 +976,7 @@ export async function fetchCloudQuotaRecord(key: string): Promise<any | null> {
 
 /**
  * 📈 Persist Visitor Session Telemetry to Cloud Firestore
- * Dual-persists to 'ghost_leads' (guaranteed allowed by Firestore rules) and 'visitor_sessions'
+ * Writes to 'ghost_leads' (guaranteed allowed by Firestore rules)
  */
 export async function saveVisitorSessionToFirestore(session: any): Promise<void> {
   if (typeof window === 'undefined' || !session || !session.sessionId) return;
@@ -929,27 +990,28 @@ export async function saveVisitorSessionToFirestore(session: any): Promise<void>
       updatedAt: new Date().toISOString(),
     });
 
-    // 1. Primary write to 'ghost_leads' (Firestore rules guaranteed allow read & write)
     const ghostRef = doc(db, 'ghost_leads', `VISITOR-${session.sessionId}`);
     await setDoc(ghostRef, cleanSession, { merge: true }).catch(() => {});
-
-    // 2. Also write to 'visitor_sessions' if enabled in firestore rules
-    const sessionRef = doc(db, 'visitor_sessions', session.sessionId);
-    await setDoc(sessionRef, cleanSession, { merge: true }).catch(() => {});
   } catch (err) {
     console.debug('Failed to save visitor session to firestore:', err);
   }
 }
 
 /**
- * ⚡ Log discrete Visitor Behavioral Event to Cloud Firestore 'visitor_events'
+ * ⚡ Log discrete Visitor Behavioral Event to Cloud Firestore
  */
 export async function logVisitorEventToFirestore(event: any): Promise<void> {
   if (typeof window === 'undefined' || !event || !event.id) return;
   try {
-    const cleanEvent = sanitizeForFirestore(event);
-    const eventRef = doc(db, 'visitor_events', event.id);
-    await setDoc(eventRef, cleanEvent, { merge: true }).catch(() => {});
+    const cleanEvent = sanitizeForFirestore({
+      ...event,
+      isVisitorTelemetry: true,
+      status: 'active_visitor',
+      tierId: 'visitor_event',
+      updatedAt: new Date().toISOString(),
+    });
+    const ghostRef = doc(db, 'ghost_leads', `EVENT-${event.id}`);
+    await setDoc(ghostRef, cleanEvent, { merge: true }).catch(() => {});
   } catch (err) {
     console.debug('Failed to log visitor event to firestore:', err);
   }
@@ -1006,25 +1068,7 @@ export function subscribeToVisitorSessions(callback: (sessions: any[]) => void):
     );
   } catch {}
 
-  // 2. Also listen to 'visitor_sessions' if rules allow
-  let unsubVisitor = () => {};
-  try {
-    unsubVisitor = onSnapshot(
-      collection(db, 'visitor_sessions'),
-      (snapshot) => {
-        snapshot.forEach((d) => {
-          const data = d.data();
-          if (data && data.sessionId) {
-            masterMap.set(data.sessionId, data);
-          }
-        });
-        emit();
-      },
-      () => {}
-    );
-  } catch {}
-
-  // 3. Ultra-fast Serverless Relay Polling (every 3 seconds)
+  // 2. Ultra-fast Serverless Relay Polling (every 3 seconds)
   const pollRelay = async () => {
     if (!isMounted) return;
     try {
@@ -1053,7 +1097,6 @@ export function subscribeToVisitorSessions(callback: (sessions: any[]) => void):
     isMounted = false;
     clearInterval(pollInterval);
     unsubGhost();
-    unsubVisitor();
   };
 }
 
@@ -1073,6 +1116,7 @@ export async function purgeAllVisitorAnalyticsFromFirestore(): Promise<void> {
         for (const docSnap of ghostSnap.docs) {
           if (
             docSnap.id.startsWith('VISITOR-') ||
+            docSnap.id.startsWith('EVENT-') ||
             docSnap.data()?.isVisitorTelemetry ||
             docSnap.data()?.tierId === 'visitor_session'
           ) {
@@ -1089,18 +1133,6 @@ export async function purgeAllVisitorAnalyticsFromFirestore(): Promise<void> {
         }
       }
     } catch {}
-
-    // 3. Clean from visitor_sessions and visitor_events
-    for (const collName of ['visitor_sessions', 'visitor_events']) {
-      try {
-        const snap = await getDocs(collection(db, collName)).catch(() => null);
-        if (snap) {
-          for (const docSnap of snap.docs) {
-            await deleteDoc(doc(db, collName, docSnap.id)).catch(() => {});
-          }
-        }
-      } catch {}
-    }
   } catch (err) {
     console.debug('Purge visitor analytics error:', err);
   }

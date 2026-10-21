@@ -106,6 +106,7 @@ import {
   updateVaultPrompt,
   deleteVaultPrompt,
   resetToDefaultPrompts,
+  initPromptsCloudSync,
 } from '../lib/promptCatalogStore';
 import {
   testCloudConnection,
@@ -323,12 +324,8 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
       }
     });
 
-    // 4. Real-time direct Firestore Prompts listener
-    const unsubPrompts = subscribeToFirestorePrompts((cloudPrompts) => {
-      if (Array.isArray(cloudPrompts) && cloudPrompts.length > 0) {
-        setPromptsList(cloudPrompts);
-      }
-    });
+    // 4. Real-time bi-directional Firestore Prompts sync
+    const unsubPrompts = initPromptsCloudSync();
 
     // Automated background drip follow-up heartbeat (throttled to max once every 4h, respects per-recipient rate limits)
     triggerDripFollowupHeartbeat(false).catch(() => {});

@@ -188,10 +188,20 @@ export function initPromptsCloudSync(): () => void {
       if (cloudPrompts && cloudPrompts.length > 0) {
         mergeCloudPrompts(cloudPrompts);
       }
+
+      // Two-way sync: Push any local custom prompts from this device to cloud registry so mobile gets them
+      try {
+        const cloudIds = new Set((cloudPrompts || []).map((cp) => cp.id));
+        inMemoryCloudPrompts.forEach((prompt, id) => {
+          if (!cloudIds.has(id) && !prompt.isDeleted) {
+            savePromptToFirestore(prompt).catch(() => {});
+          }
+        });
+      } catch {}
     })
     .catch((err) => console.debug('Initial cloud prompts fetch notice:', err));
 
-  // 2. Real-time subscription to Firestore collection
+  // 2. Real-time subscription to Firestore
   const unsub = subscribeToFirestorePrompts((cloudPrompts) => {
     if (cloudPrompts && cloudPrompts.length > 0) {
       mergeCloudPrompts(cloudPrompts);

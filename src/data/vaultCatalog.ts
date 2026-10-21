@@ -689,6 +689,151 @@ Implement specular border highlights that reflect pointer coordinates, multi-tie
       'Reseller agreement documentation permitting turnkey handover to other creators'
     ],
     promptArchitecture: `Generate a high-ticket agency sales script and proposal deck for pitching $15,000 3D website redesigns to DTC and B2B SaaS founders.`
+  },
+  {
+    id: 'porsche-taycan-aerodynamics',
+    title: 'Porsche Taycan Wind Tunnel Aerodynamics & Particle Streamline Shader',
+    subtitle: 'Interactive Aerodynamic Velocity Vector Field & Thermal Brake Heating',
+    category: 'E-Commerce',
+    filterGroup: 'E-Commerce 3D',
+    clientValue: '$24,000',
+    testedModels: ['Claude 3.7 Sonnet', 'Cursor Agent', 'ChatGPT o3'],
+    tokens: 3450,
+    highlightStat: '60 FPS WebGL 2.0',
+    videoUrl: 'https://pub-1e5b4001b36b47e28e6a2fb775966a79.r2.dev/previews/valmora.mp4',
+    poster: 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?w=1400&auto=format&fit=crop&q=80',
+    fpsBadge: '60 FPS AERODYNAMICS',
+    description: 'High-fidelity wind tunnel vehicle aerodynamics simulator featuring laminar particle streamlines, drag coefficient HUD analytics, and incandescent carbon ceramic brake disc shaders.',
+    tags: ['Automotive WebGL', 'Wind Tunnel', 'Particle Vectors', 'PBR Shaders'],
+    keyFeatures: [
+      'Interactive particle flow reacting to vehicle curvature and active rear spoiler angle',
+      'Live drag coefficient (Cd 0.22) calculation telemetry with velocity color grading',
+      'Thermal disc brake glowing vertex shader modulating heat under simulated deceleration',
+      'Realistic studio lighting preset with specular carbon reflections and asphalt bloom'
+    ],
+    promptArchitecture: `Act as a senior Creative Technologist specializing in luxury automotive WebGL.
+Build an interactive Porsche Taycan Wind Tunnel Aerodynamic visualizer using React 19, Three.js, and GLSL shaders.
+Render 15,000 instanced laminar particle streamlines curving over the car chassis with drag coefficient HUD metrics.`
+  },
+  {
+    id: 'spatial-galaxy-blackhole',
+    title: 'Interstellar Kerr Black Hole & Gravitational Lensing Engine',
+    subtitle: 'General Relativistic Raymarching with Doppler Accretion Disk Physics',
+    category: 'Spatial OS',
+    filterGroup: 'Spatial & WebGL',
+    clientValue: '$26,500',
+    testedModels: ['Claude 3.7 Sonnet', 'Cursor Agent'],
+    tokens: 3900,
+    highlightStat: 'Awwwards Tech Feature',
+    videoUrl: 'https://pub-1e5b4001b36b47e28e6a2fb775966a79.r2.dev/previews/selene.mp4',
+    poster: 'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=1400&auto=format&fit=crop&q=80',
+    fpsBadge: '60 FPS COMPUTE',
+    description: 'Raymarched black hole visualizer simulating gravitational light curvature, Einstein rings, Doppler beaming color shifts, and dynamic relativistic particle accretion disks.',
+    tags: ['Gravitational Lensing', 'Black Hole Raymarching', 'Astrophysics WebGL'],
+    keyFeatures: [
+      'Custom fragment shader raymarching light paths around the Schwarzschild event horizon',
+      'Relativistic Doppler beaming creating asymmetric luminous accretion brightness',
+      'Background starfield deflection warping smoothly with camera orbit momentum',
+      'Interactive time dilation controls and gravitational wave distortion ripple pulses'
+    ],
+    promptArchitecture: `Build a real-time Kerr Black Hole Gravitational Lensing shader in React + Three.js.
+Implement fragment shader raymarching calculating null geodesics around the event horizon with Doppler beaming accretion disk dynamics.`
+  },
+  {
+    id: 'neural-brain-connectome',
+    title: 'Synaptic Connectome Neural EEG Brain Visualizer',
+    subtitle: '100,000 Instanced Synapses with Real-Time Action Potential Pulses',
+    category: 'High-Ticket',
+    filterGroup: 'High-Ticket Agency',
+    clientValue: '$22,000',
+    testedModels: ['Claude 3.7 Sonnet', 'ChatGPT o3'],
+    tokens: 3600,
+    highlightStat: 'MedTech Enterprise SOW',
+    videoUrl: 'https://pub-1e5b4001b36b47e28e6a2fb775966a79.r2.dev/previews/fluxora.mp4',
+    poster: 'https://images.unsplash.com/photo-1559757175-5700dde675bc?w=1400&auto=format&fit=crop&q=80',
+    fpsBadge: '60 FPS NEURAL',
+    description: 'Enterprise neurotechnology visualizer rendering 100,000 neural pathways, synaptic action potential electrical propagation, and interactive cerebral lobe dissection.',
+    tags: ['NeuroTech', 'Instanced Points', 'EEG Waves', 'Medical 3D'],
+    keyFeatures: [
+      'Instanced buffer geometry displaying 100k neural axons with glowing electrical spikes',
+      'Frequency band selection (Delta, Theta, Alpha, Beta, Gamma) modulating wave frequencies',
+      'Interactive exploded lobe inspection highlighting frontal, parietal, and occipital cortices',
+      'Designed for enterprise neurological research platforms and high-ticket health-tech SaaS'
+    ],
+    promptArchitecture: `Architect an interactive 3D Synaptic Brain Connectome in Three.js and React.
+Simulate 100,000 instanced fiber tracts with glowing action potential electrical impulses and EEG frequency filtering.`
+  },
+  {
+    id: 'rolex-submariner-oceanic',
+    title: 'Rolex Submariner Hydrodynamic Pressure & Chromalight Lume Dial',
+    subtitle: '300M Deep Ocean Caustics, Cerachrom Bezel & Luminescent Emission',
+    category: 'Luxury',
+    filterGroup: 'Luxury Brands',
+    clientValue: '$27,500',
+    testedModels: ['Claude 3.7 Sonnet', 'Cursor Agent'],
+    tokens: 3750,
+    highlightStat: 'Swiss Horology Standard',
+    videoUrl: 'https://pub-1e5b4001b36b47e28e6a2fb775966a79.r2.dev/previews/valmora.mp4',
+    poster: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=1400&auto=format&fit=crop&q=80',
+    fpsBadge: '60 FPS HOROLOGY',
+    description: 'Ultra-precision horology product experience with Cerachrom ceramic bezel reflections, Chromalight photoluminescence glowing under dark mode, and oceanic water refraction caustics.',
+    tags: ['Luxury Horology', 'Ceramic PBR', 'Luminescent Shaders', 'Caustic Physics'],
+    keyFeatures: [
+      'Procedural sapphire crystal reflection and anti-reflective coating shader',
+      'Photoluminescent Chromalight emission charging dynamically under virtual flashlight beam',
+      'Hydrodynamic underwater caustics with volumetric light shafts and micro-bubbles',
+      'Unidirectional rotating 120-click knurled bezel with haptic and audio feedback'
+    ],
+    promptArchitecture: `Generate a Swiss-grade luxury 3D Horology product showcase for the Rolex Submariner.
+Include photorealistic ceramic Cerachrom bezel reflections, Chromalight lume emission shaders, and underwater caustic light refraction.`
+  },
+  {
+    id: 'architectural-concrete-villa',
+    title: 'Tadao Ando Brutalist Concrete & Natural Light Raymarching',
+    subtitle: 'Volumetric Daylight Slits, PBR Formwork Tie-Holes & Reflective Pool',
+    category: 'Minimalist',
+    filterGroup: 'Luxury Brands',
+    clientValue: '$23,500',
+    testedModels: ['Claude 3.7 Sonnet', 'Cursor Agent'],
+    tokens: 3300,
+    highlightStat: 'Architectural Digest SOTD',
+    videoUrl: 'https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/designs/anchor-ai-landing.mp4',
+    poster: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1400&auto=format&fit=crop&q=80',
+    fpsBadge: '60 FPS ARCHITECTURE',
+    description: 'Serene brutalist architectural sanctum celebrating light and shadow. Features smooth exposed architectural concrete panels with formwork tie-holes, volumetric sunlight slits, and water caustics.',
+    tags: ['Architectural 3D', 'Brutalist Concrete', 'Volumetric Sunlight', 'Water Physics'],
+    keyFeatures: [
+      'Volumetric sunlight god-rays streaming through precise structural concrete slits',
+      'PBR silky concrete normal maps with subtle formwork seams and circular tie-holes',
+      'Gentle ripple water physics on obsidian reflecting pool with mirror reflection plane',
+      'Kinetic sun path slider adjusting time of day and shadow elongation in real time'
+    ],
+    promptArchitecture: `Create a brutalist Tadao Ando architectural 3D environment in React 19 + Three.js.
+Feature volumetric god-rays cutting through concrete slits, silky formwork tie-hole textures, and a reflecting pool with water normal perturbation.`
+  },
+  {
+    id: 'defi-yield-matrix-cube',
+    title: 'DeFi Institutional Volatility Matrix & 3D Orderbook Cube',
+    subtitle: 'High-Frequency Quantitative Order Depth & Surface Volatility Surface',
+    category: 'FinTech',
+    filterGroup: 'AI Agents & Systems',
+    clientValue: '$25,000',
+    testedModels: ['Claude 3.7 Sonnet', 'ChatGPT o3'],
+    tokens: 3550,
+    highlightStat: 'Wall Street FinTech Billed',
+    videoUrl: 'https://pub-1e5b4001b36b47e28e6a2fb775966a79.r2.dev/previews/ora.mp4',
+    poster: 'https://images.unsplash.com/photo-1642543492481-44e81e3914a7?w=1400&auto=format&fit=crop&q=80',
+    fpsBadge: '60 FPS QUANTITATIVE',
+    description: 'Wall Street institutional financial terminal featuring real-time 3D volumetric bid/ask liquidity mountains, live volatility surface mesh deformation, and dark Bloomberg-glass styling.',
+    tags: ['FinTech 3D', 'Orderbook Depth', 'Volatility Surface', 'WebSocket WebGL'],
+    keyFeatures: [
+      '3D isometric orderbook depth wall updating with live bid/ask spread transactions',
+      'Dynamic implied volatility surface mesh deforming across strike prices and maturities',
+      'Obsidian frosted glass panel HUD with neon cyan/magenta liquidity heatmaps',
+      'Custom particle bursts radiating upon simulated institutional block trade executions'
+    ],
+    promptArchitecture: `Build a 3D Institutional FinTech Liquidity Visualizer in Three.js and React.
+Render real-time 3D orderbook depth walls and a deforming volatility surface with obsidian glass UI and kinetic particle block trades.`
   }
 ];
 
