@@ -43,19 +43,19 @@ export const IPhoneMockup: React.FC<IPhoneMockupProps> = ({
         <div className="absolute right-[2px] top-4 bottom-4 w-[1px] bg-gradient-to-b from-transparent via-white/20 to-white/40 pointer-events-none" />
 
         {/* 3. INNER DISPLAY BEZEL */}
-        <div className="relative w-full h-full rounded-[22px] xs:rounded-[26px] sm:rounded-[32px] md:rounded-[36px] bg-black p-[3.5px] sm:p-[5px] md:p-[6px] overflow-hidden flex flex-col justify-start border border-[#1a1a1d]">
-          {/* DYNAMIC ISLAND PILL CUTOUT */}
-          <div className="absolute top-1.5 sm:top-2 left-1/2 -translate-x-1/2 z-30 w-[28%] min-w-[28px] max-w-[50px] h-[8px] sm:h-[12px] bg-black rounded-full flex items-center justify-between px-1 shadow-inner ring-1 ring-white/5">
+        <div className="relative w-full h-full rounded-[22px] xs:rounded-[26px] sm:rounded-[32px] md:rounded-[36px] bg-black p-[2.5px] sm:p-[3.5px] pt-[11px] sm:pt-[14px] overflow-hidden flex flex-col justify-start border border-[#1a1a1d]">
+          {/* DYNAMIC ISLAND PILL CUTOUT - Sits cleanly inside top bezel frame */}
+          <div className="absolute top-1 sm:top-1.5 left-1/2 -translate-x-1/2 z-30 w-[28%] min-w-[26px] max-w-[46px] h-[7px] sm:h-[9px] bg-black rounded-full flex items-center justify-between px-1 shadow-inner ring-1 ring-white/10">
             {/* Front Camera Lens */}
-            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#0a0a10] ring-1 ring-white/10 flex items-center justify-center">
+            <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-[#0a0a10] ring-1 ring-white/10 flex items-center justify-center">
               <div className="w-0.5 h-0.5 rounded-full bg-blue-600/60" />
             </div>
             {/* TrueDepth Sensor */}
-            <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-[#111116]" />
+            <div className="w-0.5 h-0.5 sm:w-1 sm:h-1 rounded-full bg-[#111116]" />
           </div>
 
-          {/* INNER SCREEN (Pure Black Canvas Hosting Video) */}
-          <div className="relative w-full flex-1 rounded-[18px] xs:rounded-[22px] sm:rounded-[28px] md:rounded-[32px] overflow-hidden bg-black flex items-center justify-center">
+          {/* INNER SCREEN (Pure Black Canvas Hosting Video - 100% uncovered) */}
+          <div className="relative w-full flex-1 rounded-[16px] xs:rounded-[20px] sm:rounded-[26px] md:rounded-[30px] overflow-hidden bg-black flex items-center justify-center">
             <video
               ref={videoRef}
               key={videoUrl}

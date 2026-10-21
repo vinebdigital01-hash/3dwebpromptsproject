@@ -15,17 +15,7 @@ export interface HeroPromptDemo {
   glowColor: string;
 }
 
-const CATEGORY_COLORS: Record<string, string> = {
-  'Luxury': 'rgba(245, 158, 11, 0.40)', // Amber
-  'Advanced 3D': 'rgba(168, 85, 247, 0.40)', // Purple
-  'Cyber & Agency': 'rgba(59, 130, 246, 0.40)', // Blue
-  'E-Commerce': 'rgba(16, 185, 129, 0.40)', // Emerald
-  'FinTech': 'rgba(6, 182, 212, 0.40)', // Cyan
-  'Spatial OS': 'rgba(236, 72, 153, 0.40)', // Pink
-  'Minimalist': 'rgba(148, 163, 184, 0.30)', // Slate
-};
-
-// Filter prompts with valid .mp4 video previews from the vault catalog
+// Filter prompts with valid .mp4 video previews from vault catalog
 const ALL_HERO_PROMPTS: HeroPromptDemo[] = VAULT_CATALOG
   .filter((item) => item.videoUrl && item.videoUrl.endsWith('.mp4') && !item.isDeleted)
   .map((item) => ({
@@ -36,11 +26,11 @@ const ALL_HERO_PROMPTS: HeroPromptDemo[] = VAULT_CATALOG
     clientValue: item.clientValue || '$15,000',
     videoUrl: item.videoUrl,
     fpsBadge: item.fpsBadge || '60 FPS WEBGL',
-    glowColor: CATEGORY_COLORS[item.category] || 'rgba(59, 130, 246, 0.40)',
+    glowColor: 'rgba(59, 130, 246, 0.45)',
   }));
 
 export const HeroDeviceStage: React.FC = () => {
-  // RANDOM SELECTION ON RELOAD: Pick a fresh 3D video on every single reload
+  // RANDOM SELECTION ON RELOAD: Pick a fresh 3D video from the vault catalog
   const [currentIndex, setCurrentIndex] = useState(() => {
     if (ALL_HERO_PROMPTS.length === 0) return 0;
     return Math.floor(Math.random() * ALL_HERO_PROMPTS.length);
@@ -53,14 +43,14 @@ export const HeroDeviceStage: React.FC = () => {
     return ALL_HERO_PROMPTS[currentIndex] || ALL_HERO_PROMPTS[0];
   }, [currentIndex]);
 
-  // Subtle 3D Mouse Parallax on Desktop
+  // Gentle 3D Mouse Parallax on Desktop
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!containerRef.current || window.innerWidth < 1024) return;
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left - rect.width / 2;
     const y = e.clientY - rect.top - rect.height / 2;
     const rotateX = -(y / (rect.height / 2)) * 3;
-    const rotateY = (x / (rect.width / 2)) * 4;
+    const rotateY = (x / (rect.width / 2)) * 3.5;
     setTilt({ rotateX, rotateY });
   };
 
@@ -68,8 +58,8 @@ export const HeroDeviceStage: React.FC = () => {
     setTilt({ rotateX: 0, rotateY: 0 });
   };
 
-  // Click on stage smoothly advances to another 3D video
-  const handleStageClick = () => {
+  // Subtle click to cycle next 3D demonstration
+  const handleCycleNext = () => {
     try {
       sound.playClick();
     } catch {}
@@ -82,28 +72,36 @@ export const HeroDeviceStage: React.FC = () => {
       ref={containerRef}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      onClick={handleStageClick}
-      title="Click to cycle 3D prompt demo"
-      className="relative w-full flex flex-col items-center select-none cursor-pointer group"
+      onClick={handleCycleNext}
+      title="Click to explore another 3D prompt demo"
+      className="relative w-full flex items-center justify-center select-none cursor-pointer group py-4 sm:py-6"
     >
-      {/* Dynamic Ambient Aura Behind Devices */}
+      {/* 1. Large Soft Blue/Orange Glow Behind Devices */}
       <div
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] h-[75%] rounded-full blur-[80px] sm:blur-[120px] pointer-events-none transition-all duration-700 -z-10"
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[115%] h-[95%] rounded-full blur-[90px] sm:blur-[130px] pointer-events-none -z-10 transition-all duration-700 opacity-65"
         style={{
-          backgroundColor: activeDemo?.glowColor || 'rgba(59, 130, 246, 0.4)',
-          opacity: 0.4,
+          background: 'radial-gradient(ellipse 65% 55% at 50% 50%, rgba(59,130,246,0.4), rgba(245,158,11,0.2) 60%, transparent 80%)',
         }}
       />
 
-      {/* DUAL HARDWARE SHOWCASE: BIG MACBOOK + PROPORTIONAL SMALL IPHONE */}
+      {/* 2. Faint Grid Pattern that Fades Out at the Edges */}
       <div
-        className="relative w-full flex items-end justify-center gap-2 sm:gap-3 md:gap-4 lg:gap-5 transition-transform duration-300 ease-out will-change-transform transform-gpu pt-2 pb-1"
+        className="absolute inset-0 pointer-events-none opacity-20 -z-10 [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_75%)]"
+        style={{
+          backgroundImage: `linear-gradient(to right, rgba(255,255,255,0.12) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.12) 1px, transparent 1px)`,
+          backgroundSize: '40px 40px',
+        }}
+      />
+
+      {/* 3. Floating Hardware Composition (6s loop, 8px float + Desktop Mouse Tilt) */}
+      <div
+        className="relative w-full max-w-[540px] sm:max-w-[580px] lg:max-w-[620px] xl:max-w-[680px] flex items-center justify-center animate-gentle-float will-change-transform transform-gpu"
         style={{
           transform: `perspective(1000px) rotateX(${tilt.rotateX}deg) rotateY(${tilt.rotateY}deg)`,
         }}
       >
-        {/* Left: Big MacBook Pro 16" (Dominant centerpiece) */}
-        <div className="flex-1 min-w-0 max-w-[270px] xs:max-w-[320px] sm:max-w-[460px] md:max-w-[540px] lg:max-w-[620px] xl:max-w-[720px]">
+        {/* Laptop Centered: Thin Metal Frame, Screen Fully Visible, Soft Reflection */}
+        <div className="w-full">
           <MacBookMockup
             videoUrl={activeDemo.videoUrl}
             title={activeDemo.name}
@@ -111,8 +109,8 @@ export const HeroDeviceStage: React.FC = () => {
           />
         </div>
 
-        {/* Right: Small Proportional iPhone 15 Pro (Sleek, standing cleanly beside it) */}
-        <div className="w-[66px] xs:w-[78px] sm:w-[100px] md:w-[118px] lg:w-[130px] xl:w-[145px] shrink-0 pb-0.5 sm:pb-1">
+        {/* Phone in Front, Bottom-Right: Overlapping Laptop's Corner by only ~15%, Tilted -6°, Deep Shadow */}
+        <div className="absolute -bottom-3 sm:-bottom-4 -right-1 sm:-right-3 md:-right-5 w-[88px] xs:w-[102px] sm:w-[124px] md:w-[138px] xl:w-[152px] z-20 -rotate-6 transition-transform duration-300 drop-shadow-[0_25px_35px_rgba(0,0,0,0.95)]">
           <IPhoneMockup
             videoUrl={activeDemo.videoUrl}
             title={activeDemo.name}
