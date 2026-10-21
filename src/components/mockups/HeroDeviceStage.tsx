@@ -1,145 +1,131 @@
-import React, { useState, useRef, useMemo } from 'react';
-import { MacBookMockup } from './MacBookMockup';
-import { IPhoneMockup } from './IPhoneMockup';
-import { sound } from '../../lib/audioEngine';
-import { VAULT_CATALOG } from '../../data/vaultCatalog';
+import React, { useRef, useEffect } from 'react';
 
-export interface HeroPromptDemo {
-  id: string;
-  name: string;
-  subtitle: string;
-  category: string;
-  clientValue: string;
-  videoUrl: string;
-  fpsBadge: string;
-  glowColor: string;
+interface HeroDeviceStageProps {
+  videoUrl?: string;
+  posterUrl?: string;
+  macbookImageUrl?: string;
 }
 
-// Filter prompts with valid .mp4 video previews from vault catalog
-const ALL_HERO_PROMPTS: HeroPromptDemo[] = VAULT_CATALOG
-  .filter((item) => item.videoUrl && item.videoUrl.endsWith('.mp4') && !item.isDeleted)
-  .map((item) => ({
-    id: item.id,
-    name: item.title.split('—')[0].trim(),
-    subtitle: item.subtitle || item.title,
-    category: item.category,
-    clientValue: item.clientValue || '$15,000',
-    videoUrl: item.videoUrl,
-    fpsBadge: item.fpsBadge || '60 FPS WEBGL',
-    glowColor: 'rgba(59, 130, 246, 0.45)',
-  }));
+export const HeroDeviceStage: React.FC<HeroDeviceStageProps> = ({
+  videoUrl = 'https://pub-1e5b4001b36b47e28e6a2fb775966a79.r2.dev/previews/valmora.mp4',
+  posterUrl = 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=600&auto=format&fit=crop&q=75',
+  macbookImageUrl = 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=1200&auto=format&fit=crop&q=80',
+}) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
 
-export const HeroDeviceStage: React.FC = () => {
-  // RANDOM SELECTION ON RELOAD: Pick a fresh 3D video from the vault catalog
-  const [currentIndex, setCurrentIndex] = useState(() => {
-    if (ALL_HERO_PROMPTS.length === 0) return 0;
-    return Math.floor(Math.random() * ALL_HERO_PROMPTS.length);
-  });
-
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [tilt, setTilt] = useState({ rotateX: 0, rotateY: 0 });
-
-  const activeDemo = useMemo(() => {
-    return ALL_HERO_PROMPTS[currentIndex] || ALL_HERO_PROMPTS[0];
-  }, [currentIndex]);
-
-  // Gentle 3D Mouse Parallax on Desktop (max 6deg, disabled on touch and prefers-reduced-motion)
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!containerRef.current || typeof window === 'undefined') return;
-    const isTouch = window.matchMedia('(hover: none) or (pointer: coarse)').matches;
-    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (isTouch || prefersReduced || window.innerWidth < 1024) return;
-
-    const rect = containerRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left - rect.width / 2;
-    const y = e.clientY - rect.top - rect.height / 2;
-    const rotateX = -(y / (rect.height / 2)) * 4.5; // max ~5deg
-    const rotateY = (x / (rect.width / 2)) * 5.5;  // max ~6deg
-    setTilt({ rotateX, rotateY });
-  };
-
-  const handleMouseLeave = () => {
-    setTilt({ rotateX: 0, rotateY: 0 });
-  };
-
-  // Subtle click to cycle next 3D demonstration
-  const handleCycleNext = () => {
-    try {
-      sound.playClick();
-    } catch {}
-    if (ALL_HERO_PROMPTS.length <= 1) return;
-    setCurrentIndex((prev) => (prev + 1) % ALL_HERO_PROMPTS.length);
-  };
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.defaultMuted = true;
+      videoRef.current.muted = true;
+      videoRef.current.play().catch(() => {});
+    }
+  }, [videoUrl]);
 
   return (
-    <div
-      ref={containerRef}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      onClick={handleCycleNext}
-      title="Click to explore another 3D prompt demo"
-      className="relative w-full flex flex-col items-center justify-center select-none cursor-pointer group py-2"
-    >
-      {/* 1. Large Soft Blue/Orange Glow Behind Devices */}
+    <div className="relative w-full flex items-center justify-center select-none py-2 overflow-visible">
+      {/* Soft colored ambient glow behind devices */}
       <div
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[115%] h-[95%] rounded-full blur-[80px] sm:blur-[120px] pointer-events-none -z-10 transition-all duration-700 opacity-60"
-        style={{
-          background: 'radial-gradient(ellipse 65% 55% at 50% 50%, rgba(59,130,246,0.38), rgba(245,158,11,0.18) 60%, transparent 80%)',
-        }}
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[85%] sm:w-[95%] h-[80%] rounded-full blur-3xl pointer-events-none -z-10 bg-blue-500/20"
       />
 
-      {/* 2. Faint Grid Pattern that Fades Out at the Edges */}
-      <div
-        className="absolute inset-0 pointer-events-none opacity-20 -z-10 [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_75%)]"
-        style={{
-          backgroundImage: `linear-gradient(to right, rgba(255,255,255,0.12) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.12) 1px, transparent 1px)`,
-          backgroundSize: '40px 40px',
-        }}
-      />
+      {/* ========================================================
+          MOBILE VIEW (< 768px): iPhone ONLY, 78% width, max 320px
+          ======================================================== */}
+      <div className="md:hidden w-[78%] max-w-[320px] mx-auto animate-float-6px will-change-transform">
+        {/* iPhone 15 Pro Titanium Frame */}
+        <div className="relative w-full aspect-[9/19.5] rounded-[38px] p-[2.5px] bg-gradient-to-b from-[#d4d2cc] via-[#a8a69f] to-[#7a7873] shadow-[0_20px_45px_-10px_rgba(0,0,0,0.85)] ring-1 ring-white/20">
+          {/* Inner Display Bezel */}
+          <div className="relative w-full h-full rounded-[35px] bg-black p-[3.5px] pt-[13px] overflow-hidden flex flex-col justify-start border border-[#1a1a1d]">
+            {/* Dynamic Island */}
+            <div className="absolute top-1.5 left-1/2 -translate-x-1/2 z-30 w-[28%] min-w-[32px] max-w-[52px] h-[9px] bg-black rounded-full flex items-center justify-between px-1.5 shadow-inner ring-1 ring-white/10 pointer-events-none">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#0a0a10] ring-1 ring-white/10 flex items-center justify-center">
+                <div className="w-0.5 h-0.5 rounded-full bg-blue-600/60" />
+              </div>
+              <div className="w-1 h-1 rounded-full bg-[#111116]" />
+            </div>
 
-      {/* 3. Floating Hardware Composition (Laptop 100% of right column, max 720px) */}
-      <div
-        className="relative w-full max-w-[720px] flex items-center justify-center animate-gentle-float will-change-transform transform-gpu"
-        style={{
-          transform: `perspective(1000px) rotateX(${tilt.rotateX}deg) rotateY(${tilt.rotateY}deg)`,
-        }}
-      >
-        {/* Laptop: 100% width of container, max 720px, 16/10 screen aspect ratio */}
-        <div className="w-full">
-          <MacBookMockup
-            videoUrl={activeDemo.videoUrl}
-            title={activeDemo.name}
-            isMuted={true}
-          />
-        </div>
+            {/* Inner Screen Video with WebP Poster */}
+            <div className="relative w-full flex-1 rounded-[29px] overflow-hidden bg-black flex items-center justify-center">
+              <video
+                ref={videoRef}
+                src={videoUrl}
+                poster={posterUrl}
+                autoPlay
+                loop
+                muted
+                playsInline
+                preload="metadata"
+                className="w-full h-full object-cover object-top"
+              />
 
-        {/* Phone: 
-            - Width: 22% of laptop (min 120px, max 170px) on desktop (>=1280px);
-              20% on 1024-1279px (min 110px); 32% on mobile (<1024px);
-              Hidden only below 360px.
-            - Position: right: 0 (INSIDE right column, zero clipping), bottom: -24px.
-            - Rotate: -5deg. Overlaps laptop by max 15%.
-            - Deep soft shadow.
-        */}
-        <div
-          style={{ transform: 'rotate(-5deg)' }}
-          className="hidden min-[360px]:block absolute bottom-[-18px] sm:bottom-[-24px] right-0 w-[32%] sm:w-[28%] lg:w-[20%] xl:w-[22%] min-w-[110px] xl:min-w-[120px] max-w-[170px] z-20 transition-transform duration-300 drop-shadow-[0_20px_35px_rgba(0,0,0,0.95)]"
-        >
-          <IPhoneMockup
-            videoUrl={activeDemo.videoUrl}
-            title={activeDemo.name}
-            isMuted={true}
-          />
+              {/* iOS Home Indicator Bar */}
+              <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-12 h-[2.5px] bg-white/40 rounded-full pointer-events-none" />
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* 4. Label Pill: Moved OUTSIDE laptop screen, floating below bottom-left corner with 16px gap, full text, no ellipsis */}
-      <div className="w-full max-w-[720px] mt-4 flex justify-start md:max-lg:justify-center px-1">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/80 backdrop-blur-md border border-white/10 text-xs font-mono text-white/90 shadow-lg whitespace-nowrap">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-          <span className="font-semibold text-white tracking-tight">{activeDemo.name}</span>
-          <span className="text-white/30">·</span>
-          <span className="text-blue-400 font-mono">{activeDemo.fpsBadge}</span>
+      {/* =========================================================================
+          TABLET & DESKTOP (>= 768px): MacBook Centered with iPhone at Bottom-Right
+          ========================================================================= */}
+      <div className="hidden md:flex relative w-full max-w-[680px] items-center justify-center animate-float-6px will-change-transform">
+        {/* MacBook Pro 16" */}
+        <div className="relative w-full aspect-[16/10] rounded-t-[20px] p-[2.5px] bg-gradient-to-b from-[#4a4d53] via-[#26282c] to-[#141518] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.85)]">
+          {/* Bezel */}
+          <div className="relative w-full h-full rounded-t-[18px] bg-[#0c0d0f] p-[8px] md:p-[10px] flex flex-col justify-start overflow-hidden border border-black/80">
+            {/* Notch */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 z-30 w-[14%] min-w-[50px] max-w-[90px] h-[12px] md:h-[15px] bg-[#0c0d0f] rounded-b-[7px] flex items-center justify-center gap-1 shadow-md border-b border-x border-black">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#050507] ring-1 ring-white/10" />
+              <div className="w-1 h-1 rounded-full bg-emerald-400/80 animate-pulse" />
+            </div>
+
+            {/* Screen Content: Full website, not zoomed or cut off */}
+            <div className="relative w-full flex-1 rounded-t-[10px] md:rounded-t-[12px] overflow-hidden bg-black">
+              <img
+                src={macbookImageUrl}
+                alt="3D Website Experience Desktop Preview"
+                loading="lazy"
+                decoding="async"
+                className="w-full h-full object-cover object-top"
+              />
+
+              {/* 40px top dark gradient for readability */}
+              <div className="absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-black/80 via-black/35 to-transparent pointer-events-none z-10" />
+            </div>
+          </div>
+
+          {/* Lower Unibody Aluminium Base Deck */}
+          <div className="absolute -bottom-3 inset-x-[-2%] h-3.5 bg-gradient-to-b from-[#2a2c31] via-[#1a1b1e] to-[#0e0f11] rounded-b-[12px] border-t border-white/15 flex items-start justify-center shadow-lg">
+            <div className="w-16 h-1 bg-[#0c0d0f] rounded-b-sm border-b border-white/10" />
+          </div>
+        </div>
+
+        {/* iPhone overlapping right bottom corner (28% of laptop on tablet, 25% on desktop) */}
+        <div className="absolute -bottom-4 right-0 w-[28%] lg:w-[25%] max-w-[170px] z-20 transition-transform duration-300 drop-shadow-[0_20px_35px_rgba(0,0,0,0.95)]">
+          <div className="relative w-full aspect-[9/19.5] rounded-[30px] p-[2px] bg-gradient-to-b from-[#d4d2cc] via-[#a8a69f] to-[#7a7873] shadow-2xl ring-1 ring-white/20">
+            <div className="relative w-full h-full rounded-[28px] bg-black p-[2.5px] pt-[11px] overflow-hidden flex flex-col justify-start border border-[#1a1a1d]">
+              {/* Dynamic Island */}
+              <div className="absolute top-1 left-1/2 -translate-x-1/2 z-30 w-[28%] min-w-[26px] max-w-[44px] h-[8px] bg-black rounded-full flex items-center justify-between px-1 shadow-inner ring-1 ring-white/10 pointer-events-none">
+                <div className="w-1 h-1 rounded-full bg-blue-600/60" />
+                <div className="w-0.5 h-0.5 rounded-full bg-[#111116]" />
+              </div>
+
+              {/* Video Screen */}
+              <div className="relative w-full flex-1 rounded-[24px] overflow-hidden bg-black flex items-center justify-center">
+                <video
+                  src={videoUrl}
+                  poster={posterUrl}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  preload="metadata"
+                  className="w-full h-full object-cover object-top"
+                />
+                <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-8 h-[2px] bg-white/40 rounded-full pointer-events-none" />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

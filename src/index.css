@@ -74,8 +74,21 @@
   animation: gentleFloat 6s ease-in-out infinite;
 }
 
+@keyframes floatUp6px {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.animate-float-6px {
+  animation: floatUp6px 4s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .animate-gentle-float {
+  .animate-float-6px {
     animation: none !important;
   }
 }
