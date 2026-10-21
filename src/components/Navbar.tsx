@@ -79,7 +79,73 @@ export const Navbar: React.FC<NavbarProps> = ({ onUnlockClick, onLeadMagnetClick
         Background: dark see-through (rgba(10,12,20,0.6)) + blur(16px) + 1px border at 8% white.
         On Scroll: becomes solid rgba(10,12,20,0.95) + blur(24px) so content never shows through.
       */}
-      <header className="fixed top-4 inset-x-0 mx-auto z-50 w-full max-w-[1280px] px-[clamp(20px,4vw,48px)] pointer-events-none pt-[env(safe-area-inset-top,0px)]">
+      {/* =========================================================================
+          MOBILE MENU BAR (max-width: 767px) - Exact Studio Aesthetic (Linear / Vercel)
+          Flat bar: rgba(11,13,18,0.8), backdrop-blur 12px, 1px bottom border rgba(255,255,255,0.06).
+          Height 56px, side padding 16px.
+          padding-top: env(safe-area-inset-top) for the iPhone notch.
+          Logo: icon 28px + "APEX3D" 15px weight 600, all white (the "3D" is NOT blue).
+          Menu button "Unlock ₹49": height 36px, radius 10px, solid white background, dark text #0B0D12,
+          14px weight 600, no arrow, no glow.
+          Hamburger: 36x36 visible, 44x44 tap area, no circle border.
+          ========================================================================= */}
+      <header className="md:hidden fixed top-0 inset-x-0 z-50 w-full bg-[#0B0D12]/80 backdrop-blur-[12px] border-b border-white/[0.06] pt-[env(safe-area-inset-top,0px)]">
+        <nav className="w-full h-14 px-4 flex items-center justify-between" aria-label="Mobile Navigation">
+          {/* Logo: icon 28px + "APEX3D" 15px weight 600, all white */}
+          <a
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              try { sound.playClick(); } catch {}
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            className="flex items-center gap-2 group shrink-0 min-h-[44px] min-w-[44px]"
+          >
+            <div className="w-[28px] h-[28px] rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 border border-blue-400/40 flex items-center justify-center shrink-0">
+              <svg className="w-3.5 h-3.5 text-white" viewBox="0 0 256 256" fill="currentColor">
+                <path d="M 256 64 L 256 128 L 192.5 128 L 160 95 L 128 64 L 96 95 L 63.5 128 L 64 128 L 128 192 L 128 256 L 64.5 256 L 32 223 L 0 192 L 0 64 L 64 0 L 192 0 Z M 256 192 L 256 256 L 192.5 256 L 160 223 L 128 192 L 128 128 L 192 128 Z" />
+              </svg>
+            </div>
+            <span className="font-heading font-semibold text-[15px] tracking-tight text-white whitespace-nowrap">
+              APEX3D
+            </span>
+          </a>
+
+          {/* Right: Menu button "Unlock ₹49" + Hamburger */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                try { sound.playSuccess(); } catch {}
+                onUnlockClick();
+              }}
+              className="h-[36px] px-3.5 rounded-[10px] bg-white text-[#0B0D12] text-[14px] font-semibold flex items-center justify-center cursor-pointer whitespace-nowrap active:scale-[0.98] transition-transform duration-120"
+            >
+              Unlock ₹49
+            </button>
+
+            {/* Hamburger: 36x36 visible, 44x44 tap area, no circle border */}
+            <button
+              type="button"
+              onClick={() => {
+                try { sound.playClick(); } catch {}
+                setIsMobileMenuOpen(!isMobileMenuOpen);
+              }}
+              className="w-[44px] h-[44px] flex items-center justify-center text-white/90 hover:text-white cursor-pointer shrink-0"
+              aria-label="Toggle navigation menu"
+            >
+              <div className="w-[36px] h-[36px] flex items-center justify-center">
+                {isMobileMenuOpen ? <X className="w-5 h-5 text-white" /> : <Menu className="w-5 h-5 text-white" />}
+              </div>
+            </button>
+          </div>
+        </nav>
+      </header>
+
+      {/* =========================================================================
+          TABLET & DESKTOP MENU BAR (768px and up) - 100% UNTOUCHED
+          ========================================================================= */}
+      <header className="hidden md:block fixed top-4 inset-x-0 mx-auto z-50 w-full max-w-[1280px] px-[clamp(20px,4vw,48px)] pointer-events-none pt-[env(safe-area-inset-top,0px)]">
         <nav
           className={`pointer-events-auto w-full h-14 sm:h-16 rounded-full border border-white/[0.08] px-3 sm:px-5 lg:px-6 flex items-center justify-between transition-all duration-300 ${
             isScrolled

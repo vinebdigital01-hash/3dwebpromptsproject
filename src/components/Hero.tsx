@@ -9,11 +9,17 @@ interface HeroProps {
   onFreeDownloadClick: () => void;
 }
 
-const AVATARS = [
+const DESKTOP_AVATARS = [
   'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80',
   'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&auto=format&fit=crop&q=80',
   'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80&auto=format&fit=crop&q=80',
   'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&auto=format&fit=crop&q=80',
+];
+
+const MOBILE_AVATARS = [
+  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80&auto=format&fit=crop&q=80',
 ];
 
 export const Hero: React.FC<HeroProps> = ({
@@ -27,164 +33,408 @@ export const Hero: React.FC<HeroProps> = ({
   }, []);
 
   return (
-    <section
-      id="hero"
-      className="relative min-h-[100dvh] w-full bg-[#050508] overflow-x-hidden flex flex-col justify-start lg:justify-center pt-[76px] xs:pt-[80px] sm:pt-[96px] lg:pt-[128px] pb-4 sm:pb-6 select-none"
-    >
-      {/* Subtle Noise Texture */}
-      <div className="absolute inset-0 bg-noise pointer-events-none z-0 opacity-30" />
+    <section id="hero" className="w-full relative select-none">
+      {/* =========================================================================
+          1. MOBILE HERO (max-width: 767px) - Studio Grade (Linear / Vercel style)
+          Restrained, clean, crystal-clear FREE vs PAID cards, no artificial AI glow
+          ========================================================================= */}
+      <div className="md:hidden w-full min-h-[100dvh] bg-[#0B0D12] overflow-x-hidden flex flex-col justify-start px-4 pt-[calc(56px+env(safe-area-inset-top,0px)+24px)] pb-10 relative">
+        {/* Faint ambient light at the top: radial-gradient(60% 40% at 50% 0%, rgba(59,130,246,0.10), transparent) */}
+        <div
+          className="absolute top-0 inset-x-0 h-[360px] pointer-events-none -z-10"
+          style={{
+            background: 'radial-gradient(60% 40% at 50% 0%, rgba(59,130,246,0.10), transparent)',
+          }}
+        />
 
-      {/* Soft Ambient Light from Top-Left */}
-      <div className="absolute inset-0 pointer-events-none z-0">
-        <div className="absolute top-0 left-0 w-[60vw] h-[60vw] max-w-[800px] max-h-[800px] bg-[radial-gradient(circle_at_20%_20%,rgba(59,130,246,0.18),transparent_65%)]" />
-      </div>
+        {/* Static Grain Texture at 3% opacity */}
+        <div className="absolute inset-0 bg-noise opacity-[0.03] pointer-events-none -z-10" />
 
-      {/* Unified 1280px Container (matching floating top bar container exactly) */}
-      <div className="relative z-10 w-full max-w-[1280px] mx-auto px-4 xs:px-[clamp(18px,4vw,48px)] my-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-[46%_54%] gap-4 lg:gap-10 xl:gap-12 items-center">
-          
-          {/* ========================================================
-              TEXT COLUMN (46% on desktop, centered on mobile/tablet)
-              ======================================================== */}
-          <div className="flex flex-col justify-center text-center lg:text-left items-center lg:items-start max-w-[560px] mx-auto lg:mx-0">
-            {/* 1. Badge: Pill shape, blue glow, uppercase luxury tracking */}
-            <div
-              style={{ transitionDuration: '400ms' }}
-              className={`inline-flex items-center gap-1.5 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 shadow-[0_0_16px_rgba(59,130,246,0.25)] text-blue-300 text-[10px] xs:text-[11px] sm:text-[12px] font-mono tracking-widest uppercase mb-2 sm:mb-4 transition-all will-change-[transform,opacity] ${
-                mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-              <span>30+ FREE MASTER PROMPTS · $10K WEB</span>
-            </div>
+        {/* ──────── 2. BADGE ────────
+            Text: "30+ prompts free · no card needed", 12px weight 500, sentence case.
+            6px solid green dot (#22C55E) on the left.
+            Border 1px rgba(255,255,255,0.10), bg rgba(255,255,255,0.03), radius 999px, height 28px.
+            24px gap below menu bar (via padding-top above). Never touches menu. */}
+        <div
+          style={{ transitionDuration: '300ms' }}
+          className={`h-[28px] px-3 rounded-full border border-white/10 bg-white/[0.03] inline-flex items-center gap-2 self-center shrink-0 transition-all will-change-[transform,opacity] ${
+            mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+          }`}
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E] shrink-0" />
+          <span className="text-[12px] font-medium text-white/90 whitespace-nowrap">
+            30+ prompts free · no card needed
+          </span>
+        </div>
 
-            {/* 2. Headline: Editorial typography with high-contrast serif italic accent */}
-            <h1
-              style={{ transitionDelay: '60ms', transitionDuration: '400ms' }}
-              className={`font-heading font-semibold text-[29px] xs:text-[33px] sm:text-[44px] md:text-[52px] lg:text-[clamp(44px,4.5vw,70px)] 2xl:text-[76px] leading-[1.03] lg:leading-[1.0] tracking-[-0.035em] text-white mb-2 sm:mb-3.5 transition-all will-change-[transform,opacity] ${
-                mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
-              }`}
-            >
-              Build{' '}
-              <span className="font-serif-accent italic font-normal text-transparent bg-clip-text bg-gradient-to-r from-[#38bdf8] via-[#818cf8] to-[#fbbf24] drop-shadow-[0_0_24px_rgba(56,189,248,0.35)]">
-                $10,000
+        {/* ──────── 3. HEADLINE ────────
+            Exactly 3 lines: "Build $10,000" / "3D websites with" / "one prompt."
+            Size clamp(34px, 9.5vw, 40px), line-height 1.04, letter-spacing -0.035em, weight 650, color #F5F5F7.
+            "$10,000": Upright, solid #3B82F6, same sans font (no italic serif, no gradient). */}
+        <h1
+          style={{ transitionDelay: '50ms', transitionDuration: '300ms' }}
+          className={`mt-4 text-center font-heading font-semibold text-[clamp(34px,9.5vw,40px)] leading-[1.04] tracking-[-0.035em] text-[#F5F5F7] transition-all will-change-[transform,opacity] ${
+            mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+          }`}
+        >
+          Build <span className="text-[#3B82F6] font-semibold">$10,000</span>
+          <br />
+          3D websites with
+          <br />
+          one prompt.
+        </h1>
+
+        {/* ──────── 4. SUB-LINE ────────
+            "Become a 3D WebGL Architect charging $15k per site" — 16px weight 500, #D1D5DB.
+            No underline. Only "3D WebGL Architect" in #FFFFFF. Margin-top 14px. */}
+        <p
+          style={{ transitionDelay: '100ms', transitionDuration: '300ms' }}
+          className={`mt-[14px] text-center text-[16px] font-medium text-[#D1D5DB] leading-snug transition-all will-change-[transform,opacity] ${
+            mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+          }`}
+        >
+          Become a <span className="text-[#FFFFFF]">3D WebGL Architect</span> charging $15k per site
+        </p>
+
+        {/* ──────── 5. PARAGRAPH ────────
+            "Skip 6 months of learning WebGL and shaders. Copy tested prompts and ship 3D sites in minutes."
+            15px, line-height 1.55, #8B8F98, max 3 lines. Margin-top 10px. */}
+        <p
+          style={{ transitionDelay: '150ms', transitionDuration: '300ms' }}
+          className={`mt-[10px] text-center text-[15px] leading-[1.55] text-[#8B8F98] max-w-[340px] mx-auto transition-all will-change-[transform,opacity] ${
+            mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+          }`}
+        >
+          Skip 6 months of learning WebGL and shaders. Copy tested prompts and ship 3D sites in minutes.
+        </p>
+
+        {/* ──────── 6. FREE / PAID BLOCK (main focus) ────────
+            2 stacked offer cards, full width, gap 10px, margin-top 24px.
+            Text inside is LEFT aligned. Radius 14px. Padding 14px 16px.
+            Min height 76px. Pressed state: scale(0.98) for 120ms. No text wrap at 360px. */}
+        <div
+          style={{ transitionDelay: '200ms', transitionDuration: '300ms' }}
+          className={`mt-6 w-full max-w-[360px] mx-auto flex flex-col gap-[10px] transition-all will-change-[transform,opacity] ${
+            mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+          }`}
+        >
+          {/* CARD A — FREE (on top, the main action) */}
+          <button
+            type="button"
+            onClick={() => {
+              try { sound.playSuccess(); } catch {}
+              onFreeDownloadClick();
+            }}
+            className="w-full min-h-[76px] p-[14px_16px] rounded-[14px] bg-[#2563EB] text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] active:scale-[0.98] transition-transform duration-120 flex flex-col justify-between cursor-pointer"
+          >
+            {/* Row 1: tag "FREE" + "₹0" */}
+            <div className="flex items-center justify-between w-full">
+              <span className="px-1.5 py-0.5 rounded-[6px] bg-white/[0.18] text-[11px] font-bold text-white tracking-wide uppercase">
+                FREE
               </span>
-              <br />
-              3D websites with
-              <br />
-              one prompt.
-            </h1>
-
-            {/* 3. Sub line: Underlined 3D WebGL Architect */}
-            <p
-              style={{ transitionDelay: '120ms', transitionDuration: '400ms' }}
-              className={`text-[13px] xs:text-[14px] sm:text-[17px] font-body text-white/75 max-w-[320px] sm:max-w-[460px] leading-snug mb-2 sm:mb-4 transition-all will-change-[transform,opacity] ${
-                mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
-              }`}
-            >
-              Become a{' '}
-              <span className="text-white font-medium relative inline-block after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[1.5px] after:bg-gradient-to-r after:from-blue-400 after:via-indigo-400 after:to-amber-400">
-                3D WebGL Architect
-              </span>{' '}
-              charging $15k per site
-            </p>
-
-            {/* 4. Body Description */}
-            <p
-              style={{ transitionDelay: '160ms', transitionDuration: '400ms' }}
-              className={`text-[12px] xs:text-[13px] sm:text-[16px] font-body text-white/65 max-w-[320px] sm:max-w-[480px] leading-[1.4] sm:leading-[1.6] mb-3 sm:mb-6 transition-all will-change-[transform,opacity] ${
-                mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
-              }`}
-            >
-              Stop spending 6 months learning WebGL, Three.js, and GLSL shaders. Copy our vault of 500+ battle-tested one-shot prompts to deploy jaw-dropping 3D interactive experiences in minutes.
-            </p>
-
-            {/* 5. Action Row: Full width on mobile, side-by-side on desktop */}
-            <div
-              style={{ transitionDelay: '200ms', transitionDuration: '400ms' }}
-              className={`w-full flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-2 sm:gap-3.5 mb-2.5 sm:mb-4 transition-all will-change-[transform,opacity] ${
-                mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
-              }`}
-            >
-              {/* Main Button: Electric blue glow, min 44px tap target */}
-              <button
-                type="button"
-                onClick={() => {
-                  try { sound.playSuccess(); } catch {}
-                  onFreeDownloadClick();
-                }}
-                onMouseEnter={() => {
-                  try { sound.playHover(); } catch {}
-                }}
-                className="w-full sm:w-auto h-[46px] xs:h-[48px] sm:h-[52px] min-h-[44px] px-6 sm:px-7 rounded-full text-[14px] sm:text-[15px] font-body font-semibold text-white bg-blue-600 hover:bg-blue-500 shadow-[0_4px_24px_rgba(37,99,235,0.45)] hover:-translate-y-0.5 active:scale-95 transition-all flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer shrink-0"
-              >
-                <span>Get 30+ Free Prompts</span>
-                <ArrowRight className="w-4 h-4 text-white/80" />
-              </button>
-
-              {/* Secondary Button: Paid Vault Unlock */}
-              <button
-                type="button"
-                onClick={() => {
-                  try { sound.playSuccess(); } catch {}
-                  onUnlockClick();
-                }}
-                onMouseEnter={() => {
-                  try { sound.playHover(); } catch {}
-                }}
-                className="w-full sm:w-auto h-[42px] xs:h-[44px] sm:h-[52px] min-h-[42px] px-5 sm:px-6 rounded-full text-[13px] sm:text-[15px] font-body font-medium text-white/90 bg-white/[0.04] hover:bg-white/[0.08] border border-white/20 hover:border-white/30 hover:-translate-y-0.5 active:scale-95 transition-all flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer shrink-0"
-              >
-                <Sparkles className="w-4 h-4 text-amber-400" />
-                <span>Unlock Vault · ₹49</span>
-              </button>
+              <span className="text-[17px] font-bold text-white tracking-tight">
+                ₹0
+              </span>
             </div>
 
-            {/* 6. Social Proof Bar: Single compact line on mobile */}
-            <div
-              style={{ transitionDelay: '260ms', transitionDuration: '400ms' }}
-              className={`flex items-center justify-center lg:justify-start gap-2 sm:gap-3 text-[11px] xs:text-[12px] sm:text-[13px] font-body text-zinc-300 transition-all will-change-[transform,opacity] ${
-                mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
-              }`}
-            >
-              <div className="flex items-center gap-1 whitespace-nowrap">
-                <span className="text-amber-400 text-[12px] sm:text-[14px] leading-none">★★★★★</span>
-                <span>Loved by 2,000+ creators</span>
+            {/* Row 2: "Get 30+ starter prompts" + Arrow */}
+            <div className="flex items-center justify-between w-full mt-1.5">
+              <span className="text-[17px] font-semibold text-white tracking-tight whitespace-nowrap">
+                Get 30+ starter prompts
+              </span>
+              <span className="text-[18px] text-white font-medium ml-2 shrink-0">→</span>
+            </div>
+
+            {/* Row 3: "Instant download · no card needed" */}
+            <div className="text-[13px] text-white/75 mt-0.5 whitespace-nowrap">
+              Instant download · no card needed
+            </div>
+          </button>
+
+          {/* CARD B — PAID (below, the upgrade) */}
+          <button
+            type="button"
+            onClick={() => {
+              try { sound.playSuccess(); } catch {}
+              onUnlockClick();
+            }}
+            className="w-full min-h-[76px] p-[14px_16px] rounded-[14px] bg-white/[0.03] border border-white/[0.12] text-left active:scale-[0.98] transition-transform duration-120 flex flex-col justify-between cursor-pointer"
+          >
+            {/* Row 1: tag "FULL VAULT" + Price "₹49" + strikethrough "₹499" */}
+            <div className="flex items-center justify-between w-full">
+              <span className="px-1.5 py-0.5 rounded-[6px] bg-white/[0.08] text-[11px] font-bold text-[#F5F5F7] tracking-wide uppercase">
+                FULL VAULT
+              </span>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-[17px] font-bold text-white tracking-tight">
+                  ₹49
+                </span>
+                <span className="text-[13px] text-[#6B7280] line-through">
+                  ₹499
+                </span>
               </div>
-              <span className="text-white/20">•</span>
-              <div className="flex items-center gap-1.5 whitespace-nowrap">
-                <div className="flex -space-x-1.5 shrink-0">
-                  {AVATARS.map((src, i) => (
-                    <img
-                      key={i}
-                      src={src}
-                      alt="Builder"
-                      className="w-4 h-4 sm:w-5 sm:h-5 rounded-full border border-[#050508] object-cover ring-1 ring-white/10"
-                    />
-                  ))}
+            </div>
+
+            {/* Row 2: "Unlock all 500+ prompts" + Arrow */}
+            <div className="flex items-center justify-between w-full mt-1.5">
+              <span className="text-[17px] font-semibold text-[#F5F5F7] tracking-tight whitespace-nowrap">
+                Unlock all 500+ prompts
+              </span>
+              <span className="text-[18px] text-[#F5F5F7] font-medium ml-2 shrink-0">→</span>
+            </div>
+
+            {/* Row 3: "One-time payment · lifetime updates" */}
+            <div className="text-[13px] text-[#8B8F98] mt-0.5 whitespace-nowrap">
+              One-time payment · lifetime updates
+            </div>
+          </button>
+
+          {/* Tiny reassurance line under Card B */}
+          <div className="mt-1 text-center text-[12px] text-[#6B7280] whitespace-nowrap">
+            Start free. Upgrade only if you love it.
+          </div>
+        </div>
+
+        {/* ──────── 7. TRUST LINE ────────
+            3 overlapping avatars (22px, 2px border #0B0D12) + "Used by 2,000+ creators"
+            13px #8B8F98, "2,000+" in #F5F5F7. Centered, margin-top 16px, one line at 360px. */}
+        <div
+          style={{ transitionDelay: '250ms', transitionDuration: '300ms' }}
+          className={`mt-4 flex items-center justify-center gap-2 text-[13px] text-[#8B8F98] whitespace-nowrap transition-all will-change-[transform,opacity] ${
+            mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+          }`}
+        >
+          <div className="flex -space-x-1.5 shrink-0">
+            {MOBILE_AVATARS.map((src, i) => (
+              <img
+                key={i}
+                src={src}
+                alt="Creator avatar"
+                className="w-[22px] h-[22px] rounded-full border-2 border-[#0B0D12] object-cover"
+              />
+            ))}
+          </div>
+          <span>
+            Used by <strong className="text-[#F5F5F7] font-medium">2,000+</strong> creators
+          </span>
+        </div>
+
+        {/* ──────── 8. LAPTOP MOCKUP ────────
+            Margin-top 32px, width 92%, centered, no tilt.
+            NO "LIVE DEMO" pill, NO "60 FPS WEBGL" chip.
+            NO blue glow behind it. Only dark shadow: 0 30px 60px -20px rgba(0,0,0,0.8).
+            Screen sharp (2x WebP / 60 FPS video), not cropped. Bottom fades 60px into #0B0D12. */}
+        <div
+          style={{ transitionDelay: '300ms', transitionDuration: '300ms' }}
+          className={`mt-8 w-[92%] max-w-[360px] mx-auto transition-all will-change-[transform,opacity] ${
+            mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+          }`}
+        >
+          <div className="w-full flex flex-col items-center">
+            {/* Display Assembly */}
+            <div className="relative w-full aspect-[16/10] rounded-t-[16px] p-[2px] bg-gradient-to-b from-[#4a4d53] via-[#26282c] to-[#141518] shadow-[0_30px_60px_-20px_rgba(0,0,0,0.8)]">
+              {/* Top Metallic Highlight */}
+              <div className="absolute inset-x-4 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none z-20" />
+
+              {/* Display Bezel */}
+              <div className="absolute inset-[2px] rounded-t-[14px] bg-[#0c0d0f] p-[6px] flex flex-col justify-start overflow-hidden border border-black/80">
+                {/* Notch */}
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 z-30 w-[14%] min-w-[42px] max-w-[65px] h-[9px] bg-[#0c0d0f] rounded-b-[5px] flex items-center justify-center gap-1 shadow-md border-b border-x border-black">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#050507] ring-1 ring-white/10" />
+                  <div className="w-1 h-1 rounded-full bg-emerald-400/80" />
                 </div>
-                <div className="flex items-center gap-1 text-zinc-300">
-                  <span className="relative flex h-1.5 w-1.5 shrink-0">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400"></span>
-                  </span>
-                  <span>
-                    <strong className="text-white font-semibold">98 builders</strong> active
-                  </span>
+
+                {/* Inner Screen */}
+                <div className="relative w-full h-full rounded-t-[10px] overflow-hidden bg-black flex items-center justify-center">
+                  <video
+                    src="https://pub-1e5b4001b36b47e28e6a2fb775966a79.r2.dev/previews/valmora.mp4"
+                    poster="https://images.unsplash.com/photo-1509631179647-0177331693ae?w=900&auto=format&fit=crop&q=80"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    preload="metadata"
+                    className="w-full h-full object-cover object-top"
+                  />
+
+                  {/* Top dark gradient */}
+                  <div className="absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-black/70 to-transparent pointer-events-none z-10" />
+
+                  {/* Bottom 60px fade into #0B0D12 */}
+                  <div className="absolute inset-x-0 bottom-0 h-[60px] bg-gradient-to-t from-[#0B0D12] via-[#0B0D12]/80 to-transparent pointer-events-none z-10" />
                 </div>
               </div>
+            </div>
+
+            {/* Aluminium Base Deck */}
+            <div className="relative w-[104%] -mt-[1px] flex flex-col items-center">
+              <div className="w-[16%] h-[2.5px] bg-gradient-to-r from-[#1c1d20] via-[#52565e] to-[#1c1d20] rounded-t-sm" />
+              <div className="relative w-full h-[9px] rounded-b-[10px] bg-gradient-to-b from-[#2a2c31] via-[#1a1b1e] to-[#0e0f11] shadow-[0_10px_20px_rgba(0,0,0,0.9)] border-t border-white/15 flex items-start justify-center">
+                <div className="w-12 h-1 bg-[#0c0d0f] rounded-b-sm border-b border-white/10" />
+              </div>
+              <div className="w-full flex justify-between px-[6%] -mt-[1px]">
+                <div className="w-5 h-[2px] bg-[#0a0a0c] rounded-b-full shadow-sm" />
+                <div className="w-5 h-[2px] bg-[#0a0a0c] rounded-b-full shadow-sm" />
+              </div>
+              <div className="w-[94%] h-4 bg-black/80 blur-xl -mt-2 rounded-full pointer-events-none" />
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* ========================================================
-              VISUAL COLUMN: MacBook Pro peeking dynamically into first screen on mobile
-              ======================================================== */}
-          <div
-            style={{ transitionDelay: '300ms', transitionDuration: '400ms' }}
-            className={`w-full mt-2 sm:mt-4 lg:mt-0 transition-all will-change-[transform,opacity] ${
-              mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
-            }`}
-          >
-            <HeroDeviceStage />
+      {/* =========================================================================
+          2. TABLET & DESKTOP HERO (min-width: 768px) - 100% UNTOUCHED
+          ========================================================================= */}
+      <div className="hidden md:flex min-h-[100dvh] w-full bg-[#050508] overflow-x-hidden flex-col justify-center pt-[96px] lg:pt-[128px] pb-6 select-none relative">
+        {/* Subtle Noise Texture */}
+        <div className="absolute inset-0 bg-noise pointer-events-none z-0 opacity-30" />
+
+        {/* Soft Ambient Light from Top-Left */}
+        <div className="absolute inset-0 pointer-events-none z-0">
+          <div className="absolute top-0 left-0 w-[60vw] h-[60vw] max-w-[800px] max-h-[800px] bg-[radial-gradient(circle_at_20%_20%,rgba(59,130,246,0.18),transparent_65%)]" />
+        </div>
+
+        {/* Unified 1280px Container (matching floating top bar container exactly) */}
+        <div className="relative z-10 w-full max-w-[1280px] mx-auto px-[clamp(20px,4vw,48px)] my-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-[46%_54%] gap-6 lg:gap-10 xl:gap-12 items-center">
+            
+            {/* TEXT COLUMN */}
+            <div className="flex flex-col justify-center text-left items-start max-w-[560px]">
+              {/* Badge: Pill shape, blue glow, uppercase luxury tracking */}
+              <div
+                style={{ transitionDuration: '400ms' }}
+                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 shadow-[0_0_16px_rgba(59,130,246,0.25)] text-blue-300 text-[12px] font-mono tracking-widest uppercase mb-4 transition-all will-change-[transform,opacity] ${
+                  mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                <span>30+ FREE MASTER PROMPTS · $10K WEB</span>
+              </div>
+
+              {/* Headline */}
+              <h1
+                style={{ transitionDelay: '60ms', transitionDuration: '400ms' }}
+                className={`font-heading font-semibold text-[44px] md:text-[52px] lg:text-[clamp(44px,4.5vw,70px)] 2xl:text-[76px] leading-[1.04] lg:leading-[1.0] tracking-[-0.035em] text-white mb-3.5 transition-all will-change-[transform,opacity] ${
+                  mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
+                }`}
+              >
+                Build{' '}
+                <span className="font-serif-accent italic font-normal text-transparent bg-clip-text bg-gradient-to-r from-[#38bdf8] via-[#818cf8] to-[#fbbf24] drop-shadow-[0_0_24px_rgba(56,189,248,0.35)]">
+                  $10,000
+                </span>
+                <br />
+                3D websites with
+                <br />
+                one prompt.
+              </h1>
+
+              {/* Sub line */}
+              <p
+                style={{ transitionDelay: '120ms', transitionDuration: '400ms' }}
+                className={`text-[17px] font-body text-white/75 max-w-[460px] leading-snug mb-4 transition-all will-change-[transform,opacity] ${
+                  mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
+                }`}
+              >
+                Become a{' '}
+                <span className="text-white font-medium relative inline-block after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[1.5px] after:bg-gradient-to-r after:from-blue-400 after:via-indigo-400 after:to-amber-400">
+                  3D WebGL Architect
+                </span>{' '}
+                charging $15k per site
+              </p>
+
+              {/* Body Description */}
+              <p
+                style={{ transitionDelay: '160ms', transitionDuration: '400ms' }}
+                className={`text-[16px] font-body text-white/65 max-w-[480px] leading-[1.6] mb-6 transition-all will-change-[transform,opacity] ${
+                  mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
+                }`}
+              >
+                Stop spending 6 months learning WebGL, Three.js, and GLSL shaders. Copy our vault of 500+ battle-tested one-shot prompts to deploy jaw-dropping 3D interactive experiences in minutes.
+              </p>
+
+              {/* Action Row */}
+              <div
+                style={{ transitionDelay: '200ms', transitionDuration: '400ms' }}
+                className={`w-full flex items-center justify-start gap-3.5 mb-4 transition-all will-change-[transform,opacity] ${
+                  mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    try { sound.playSuccess(); } catch {}
+                    onFreeDownloadClick();
+                  }}
+                  onMouseEnter={() => {
+                    try { sound.playHover(); } catch {}
+                  }}
+                  className="h-[52px] min-h-[44px] px-7 rounded-full text-[15px] font-body font-semibold text-white bg-blue-600 hover:bg-blue-500 shadow-[0_4px_24px_rgba(37,99,235,0.45)] hover:-translate-y-0.5 active:scale-95 transition-all flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer shrink-0"
+                >
+                  <span>Get 30+ Free Prompts</span>
+                  <ArrowRight className="w-4 h-4 text-white/80" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    try { sound.playSuccess(); } catch {}
+                    onUnlockClick();
+                  }}
+                  onMouseEnter={() => {
+                    try { sound.playHover(); } catch {}
+                  }}
+                  className="h-[52px] min-h-[44px] px-6 rounded-full text-[15px] font-body font-medium text-white/90 bg-white/[0.04] hover:bg-white/[0.08] border border-white/20 hover:border-white/30 hover:-translate-y-0.5 active:scale-95 transition-all flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer shrink-0"
+                >
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  <span>Unlock Vault · ₹49</span>
+                </button>
+              </div>
+
+              {/* Social Proof */}
+              <div
+                style={{ transitionDelay: '260ms', transitionDuration: '400ms' }}
+                className={`flex items-center justify-start gap-4 text-[13px] font-body text-zinc-300 transition-all will-change-[transform,opacity] ${
+                  mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
+                }`}
+              >
+                <div className="flex items-center gap-1.5 whitespace-nowrap">
+                  <span className="text-amber-400 text-[14px] leading-none">★★★★★</span>
+                  <span>Loved by 2,000+ creators</span>
+                </div>
+                <span className="text-white/20">•</span>
+                <div className="flex items-center gap-2 whitespace-nowrap">
+                  <div className="flex -space-x-1.5 shrink-0">
+                    {DESKTOP_AVATARS.map((src, i) => (
+                      <img
+                        key={i}
+                        src={src}
+                        alt="Builder"
+                        className="w-5 h-5 rounded-full border border-[#050508] object-cover ring-1 ring-white/10"
+                      />
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-1.5 text-zinc-300">
+                    <span className="relative flex h-2 w-2 shrink-0">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+                    </span>
+                    <span>
+                      <strong className="text-white font-semibold">98 builders</strong> active
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* VISUAL COLUMN (MacBook + iPhone Stage on Tablet/Desktop) */}
+            <div
+              style={{ transitionDelay: '300ms', transitionDuration: '400ms' }}
+              className={`w-full transition-all will-change-[transform,opacity] ${
+                mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
+              }`}
+            >
+              <HeroDeviceStage />
+            </div>
           </div>
         </div>
       </div>
