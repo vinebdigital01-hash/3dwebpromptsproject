@@ -72,6 +72,17 @@ export const HeroDeviceStage: React.FC<HeroDeviceStageProps> = ({
   const macVideoRef = useRef<HTMLVideoElement>(null);
   const phoneVideoRef = useRef<HTMLVideoElement>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  // Detect PC/Desktop (>= 1024px)
+  useEffect(() => {
+    const checkViewport = () => {
+      setIsDesktop(window.innerWidth >= 1024);
+    };
+    checkViewport();
+    window.addEventListener('resize', checkViewport, { passive: true });
+    return () => window.removeEventListener('resize', checkViewport);
+  }, []);
 
   // Pick a randomized video from the vault prompt library on reload if not explicitly passed
   const [activeItem] = useState<ShowcaseVideo>(() => {
@@ -82,12 +93,18 @@ export const HeroDeviceStage: React.FC<HeroDeviceStageProps> = ({
   const activeVideoUrl = videoUrl || activeItem.videoUrl;
   const activePosterUrl = posterUrl || activeItem.posterUrl;
 
-  // Sync scroll position: lid starts tilted/semi-closed (rotateX 42deg) and smoothly opens upright (0deg) as user scrolls
+  // Sync scroll position: ONLY for mobile devices (< 1024px)
+  // On PC/desktop, DO NOT sync with scroll (remains static upright, as user requested)
   useEffect(() => {
     let rafId: number | null = null;
     const updateScroll = () => {
+      // If PC / desktop, do not sync with scroll (remains fully open & static)
+      if (window.innerWidth >= 1024) {
+        setScrollProgress(1);
+        return;
+      }
       const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
-      // Over the first 220px of scroll, progress smoothly transitions from 0 to 1
+      // Over the first 220px of scroll on mobile, progress smoothly transitions 0 -> 1
       const progress = Math.min(1, Math.max(0, scrollY / 220));
       setScrollProgress(progress);
     };
@@ -110,7 +127,7 @@ export const HeroDeviceStage: React.FC<HeroDeviceStageProps> = ({
     };
   }, []);
 
-  // Ensure both videos autoplay smoothly, looped and muted across all devices (including mobile touch wake-up)
+  // Ensure both videos autoplay smoothly, looped and muted across all devices
   useEffect(() => {
     const startVideos = () => {
       if (macVideoRef.current) {
@@ -146,28 +163,36 @@ export const HeroDeviceStage: React.FC<HeroDeviceStageProps> = ({
     };
   }, [activeVideoUrl]);
 
-  // Lid angle: starts at 42deg (semi-closed/tilted forward in 3D) and smoothly rotates open to 0deg (upright full view) as you scroll
-  const lidAngle = 42 * (1 - scrollProgress);
+  // Lid angle:
+  // On PC/desktop: always 0deg (upright, flat, no scroll sync)
+  // On mobile: starts at 42deg (semi-closed/tilted in 3D) and smoothly rotates open to 0deg as you scroll
+  const lidAngle = isDesktop ? 0 : 42 * (1 - scrollProgress);
 
   return (
     <div className="relative w-full flex items-center justify-center select-none py-2 overflow-visible">
       {/* Soft colored ambient glow behind devices */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[85%] sm:w-[95%] h-[80%] rounded-full blur-3xl pointer-events-none -z-10 bg-blue-500/20" />
 
-      {/* Floating Hardware Composition: Visible on ALL devices (Mobile, iPad, Desktop) */}
+      {/* Floating Hardware Composition */}
       <div className="relative w-full max-w-[340px] xs:max-w-[380px] sm:max-w-[480px] md:max-w-[560px] lg:max-w-[640px] xl:max-w-[680px] flex items-center justify-center animate-float-6px will-change-transform">
         
         {/* ==============================================================
-            MACBOOK PRO: SCROLL-SYNCED "CLOSE TO OPEN" 3D LID UNIFICATION
+            MACBOOK PRO
+            - PC / Desktop: Upright, flat, static, no scroll sync
+            - Mobile: Scroll-synced close-to-open 3D lid rotation
             ============================================================== */}
         <div className="w-full flex flex-col items-center">
-          {/* 3D Hinged Lid & Display Assembly */}
+          {/* Hinged Lid & Display Assembly */}
           <div
             className="relative w-full aspect-[16/10] rounded-t-[18px] sm:rounded-t-[22px] p-[2px] sm:p-[2.5px] bg-gradient-to-b from-[#4a4d53] via-[#26282c] to-[#141518] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.85)] will-change-transform transition-transform duration-75 ease-out"
-            style={{
-              transformOrigin: 'bottom center',
-              transform: `perspective(1000px) rotateX(${lidAngle}deg)`,
-            }}
+            style={
+              isDesktop
+                ? undefined
+                : {
+                    transformOrigin: 'bottom center',
+                    transform: `perspective(1000px) rotateX(${lidAngle}deg)`,
+                  }
+            }
           >
             {/* Top Metallic Highlight */}
             <div className="absolute inset-x-4 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/25 to-transparent pointer-events-none z-20" />
@@ -234,11 +259,13 @@ export const HeroDeviceStage: React.FC<HeroDeviceStageProps> = ({
         </div>
 
         {/* ==============================================================
-            IPHONE 15 PRO: Standing at Bottom-Right Corner (Live Video)
+            IPHONE 15 PRO: Standing at Bottom-Right Corner
+            - PC / Desktop: Visible (lg:block)
+            - Mobile: HIDDEN (Mac only, no iPhone on mobile devices)
             ============================================================== */}
         <div
           style={{ transform: 'rotate(-5deg)' }}
-          className="absolute -bottom-2 sm:-bottom-4 -right-1 sm:right-0 w-[27%] sm:w-[25%] lg:w-[24%] min-w-[78px] xs:min-w-[88px] sm:min-w-[110px] max-w-[160px] z-20 transition-transform duration-300 drop-shadow-[0_20px_35px_rgba(0,0,0,0.95)]"
+          className="hidden lg:block absolute -bottom-2 sm:-bottom-4 -right-1 sm:right-0 w-[27%] sm:w-[25%] lg:w-[24%] min-w-[78px] xs:min-w-[88px] sm:min-w-[110px] max-w-[160px] z-20 transition-transform duration-300 drop-shadow-[0_20px_35px_rgba(0,0,0,0.95)]"
         >
           <div className="relative w-full aspect-[9/19.5] rounded-[22px] xs:rounded-[26px] sm:rounded-[32px] p-[2px] sm:p-[2.5px] bg-gradient-to-b from-[#d4d2cc] via-[#a8a69f] to-[#7a7873] shadow-2xl ring-1 ring-white/20">
             <div className="absolute inset-[2px] sm:inset-[2.5px] rounded-[20px] xs:rounded-[24px] sm:rounded-[30px] bg-black p-[2px] pt-[8px] xs:pt-[9px] sm:pt-[11px] overflow-hidden flex flex-col justify-start border border-[#1a1a1d]">
