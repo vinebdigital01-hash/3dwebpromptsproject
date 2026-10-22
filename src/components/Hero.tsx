@@ -35,6 +35,8 @@ export const Hero: React.FC<HeroProps> = ({
   });
   const mobileVideoRef = useRef<HTMLVideoElement>(null);
   const mobileLidRef = useRef<HTMLDivElement>(null);
+  const mobileHeroTrackRef = useRef<HTMLDivElement>(null);
+  const mobileHeroFrameRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -49,32 +51,65 @@ export const Hero: React.FC<HeroProps> = ({
     }
   }, [randomMobileVideo]);
 
-  // Scroll sync ONLY on mobile devices (< 768px): close-to-open (38deg -> 0deg)
+  // Scroll-pinned close-to-open interaction ONLY on mobile devices (< 768px)
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (window.innerWidth >= 768) return;
 
     let rafId: number | null = null;
-    const updateLid = () => {
-      if (!mobileLidRef.current) return;
-      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        mobileLidRef.current.style.transform = 'perspective(1000px) rotateX(0deg)';
-        return;
+    const PIN_DISTANCE = 280;
+
+    const updateLidAndPin = () => {
+      if (window.innerWidth >= 768) return;
+
+      const track = mobileHeroTrackRef.current;
+      const frame = mobileHeroFrameRef.current;
+      const lid = mobileLidRef.current;
+
+      let scrolled = 0;
+      if (track) {
+        const rect = track.getBoundingClientRect();
+        scrolled = -rect.top;
+      } else {
+        scrolled = window.scrollY || document.documentElement.scrollTop || 0;
       }
-      const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
-      // Close-to-open: stays pinned in place while user scrolls 0 -> 260px, rotating 38deg -> 0deg
-      const openDistance = 260;
-      const progress = Math.min(1, Math.max(0, scrollY / openDistance));
-      const angle = 38 * (1 - progress);
-      mobileLidRef.current.style.transform = `perspective(1000px) rotateX(${angle.toFixed(1)}deg)`;
+
+      // 1. PINNING: stays fixed at top: 0 while scrolling 0 -> PIN_DISTANCE, then absolute to scroll down
+      if (frame) {
+        if (scrolled < PIN_DISTANCE) {
+          frame.style.position = 'fixed';
+          frame.style.top = '0px';
+          frame.style.left = '0px';
+          frame.style.right = '0px';
+          frame.style.width = '100%';
+        } else {
+          frame.style.position = 'absolute';
+          frame.style.top = `${PIN_DISTANCE}px`;
+          frame.style.left = '0px';
+          frame.style.right = '0px';
+          frame.style.width = '100%';
+        }
+      }
+
+      // 2. 3D LID ANGLE: smoothly opens from 38deg to 0deg (flat open)
+      if (lid) {
+        if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          lid.style.transform = 'perspective(1000px) rotateX(0deg)';
+          return;
+        }
+
+        const progress = Math.min(1, Math.max(0, scrolled / PIN_DISTANCE));
+        const angle = 38 * (1 - progress);
+        lid.style.transform = `perspective(1000px) rotateX(${angle.toFixed(1)}deg)`;
+      }
     };
 
     const handleScroll = () => {
       if (rafId) cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(updateLid);
+      rafId = requestAnimationFrame(updateLidAndPin);
     };
 
-    updateLid();
+    updateLidAndPin();
     window.addEventListener('scroll', handleScroll, { passive: true });
     window.addEventListener('resize', handleScroll, { passive: true });
     return () => {
@@ -89,13 +124,25 @@ export const Hero: React.FC<HeroProps> = ({
       {/* =========================================================================
           1. MOBILE HERO (max-width: 767px)
           Order: menu bar → badge → headline → MACBOOK → sub-line → FREE card → PAID card → small line → trust line
-          Pinned in place during scroll 0 -> 260px until MacBook is fully open (0deg), then scrolls down
+          Pinned in place during scroll 0 -> 280px until MacBook is fully open (0deg), then scrolls down
           ========================================================================= */}
       <div
+        ref={mobileHeroTrackRef}
         className="md:hidden relative w-full"
-        style={{ height: 'calc(100dvh + 260px)' }}
+        style={{ height: 'calc(100svh + 280px)' }}
       >
-        <div className="sticky top-0 w-full h-[100dvh] max-h-[100dvh] bg-[#0B0D12] overflow-x-clip overflow-y-visible flex flex-col justify-start px-4 pt-[calc(56px+env(safe-area-inset-top,0px)+10px)] pb-3 relative z-10">
+        <div
+          ref={mobileHeroFrameRef}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '100svh',
+            maxHeight: '100dvh',
+          }}
+          className="w-full bg-[#0B0D12] overflow-x-hidden flex flex-col justify-start px-4 pt-[calc(56px+env(safe-area-inset-top,0px)+10px)] pb-3 z-20 pointer-events-auto"
+        >
           {/* Faint ambient light at the top: radial-gradient(60% 40% at 50% 0%, rgba(59,130,246,0.10), transparent) */}
           <div
             className="absolute top-0 inset-x-0 h-[360px] pointer-events-none -z-10"
