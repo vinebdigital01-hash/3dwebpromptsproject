@@ -140,8 +140,9 @@ export const Hero: React.FC<HeroProps> = ({
             right: 0,
             height: '100svh',
             maxHeight: '100dvh',
+            overflow: 'hidden',
           }}
-          className="w-full bg-[#0B0D12] overflow-x-hidden flex flex-col justify-start px-4 pt-[calc(56px+env(safe-area-inset-top,0px)+10px)] pb-3 z-20 pointer-events-auto"
+          className="w-full bg-[#0B0D12] overflow-hidden flex flex-col justify-start px-4 pt-[calc(56px+env(safe-area-inset-top,0px)+8px)] pb-2 z-20 pointer-events-auto touch-pan-y"
         >
           {/* Faint ambient light at the top: radial-gradient(60% 40% at 50% 0%, rgba(59,130,246,0.10), transparent) */}
           <div
@@ -157,12 +158,12 @@ export const Hero: React.FC<HeroProps> = ({
           {/* ──────── 1. BADGE ──────── */}
           <div
             style={{ transitionDuration: '300ms' }}
-            className={`h-[28px] px-3 rounded-full border border-white/10 bg-white/[0.03] inline-flex items-center gap-2 self-center shrink-0 transition-all will-change-[transform,opacity] ${
+            className={`h-[26px] px-2.5 rounded-full border border-white/10 bg-white/[0.03] inline-flex items-center gap-1.5 self-center shrink-0 transition-all will-change-[transform,opacity] ${
               mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
             }`}
           >
             <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E] shrink-0" />
-            <span className="text-[12px] font-medium text-white/90 whitespace-nowrap">
+            <span className="text-[11px] font-medium text-white/90 whitespace-nowrap">
               30+ prompts free · no card needed
             </span>
           </div>
@@ -170,7 +171,7 @@ export const Hero: React.FC<HeroProps> = ({
           {/* ──────── 2. HEADLINE ──────── */}
           <h1
             style={{ transitionDelay: '50ms', transitionDuration: '300ms' }}
-            className={`mt-2.5 text-center font-heading font-semibold text-[clamp(28px,8.5vw,36px)] leading-[1.04] tracking-[-0.035em] text-[#F5F5F7] shrink-0 transition-all will-change-[transform,opacity] ${
+            className={`mt-1.5 text-center font-heading font-semibold text-[clamp(24px,7.5vw,32px)] leading-[1.04] tracking-[-0.035em] text-[#F5F5F7] shrink-0 transition-all will-change-[transform,opacity] ${
               mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
             }`}
           >
@@ -187,7 +188,7 @@ export const Hero: React.FC<HeroProps> = ({
               - Pinned in place during opening scroll track */}
           <div
             style={{ transitionDelay: '100ms', transitionDuration: '300ms' }}
-            className={`w-full my-2.5 sm:my-3 max-w-[320px] mx-auto select-none pointer-events-none shrink-0 transition-all will-change-[transform,opacity] ${
+            className={`w-full my-1.5 sm:my-2 max-w-[270px] xs:max-w-[290px] sm:max-w-[320px] mx-auto select-none pointer-events-none shrink-0 transition-all will-change-[transform,opacity] ${
               mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
             }`}
           >
@@ -266,7 +267,7 @@ export const Hero: React.FC<HeroProps> = ({
           {/* ──────── 4. SUB-LINE ──────── */}
           <p
             style={{ transitionDelay: '150ms', transitionDuration: '300ms' }}
-            className={`text-center text-[13px] xs:text-[14px] font-medium text-[#D1D5DB] leading-snug whitespace-nowrap shrink-0 transition-all will-change-[transform,opacity] ${
+            className={`mt-1 text-center text-[12px] xs:text-[13px] font-medium text-[#D1D5DB] leading-snug whitespace-nowrap shrink-0 transition-all will-change-[transform,opacity] ${
               mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
             }`}
           >
@@ -276,62 +277,62 @@ export const Hero: React.FC<HeroProps> = ({
           {/* ──────── 5. FREE / PAID BLOCK (main focus) ──────── */}
           <div
             style={{ transitionDelay: '200ms', transitionDuration: '300ms' }}
-            className={`mt-2.5 w-full max-w-[320px] mx-auto flex flex-col gap-2 shrink-0 transition-all will-change-[transform,opacity] ${
+            className={`mt-2 w-full max-w-[310px] mx-auto flex flex-col gap-1.5 shrink-0 transition-all will-change-[transform,opacity] ${
               mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
             }`}
           >
-            {/* CARD A — FREE (on top, the main action, min-height 64px, padding 10px 14px) */}
+            {/* CARD A — FREE (on top, the main action, min-height 58px, padding 8px 12px) */}
             <button
               type="button"
               onClick={() => {
                 try { sound.playSuccess(); } catch {}
                 onFreeDownloadClick();
               }}
-              className="w-full min-h-[64px] p-[10px_14px] rounded-[13px] bg-[#2563EB] text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] active:scale-[0.98] transition-transform duration-120 flex flex-col justify-between cursor-pointer"
+              className="w-full min-h-[58px] p-[8px_12px] rounded-[12px] bg-[#2563EB] text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] active:scale-[0.98] transition-transform duration-120 flex flex-col justify-between cursor-pointer"
             >
               {/* Row 1: tag "FREE" + "₹0" */}
               <div className="flex items-center justify-between w-full">
-                <span className="px-1.5 py-0.5 rounded-[5px] bg-white/[0.18] text-[10px] font-bold text-white tracking-wide uppercase">
+                <span className="px-1.5 py-0.5 rounded-[4px] bg-white/[0.18] text-[9.5px] font-bold text-white tracking-wide uppercase">
                   FREE
                 </span>
-                <span className="text-[16px] font-bold text-white tracking-tight">
+                <span className="text-[15px] font-bold text-white tracking-tight">
                   ₹0
                 </span>
               </div>
 
               {/* Row 2: "Get 30+ starter prompts" + Arrow */}
               <div className="flex items-center justify-between w-full mt-0.5">
-                <span className="text-[15px] sm:text-[16px] font-semibold text-white tracking-tight whitespace-nowrap">
+                <span className="text-[14px] xs:text-[15px] font-semibold text-white tracking-tight whitespace-nowrap">
                   Get 30+ starter prompts
                 </span>
-                <span className="text-[17px] text-white font-medium ml-2 shrink-0">→</span>
+                <span className="text-[16px] text-white font-medium ml-2 shrink-0">→</span>
               </div>
 
               {/* Row 3: "Instant download · no card needed" */}
-              <div className="text-[12px] text-white/75 mt-0.5 whitespace-nowrap">
+              <div className="text-[11px] text-white/75 whitespace-nowrap">
                 Instant download · no card needed
               </div>
             </button>
 
-            {/* CARD B — PAID (below, the upgrade, min-height 64px, padding 10px 14px) */}
+            {/* CARD B — PAID (below, the upgrade, min-height 58px, padding 8px 12px) */}
             <button
               type="button"
               onClick={() => {
                 try { sound.playSuccess(); } catch {}
                 onUnlockClick();
               }}
-              className="w-full min-h-[64px] p-[10px_14px] rounded-[13px] bg-white/[0.03] border border-white/[0.12] text-left active:scale-[0.98] transition-transform duration-120 flex flex-col justify-between cursor-pointer"
+              className="w-full min-h-[58px] p-[8px_12px] rounded-[12px] bg-white/[0.03] border border-white/[0.12] text-left active:scale-[0.98] transition-transform duration-120 flex flex-col justify-between cursor-pointer"
             >
               {/* Row 1: tag "FULL VAULT" + Price "₹49" + strikethrough "₹499" */}
               <div className="flex items-center justify-between w-full">
-                <span className="px-1.5 py-0.5 rounded-[5px] bg-white/[0.08] text-[10px] font-bold text-[#F5F5F7] tracking-wide uppercase">
+                <span className="px-1.5 py-0.5 rounded-[4px] bg-white/[0.08] text-[9.5px] font-bold text-[#F5F5F7] tracking-wide uppercase">
                   FULL VAULT
                 </span>
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-[16px] font-bold text-white tracking-tight">
+                  <span className="text-[15px] font-bold text-white tracking-tight">
                     ₹49
                   </span>
-                  <span className="text-[12px] text-[#6B7280] line-through">
+                  <span className="text-[11px] text-[#6B7280] line-through">
                     ₹499
                   </span>
                 </div>
@@ -339,20 +340,20 @@ export const Hero: React.FC<HeroProps> = ({
 
               {/* Row 2: "Unlock all 500+ prompts" + Arrow */}
               <div className="flex items-center justify-between w-full mt-0.5">
-                <span className="text-[15px] sm:text-[16px] font-semibold text-[#F5F5F7] tracking-tight whitespace-nowrap">
+                <span className="text-[14px] xs:text-[15px] font-semibold text-[#F5F5F7] tracking-tight whitespace-nowrap">
                   Unlock all 500+ prompts
                 </span>
-                <span className="text-[17px] text-[#F5F5F7] font-medium ml-2 shrink-0">→</span>
+                <span className="text-[16px] text-[#F5F5F7] font-medium ml-2 shrink-0">→</span>
               </div>
 
               {/* Row 3: "One-time payment · lifetime updates" */}
-              <div className="text-[12px] text-[#8B8F98] mt-0.5 whitespace-nowrap">
+              <div className="text-[11px] text-[#8B8F98] whitespace-nowrap">
                 One-time payment · lifetime updates
               </div>
             </button>
 
             {/* Reassurance line under Card B */}
-            <div className="mt-0.5 text-center text-[11px] text-[#6B7280] whitespace-nowrap">
+            <div className="mt-0.5 text-center text-[10.5px] text-[#6B7280] whitespace-nowrap">
               Start free. Upgrade only if you love it.
             </div>
           </div>
@@ -360,17 +361,17 @@ export const Hero: React.FC<HeroProps> = ({
           {/* ──────── 6. TRUST LINE ──────── */}
           <div
             style={{ transitionDelay: '250ms', transitionDuration: '300ms' }}
-            className={`mt-2 flex items-center justify-center gap-2 text-[12px] text-[#8B8F98] whitespace-nowrap shrink-0 transition-all will-change-[transform,opacity] ${
+            className={`mt-1.5 flex items-center justify-center gap-1.5 text-[11px] text-[#8B8F98] whitespace-nowrap shrink-0 transition-all will-change-[transform,opacity] ${
               mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
             }`}
           >
-            <div className="flex -space-x-1.5 shrink-0">
+            <div className="flex -space-x-1 shrink-0">
               {MOBILE_AVATARS.map((src, i) => (
                 <img
                   key={i}
                   src={src}
                   alt="Creator avatar"
-                  className="w-[20px] h-[20px] rounded-full border-2 border-[#0B0D12] object-cover"
+                  className="w-[18px] h-[18px] rounded-full border border-[#0B0D12] object-cover"
                 />
               ))}
             </div>
