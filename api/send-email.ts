@@ -8,11 +8,10 @@ export default async function handler(req: any, res: any) {
   }
 
   const { from, to, subject, html, text, apiKey } = req.body || {};
-  const defaultKey = Buffer.from('cmVfYWhqanZ0QjdfQzd6RHJyNGRDSHByZ3daY3pSN05QQ2J4', 'base64').toString('utf-8');
-  const token = apiKey || process.env.RESEND_API_KEY || process.env.VITE_RESEND_API_KEY || defaultKey;
+  const token = process.env.RESEND_API_KEY || apiKey || process.env.VITE_RESEND_API_KEY;
 
   if (!token) {
-    return res.status(400).json({ message: 'Missing Resend API Key' });
+    return res.status(500).json({ message: 'Server configuration error: Missing Resend API Key' });
   }
 
   const recipients = Array.isArray(to) ? to : [to];

@@ -132,8 +132,7 @@ export async function sendEmailViaResend(options: {
   from?: string;
 }): Promise<EmailDispatchResult> {
   const settings = getAdminSettings();
-  const defaultKey = typeof atob !== 'undefined' ? atob('cmVfYWhqanZ0QjdfQzd6RHJyNGRDSHByZ3daY3pSN05QQ2J4') : '';
-  const apiKey = settings.resendApiKey?.trim() || (typeof import.meta !== 'undefined' && import.meta.env?.VITE_RESEND_API_KEY) || defaultKey;
+  const customApiKey = settings.resendApiKey?.trim() || '';
   const fromAddress = options.from || settings.resendFromEmail || 'Vine B Digital // 3D Vault <vault@vinebdigital.store>';
 
   if (!options.to || !options.to.includes('@')) {
@@ -152,7 +151,7 @@ export async function sendEmailViaResend(options: {
     };
   }
 
-  const payload = {
+  const payload: any = {
     from: fromAddress,
     to: [cleanRecipient],
     subject: options.subject,
@@ -160,54 +159,31 @@ export async function sendEmailViaResend(options: {
     text: options.text || options.subject,
   };
 
-  // 1. Try local dev proxy / Vercel Serverless Function `/api/send-email`
+  if (customApiKey) {
+    payload.apiKey = customApiKey;
+  }
+
+  // Dispatch strictly via serverless API endpoint
   try {
     const proxyRes = await fetch('/api/send-email', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        ...payload,
-        apiKey,
-      }),
+      body: JSON.stringify(payload),
     });
+
+    const data = await proxyRes.json().catch(() => ({}));
 
     if (proxyRes.ok) {
       recordRecipientEmailSent(cleanRecipient);
-      const data = await proxyRes.json();
       return {
         success: true,
         message: `Email dispatched successfully! (ID: ${data.id || 'OK'})`,
         id: data.id,
       };
-    }
-  } catch {
-    // Proxy not available or network error, fallback to direct API
-  }
-
-  // 2. Direct Resend API Fallback
-  try {
-    const directRes = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const data = await directRes.json();
-
-    if (directRes.ok) {
-      recordRecipientEmailSent(cleanRecipient);
-      return {
-        success: true,
-        message: `Email dispatched directly via Resend! (ID: ${data.id || 'OK'})`,
-        id: data.id,
-      };
     } else {
-      const errMsg = data.message || `Resend Error (${directRes.status})`;
+      const errMsg = data.message || `Email dispatch error (${proxyRes.status})`;
       if (errMsg.includes('domain is not verified') || errMsg.includes('onboarding@resend.dev')) {
         return {
           success: false,
@@ -222,7 +198,7 @@ export async function sendEmailViaResend(options: {
   } catch (err: any) {
     return {
       success: false,
-      message: err.message || 'Network error calling Resend API.',
+      message: err.message || 'Network error calling email service.',
     };
   }
 }

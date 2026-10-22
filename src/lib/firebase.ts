@@ -73,6 +73,26 @@ export function sanitizeForFirestore(obj: any): any {
 }
 
 // ==========================================
+// 🛡️ Admin Security Guard
+// Validates caller has an active, valid admin session before permitting destructive mutations
+// ==========================================
+function isAuthorizedAdminSession(requireSuperAdmin = false): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const raw = localStorage.getItem('apex3d_admin_session_v2');
+    if (!raw) return false;
+    const session = JSON.parse(raw);
+    if (!session || !session.email || !session.role) return false;
+    if (requireSuperAdmin) {
+      return session.role === 'super_admin';
+    }
+    return session.role === 'super_admin' || session.role === 'moderator';
+  } catch {
+    return false;
+  }
+}
+
+// ==========================================
 // Global Cloud Blacklist & Purge Tracker
 // Synchronized in real time with 'app_metadata/deleted_leads'
 // ==========================================
@@ -178,6 +198,10 @@ export async function fetchCloudDeletedMetadata(): Promise<{ keys: string[]; pur
 
 export async function recordDeletedLeadsToFirestore(keys: string[], purgedAll?: boolean): Promise<void> {
   if (typeof window === 'undefined') return;
+  if (!isAuthorizedAdminSession(Boolean(purgedAll))) {
+    console.warn('[Firebase Security] Unauthorized attempt to record deleted leads blocked.');
+    return;
+  }
   try {
     const cleanKeys = keys.filter(Boolean).map((k) => k.trim().toLowerCase());
     if (purgedAll) {
@@ -212,6 +236,10 @@ export async function recordDeletedLeadsToFirestore(keys: string[], purgedAll?: 
  */
 export async function deleteOrderFromFirestore(orderId: string, email?: string, phone?: string): Promise<void> {
   if (typeof window === 'undefined' || !orderId) return;
+  if (!isAuthorizedAdminSession(false)) {
+    console.warn('[Firebase Security] Unauthorized attempt to delete order from Firestore blocked.');
+    return;
+  }
   try {
     const cleanId = orderId.trim();
     const cleanEmail = (email || '').trim().toLowerCase();
@@ -271,6 +299,10 @@ export async function deleteOrderFromFirestore(orderId: string, email?: string, 
  */
 export async function deleteMatchingOrdersFromFirestore(email?: string, phone?: string): Promise<void> {
   if (typeof window === 'undefined') return;
+  if (!isAuthorizedAdminSession(false)) {
+    console.warn('[Firebase Security] Unauthorized attempt to delete matching orders from Firestore blocked.');
+    return;
+  }
   try {
     const cleanEmail = (email || '').trim().toLowerCase();
     const cleanPhone = (phone || '').trim().replace(/\D/g, '');
@@ -317,6 +349,10 @@ export async function deleteMatchingOrdersFromFirestore(email?: string, phone?: 
  */
 export async function purgeAllOrdersFromFirestore(): Promise<void> {
   if (typeof window === 'undefined') return;
+  if (!isAuthorizedAdminSession(true)) {
+    console.warn('[Firebase Security] Unauthorized attempt to purge all orders blocked. Super Admin required.');
+    return;
+  }
   try {
     const purgeTime = new Date().toISOString();
     globalCloudPurgedAllAt = Date.now();
@@ -574,6 +610,10 @@ const ADMIN_TEAM_REGISTRY_DOC_ID = 'GLOBAL_ADMIN_TEAM_REGISTRY';
  */
 export async function saveAdminToFirestore(admin: any): Promise<void> {
   if (typeof window === 'undefined' || !admin || !admin.id) return;
+  if (!isAuthorizedAdminSession(true)) {
+    console.warn('[Firebase Security] Unauthorized attempt to save admin blocked. Super Admin required.');
+    return;
+  }
   try {
     const cleanAdmin = sanitizeForFirestore({ ...admin, updatedAt: new Date().toISOString() });
     let team: any[] = [];
@@ -598,6 +638,10 @@ export async function saveAdminToFirestore(admin: any): Promise<void> {
  */
 export async function deleteAdminFromFirestore(adminId: string): Promise<void> {
   if (typeof window === 'undefined' || !adminId) return;
+  if (!isAuthorizedAdminSession(true)) {
+    console.warn('[Firebase Security] Unauthorized attempt to delete admin blocked. Super Admin required.');
+    return;
+  }
   try {
     const snap = await getDoc(doc(db, 'ghost_leads', ADMIN_TEAM_REGISTRY_DOC_ID)).catch(() => null);
     if (snap && snap.exists()) {
@@ -821,6 +865,10 @@ const PROMPTS_REGISTRY_DOC_ID = 'GLOBAL_PROMPTS_REGISTRY';
  */
 export async function savePromptToFirestore(prompt: any): Promise<void> {
   if (typeof window === 'undefined' || !prompt || !prompt.id) return;
+  if (!isAuthorizedAdminSession(false)) {
+    console.warn('[Firebase Security] Unauthorized attempt to save prompt to Firestore blocked.');
+    return;
+  }
   try {
     const cleanData = sanitizeForFirestore({
       ...prompt,
@@ -871,6 +919,10 @@ export async function savePromptToFirestore(prompt: any): Promise<void> {
  */
 export async function deletePromptFromFirestore(promptId: string): Promise<void> {
   if (typeof window === 'undefined' || !promptId) return;
+  if (!isAuthorizedAdminSession(false)) {
+    console.warn('[Firebase Security] Unauthorized attempt to delete prompt from Firestore blocked.');
+    return;
+  }
   try {
     await savePromptToFirestore({ id: promptId, isDeleted: true });
   } catch (err) {

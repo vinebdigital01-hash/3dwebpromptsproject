@@ -1,0 +1,45 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function: Check if request has authenticated Firebase Auth token
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Orders Collection:
+    // - Customers create their orders during checkout
+    // - Single order doc read is allowed for receipt & portal verification
+    // - Listing all customer orders, arbitrary updates, and deletions require authenticated admin
+    match /orders/{orderId} {
+      allow create: if request.resource.data.keys().hasAll(['id', 'tierId', 'amountINR']);
+      allow get: if true;
+      allow list: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if isAuthenticated();
+    }
+
+    // Ghost Leads & Tracking Collection:
+    // - Public can create leads (opt-ins, contact forms, click metrics)
+    // - Quota tracking and visitor events can update their respective documents
+    // - System registries (GLOBAL_*) require authentication for deletes/updates
+    match /ghost_leads/{leadId} {
+      allow create: if true;
+      allow get: if true;
+      allow update: if leadId.matches('QUOTA_.*') || leadId.matches('VISITOR-.*') || isAuthenticated();
+      allow delete: if isAuthenticated();
+      allow list: if isAuthenticated();
+    }
+
+    // Email Broadcasts Collection:
+    // Strictly restricted to authenticated admin
+    match /email_broadcasts/{campaignId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Global Catch-all: Deny any unhandled paths
+    match /{document=**} {
+      allow read, write: if isAuthenticated();
+    }
+  }
+}

@@ -7,8 +7,6 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import crypto from 'crypto';
 
 const DEFAULT_PIXEL_ID = '4722606601349243';
-const DEFAULT_CAPI_TOKEN =
-  'EAAcrhPzk3TUBSxOMHu0dI3VlEDjSKCTDcDhnB3mJgwFDke1fAO3hTJee0jEZALjRxYlCN8On0gBxyWGerNAESyVkqJ6NZCKZCAgCZASN5KxqFsVb0OrX8xz9PE7OkOWGjm8EfYukDAgFIZAPZA7BLcqtakt5O8U0Kgn8CGxhzzUaUNOjumf50HPcdU8puq2wZDZD';
 
 /**
  * Clean & SHA-256 hash string for Meta customer parameters
@@ -92,7 +90,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     customToken ||
     process.env.META_CAPI_TOKEN ||
     process.env.VITE_META_CAPI_TOKEN ||
-    DEFAULT_CAPI_TOKEN;
+    '';
 
   if (!token || !pixelId) {
     return res.status(400).json({ message: 'Missing Meta Pixel ID or Conversions API Access Token' });

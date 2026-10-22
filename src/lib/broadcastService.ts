@@ -683,10 +683,27 @@ export async function dispatchBatchBroadcast(params: {
   return record;
 }
 
+function hasAdminSession(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const raw = localStorage.getItem('apex3d_admin_session_v2');
+    if (!raw) return false;
+    const session = JSON.parse(raw);
+    return Boolean(session && session.email && (session.role === 'super_admin' || session.role === 'moderator'));
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Save broadcast campaign record to local storage & Firestore
  */
 export async function saveBroadcastCampaign(record: BroadcastCampaignRecord): Promise<void> {
+  if (!hasAdminSession()) {
+    console.warn('[Broadcast Security] Unauthorized attempt to save broadcast blocked.');
+    return;
+  }
+
   // 1. LocalStorage Cache
   try {
     const raw = localStorage.getItem(BROADCAST_STORAGE_KEY);
@@ -745,6 +762,11 @@ export async function fetchCloudBroadcastCampaigns(): Promise<BroadcastCampaignR
  * Delete a campaign record
  */
 export async function deleteBroadcastCampaign(campaignId: string): Promise<void> {
+  if (!hasAdminSession()) {
+    console.warn('[Broadcast Security] Unauthorized attempt to delete broadcast blocked.');
+    return;
+  }
+
   try {
     const raw = localStorage.getItem(BROADCAST_STORAGE_KEY);
     if (raw) {
