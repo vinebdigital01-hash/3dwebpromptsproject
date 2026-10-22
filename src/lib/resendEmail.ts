@@ -235,7 +235,7 @@ export function buildApprovalEmailHtml(order: LeadOrder, videoShowcaseMode: Show
     ? `${window.location.origin}/#portal?orderId=${encodeURIComponent(order.id)}`
     : `${BASE_PORTAL_URL}/#portal?orderId=${encodeURIComponent(order.id)}`;
 
-  const invoiceNo = order.invoiceNumber || `INV-2026-${order.orderNumber.replace(/\D/g, '').slice(-4) || '8941'}`;
+  const invoiceNo = order.invoiceNumber || `INV-2026-${((order.orderNumber || '1001') as string).replace(/\D/g, '').slice(-4) || '8941'}`;
   const licenseKey = order.licenseKey || 'LIC-VIP-ACCESS-ACTIVE';
 
   const d = order.approvedAt ? new Date(order.approvedAt) : new Date(order.createdAt || Date.now());

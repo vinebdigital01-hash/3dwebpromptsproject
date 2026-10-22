@@ -139,10 +139,10 @@ export function interpolateMergeTags(
   const orderNumber = contact.orderNumber || 'APX-MEMBER';
   const tierName = contact.tierName || '3D WebGL Access';
 
-  return template
+  return (template || '')
     .replace(/\{\{\s*name\s*\}\}/gi, fullName)
     .replace(/\{\{\s*first_name\s*\}\}/gi, firstName)
-    .replace(/\{\{\s*email\s*\}\}/gi, contact.email)
+    .replace(/\{\{\s*email\s*\}\}/gi, contact?.email || '')
     .replace(/\{\{\s*license_key\s*\}\}/gi, licenseKey)
     .replace(/\{\{\s*portal_url\s*\}\}/gi, portalUrl)
     .replace(/\{\{\s*order_number\s*\}\}/gi, orderNumber)

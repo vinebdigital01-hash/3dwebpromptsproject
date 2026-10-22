@@ -1003,7 +1003,7 @@ export const BroadcastCenter: React.FC<BroadcastCenterProps> = ({ adminEmail, sh
               </div>
               <div className="flex justify-between">
                 <span className="text-zinc-400">Target Segment:</span>
-                <span className="font-mono text-white capitalize">{audienceFilter.replace('_', ' ')}</span>
+                <span className="font-mono text-white capitalize">{(audienceFilter || 'all').replace('_', ' ')}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-zinc-400">Subject:</span>

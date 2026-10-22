@@ -1814,17 +1814,19 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
 
                     {/* Actions */}
                     <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 pt-2 lg:pt-0 flex-wrap">
-                      <a
-                        href={`https://wa.me/91${order.phone.replace(/\D/g, '')}?text=${encodeURIComponent(
-                          `Hi ${order.name}, thank you for your order ${order.orderNumber} for APEX3D Vault. We are verifying UTR ${order.utrNumber}.`
-                        )}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-3 py-2 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center gap-1.5 transition-colors"
-                      >
-                        <span>WhatsApp</span>
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
+                      {order.phone && (
+                        <a
+                          href={`https://wa.me/91${(order.phone || '').replace(/\D/g, '')}?text=${encodeURIComponent(
+                            `Hi ${order.name || 'there'}, thank you for your order ${order.orderNumber || ''} for APEX3D Vault. We are verifying UTR ${order.utrNumber || ''}.`
+                          )}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-2 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                        >
+                          <span>WhatsApp</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
 
                       <button
                         onClick={() => handleOpenReject(order)}
@@ -2011,7 +2013,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                             <span>Activity timeline:</span>
                             {telemetry.history.slice(-3).map((h, i) => (
                               <span key={i} className="px-1.5 py-0.5 rounded bg-white/[0.03] border border-white/[0.06]">
-                                {h.action.replace('_', ' ')} ({new Date(h.timestamp).toLocaleTimeString()})
+                                {((h?.action || 'event') as string).replace('_', ' ')} ({h?.timestamp ? new Date(h.timestamp).toLocaleTimeString() : 'now'})
                               </span>
                             ))}
                           </div>
@@ -2575,7 +2577,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                         <div className="flex items-center gap-2 shrink-0">
                           {group.phone && (
                             <a
-                              href={`https://wa.me/91${group.phone.replace(/\D/g, '')}?text=${encodeURIComponent(
+                              href={`https://wa.me/91${(group.phone || '').replace(/\D/g, '')}?text=${encodeURIComponent(
                                 isFreeLead
                                   ? `Hey ${group.name || 'there'}! 🚀 Saw you tested the "${group.highestTierName || '3D Architecture'}" prompt on APEX3D Vault.\n\nHow did your render go? If you want instant access to all 500+ commercial 3D blueprints and Three.js starters, we have an exclusive ₹49 Sprint Pass or ₹299 Lifetime VIP today: https://3dwebprompts-vineb.vercel.app/#pricing\n\nNeed any help setting it up?`
                                   : `Hey ${group.name || 'there'}! Saw you were checking out the ${group.highestTierName} on APEX3D Vault. Did you face any UPI issue? Here to help!`
@@ -2766,7 +2768,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                       <div className="flex items-center gap-2 shrink-0">
                         {lead.phone && (
                           <a
-                            href={`https://wa.me/91${lead.phone.replace(/\D/g, '')}?text=${encodeURIComponent(
+                            href={`https://wa.me/91${(lead.phone || '').replace(/\D/g, '')}?text=${encodeURIComponent(
                               isLeadFree
                                 ? `Hey ${lead.name || 'there'}! 🚀 Saw you tested the "${lead.tierName || '3D Architecture'}" prompt on APEX3D Vault.\n\nHow did your render go? If you want instant access to all 500+ commercial 3D blueprints and Three.js starters, we have an exclusive ₹49 Sprint Pass or ₹299 Lifetime VIP today: https://3dwebprompts-vineb.vercel.app/#pricing\n\nNeed any help setting it up?`
                                 : `Hey ${lead.name || 'there'}! Saw you were checking out the ${lead.tierName} on APEX3D Vault. Did you face any UPI issue? Here to help!`
@@ -2918,7 +2920,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
 
                       {order.phone && (
                         <a
-                          href={`https://wa.me/91${order.phone.replace(/\D/g, '')}?text=${encodeURIComponent(
+                          href={`https://wa.me/91${(order.phone || '').replace(/\D/g, '')}?text=${encodeURIComponent(
                             `Hello ${order.name}! 🚀 Your APEX3D Vault access (${order.tierName}) is APPROVED!\n\n` +
                             `🔑 License Key: ${order.licenseKey || 'N/A'}\n` +
                             `📄 Commercial Invoice: ${order.invoiceNumber || 'N/A'}\n` +

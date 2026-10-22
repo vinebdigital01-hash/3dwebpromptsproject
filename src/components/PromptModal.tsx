@@ -71,7 +71,7 @@ export const PromptModal: React.FC<PromptModalProps> = ({ item, onClose, onUnloc
               <span className="w-2.5 h-2.5 rounded-full bg-zinc-800 border border-zinc-700" />
             </div>
             <span className="text-[11px] font-mono text-zinc-500 hidden sm:inline-block">
-              apex3d://vault/{item.category.toLowerCase().replace(/[^a-z0-9]/g, '-')}/{item.id || 'prompt'}.glsl
+              apex3d://vault/{((item?.category || 'general') as string).toLowerCase().replace(/[^a-z0-9]/g, '-')}/{item?.id || 'prompt'}.glsl
             </span>
           </div>
 

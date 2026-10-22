@@ -926,7 +926,7 @@ export const TrafficAnalyticsDashboard: React.FC<TrafficAnalyticsDashboardProps>
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {audienceAnalytics.identifiedContacts.map((contact, idx) => {
-                    const cleanPhone = contact.phone ? contact.phone.replace(/\D/g, '') : '';
+                    const cleanPhone = (contact.phone || '').replace(/\D/g, '');
                     const waPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
                     const waText = encodeURIComponent(
                       `Hi ${contact.name}! I noticed you were exploring 3D Web Prompts on Apex3D Vault. Do you need any help downloading or implementing the 3D prompts into your project?`
@@ -1386,7 +1386,7 @@ export const TrafficAnalyticsDashboard: React.FC<TrafficAnalyticsDashboardProps>
                   selectedChannel === ch ? 'bg-blue-600 text-white font-bold' : 'text-white/60 hover:text-white'
                 }`}
               >
-                {ch === 'all' ? 'All Channels' : ch.replace('_', ' ')}
+                {(ch === 'all' ? 'All Channels' : ch || '').replace('_', ' ')}
               </button>
             ))}
           </div>
@@ -1482,7 +1482,7 @@ export const TrafficAnalyticsDashboard: React.FC<TrafficAnalyticsDashboardProps>
                                 : 'bg-zinc-700/30 text-zinc-300 border border-zinc-600/30'
                             }`}
                           >
-                            {session.channel.replace('_', ' ')}
+                            {(session.channel || 'direct').replace('_', ' ')}
                           </span>
 
                           {/* Session ID */}

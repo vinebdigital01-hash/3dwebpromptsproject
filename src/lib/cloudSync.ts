@@ -98,8 +98,8 @@ function deserializeRowToOrder(row: any): LeadOrder {
  * Test connectivity with user's Supabase credentials
  */
 export async function testCloudConnection(url: string, anonKey: string): Promise<CloudSyncResult> {
-  const cleanUrl = url.trim().replace(/\/+$/, '');
-  const cleanKey = anonKey.trim();
+  const cleanUrl = (url || '').trim().replace(/\/+$/, '');
+  const cleanKey = (anonKey || '').trim();
 
   if (!cleanUrl || !cleanKey) {
     return {
@@ -157,8 +157,8 @@ export async function pushOrderToCloud(order: LeadOrder): Promise<boolean> {
     return false;
   }
 
-  const cleanUrl = settings.supabaseUrl.trim().replace(/\/+$/, '');
-  const cleanKey = settings.supabaseAnonKey.trim();
+  const cleanUrl = (settings.supabaseUrl || '').trim().replace(/\/+$/, '');
+  const cleanKey = (settings.supabaseAnonKey || '').trim();
   const row = serializeOrderToRow(order);
 
   try {
@@ -189,8 +189,8 @@ export async function fetchOrdersFromCloud(): Promise<LeadOrder[]> {
     return [];
   }
 
-  const cleanUrl = settings.supabaseUrl.trim().replace(/\/+$/, '');
-  const cleanKey = settings.supabaseAnonKey.trim();
+  const cleanUrl = (settings.supabaseUrl || '').trim().replace(/\/+$/, '');
+  const cleanKey = (settings.supabaseAnonKey || '').trim();
 
   try {
     const res = await fetch(`${cleanUrl}/rest/v1/apex_orders?select=*&order=created_at.desc`, {
@@ -230,8 +230,8 @@ export async function performFullCloudSync(): Promise<CloudSyncResult> {
     };
   }
 
-  const cleanUrl = settings.supabaseUrl.trim().replace(/\/+$/, '');
-  const cleanKey = settings.supabaseAnonKey.trim();
+  const cleanUrl = (settings.supabaseUrl || '').trim().replace(/\/+$/, '');
+  const cleanKey = (settings.supabaseAnonKey || '').trim();
 
   try {
     const localOrders = getAllOrders();
