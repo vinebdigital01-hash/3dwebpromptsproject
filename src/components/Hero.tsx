@@ -57,9 +57,14 @@ export const Hero: React.FC<HeroProps> = ({
     let rafId: number | null = null;
     const updateLid = () => {
       if (!mobileLidRef.current) return;
+      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        mobileLidRef.current.style.transform = 'perspective(1000px) rotateX(0deg)';
+        return;
+      }
       const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
-      // Close-to-open: starts at 38deg (semi-closed/tilted in 3D), rotates to 0deg (open)
-      const progress = Math.min(1, Math.max(0, scrollY / 220));
+      // Close-to-open: stays pinned in place while user scrolls 0 -> 260px, rotating 38deg -> 0deg
+      const openDistance = 260;
+      const progress = Math.min(1, Math.max(0, scrollY / openDistance));
       const angle = 38 * (1 - progress);
       mobileLidRef.current.style.transform = `perspective(1000px) rotateX(${angle.toFixed(1)}deg)`;
     };
@@ -71,9 +76,11 @@ export const Hero: React.FC<HeroProps> = ({
 
     updateLid();
     window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', handleScroll, { passive: true });
     return () => {
       if (rafId) cancelAnimationFrame(rafId);
       window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
     };
   }, []);
 
@@ -82,258 +89,248 @@ export const Hero: React.FC<HeroProps> = ({
       {/* =========================================================================
           1. MOBILE HERO (max-width: 767px)
           Order: menu bar → badge → headline → MACBOOK → sub-line → FREE card → PAID card → small line → trust line
-          Goal: MacBook, headline, and FREE card all visible on the first screen (390x844)
+          Pinned in place during scroll 0 -> 260px until MacBook is fully open (0deg), then scrolls down
           ========================================================================= */}
-      <div className="md:hidden w-full min-h-[100dvh] bg-[#0B0D12] overflow-x-hidden flex flex-col justify-start px-4 pt-[calc(56px+env(safe-area-inset-top,0px)+16px)] pb-10 relative">
-        {/* Faint ambient light at the top: radial-gradient(60% 40% at 50% 0%, rgba(59,130,246,0.10), transparent) */}
-        <div
-          className="absolute top-0 inset-x-0 h-[360px] pointer-events-none -z-10"
-          style={{
-            background: 'radial-gradient(60% 40% at 50% 0%, rgba(59,130,246,0.10), transparent)',
-          }}
-        />
+      <div
+        className="md:hidden relative w-full"
+        style={{ height: 'calc(100dvh + 260px)' }}
+      >
+        <div className="sticky top-0 w-full h-[100dvh] max-h-[100dvh] bg-[#0B0D12] overflow-x-clip overflow-y-visible flex flex-col justify-start px-4 pt-[calc(56px+env(safe-area-inset-top,0px)+10px)] pb-3 relative z-10">
+          {/* Faint ambient light at the top: radial-gradient(60% 40% at 50% 0%, rgba(59,130,246,0.10), transparent) */}
+          <div
+            className="absolute top-0 inset-x-0 h-[360px] pointer-events-none -z-10"
+            style={{
+              background: 'radial-gradient(60% 40% at 50% 0%, rgba(59,130,246,0.10), transparent)',
+            }}
+          />
 
-        {/* Static Grain Texture at 3% opacity */}
-        <div className="absolute inset-0 bg-noise opacity-[0.03] pointer-events-none -z-10" />
+          {/* Static Grain Texture at 3% opacity */}
+          <div className="absolute inset-0 bg-noise opacity-[0.03] pointer-events-none -z-10" />
 
-        {/* ──────── 1. BADGE (margin-top 16px below menu bar via container padding) ────────
-            Text: "30+ prompts free · no card needed", 12px weight 500, sentence case.
-            6px solid green dot (#22C55E) on the left.
-            Border 1px rgba(255,255,255,0.10), bg rgba(255,255,255,0.03), radius 999px, height 28px. */}
-        <div
-          style={{ transitionDuration: '300ms' }}
-          className={`h-[28px] px-3 rounded-full border border-white/10 bg-white/[0.03] inline-flex items-center gap-2 self-center shrink-0 transition-all will-change-[transform,opacity] ${
-            mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
-          }`}
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E] shrink-0" />
-          <span className="text-[12px] font-medium text-white/90 whitespace-nowrap">
-            30+ prompts free · no card needed
-          </span>
-        </div>
+          {/* ──────── 1. BADGE ──────── */}
+          <div
+            style={{ transitionDuration: '300ms' }}
+            className={`h-[28px] px-3 rounded-full border border-white/10 bg-white/[0.03] inline-flex items-center gap-2 self-center shrink-0 transition-all will-change-[transform,opacity] ${
+              mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+            }`}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E] shrink-0" />
+            <span className="text-[12px] font-medium text-white/90 whitespace-nowrap">
+              30+ prompts free · no card needed
+            </span>
+          </div>
 
-        {/* ──────── 2. HEADLINE ────────
-            Exactly 3 lines: "Build $10,000" / "3D websites with" / "one prompt."
-            Size clamp(32px, 9vw, 38px), line-height 1.04, letter-spacing -0.035em, weight 650, color #F5F5F7.
-            "$10,000": Upright, solid #3B82F6, same sans font (no italic serif, no gradient). */}
-        <h1
-          style={{ transitionDelay: '50ms', transitionDuration: '300ms' }}
-          className={`mt-3 text-center font-heading font-semibold text-[clamp(32px,9vw,38px)] leading-[1.04] tracking-[-0.035em] text-[#F5F5F7] transition-all will-change-[transform,opacity] ${
-            mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
-          }`}
-        >
-          Build <span className="text-[#3B82F6] font-semibold">$10,000</span>
-          <br />
-          3D websites with
-          <br />
-          one prompt.
-        </h1>
+          {/* ──────── 2. HEADLINE ──────── */}
+          <h1
+            style={{ transitionDelay: '50ms', transitionDuration: '300ms' }}
+            className={`mt-2.5 text-center font-heading font-semibold text-[clamp(28px,8.5vw,36px)] leading-[1.04] tracking-[-0.035em] text-[#F5F5F7] shrink-0 transition-all will-change-[transform,opacity] ${
+              mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+            }`}
+          >
+            Build <span className="text-[#3B82F6] font-semibold">$10,000</span>
+            <br />
+            3D websites with
+            <br />
+            one prompt.
+          </h1>
 
-        {/* ──────── 3. MACBOOK MOCKUP (Directly under headline, 20px top, 20px bottom) ────────
-            - Shows random prompt video on reload / first load
-            - Scroll-synced close-to-open (38deg -> 0deg) on mobile devices only
-            - 100% content width, max 360px, shadow: 0 24px 48px -16px rgba(0,0,0,0.8) */}
-        <div
-          style={{ transitionDelay: '100ms', transitionDuration: '300ms' }}
-          className={`w-full my-5 max-w-[360px] mx-auto select-none pointer-events-none transition-all will-change-[transform,opacity] ${
-            mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
-          }`}
-        >
-          <div className="w-full flex flex-col items-center">
-            {/* Display Assembly with 3D scroll sync (close-to-open) */}
-            <div
-              ref={mobileLidRef}
-              style={{
-                transformOrigin: 'bottom center',
-                transform: 'perspective(1000px) rotateX(38deg)',
-                transition: 'transform 0.08s ease-out',
+          {/* ──────── 3. MACBOOK MOCKUP (Directly under headline) ────────
+              - Shows random prompt video on reload / first load
+              - Scroll-synced close-to-open (38deg -> 0deg) on mobile devices only
+              - Pinned in place during opening scroll track */}
+          <div
+            style={{ transitionDelay: '100ms', transitionDuration: '300ms' }}
+            className={`w-full my-2.5 sm:my-3 max-w-[320px] mx-auto select-none pointer-events-none shrink-0 transition-all will-change-[transform,opacity] ${
+              mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+            }`}
+          >
+            <div className="w-full flex flex-col items-center">
+              {/* Display Assembly with 3D scroll sync (close-to-open) */}
+              <div
+                ref={mobileLidRef}
+                style={{
+                  transformOrigin: 'bottom center',
+                  transform: 'perspective(1000px) rotateX(38deg)',
+                  transition: 'transform 0.08s ease-out',
+                }}
+                className="relative w-full aspect-[16/10] rounded-t-[14px] p-[2px] bg-gradient-to-b from-[#4a4d53] via-[#26282c] to-[#141518] shadow-[0_24px_48px_-16px_rgba(0,0,0,0.8)] will-change-transform"
+              >
+                {/* Top Metallic Highlight */}
+                <div className="absolute inset-x-4 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none z-20" />
+
+                {/* Display Bezel */}
+                <div className="absolute inset-[2px] rounded-t-[12px] bg-[#0c0d0f] p-[4px] sm:p-[5px] flex flex-col justify-start overflow-hidden border border-black/80">
+                  {/* Notch */}
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 z-30 w-[14%] min-w-[38px] max-w-[56px] h-[7px] bg-[#0c0d0f] rounded-b-[4px] flex items-center justify-center gap-1 shadow-md border-b border-x border-black">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#050507] ring-1 ring-white/10" />
+                    <div className="w-1 h-1 rounded-full bg-emerald-400/80 animate-pulse" />
+                  </div>
+
+                  {/* Inner Screen: Random Prompt Video on Reload / First Load */}
+                  <div className="relative w-full h-full rounded-t-[9px] overflow-hidden bg-black flex items-center justify-center">
+                    <video
+                      ref={mobileVideoRef}
+                      key={randomMobileVideo.id}
+                      src={randomMobileVideo.videoUrl}
+                      poster={randomMobileVideo.posterUrl}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      preload="auto"
+                      className="w-full h-full object-cover object-top"
+                    />
+
+                    {/* Top dark gradient */}
+                    <div className="absolute inset-x-0 top-0 h-5 bg-gradient-to-b from-black/60 to-transparent pointer-events-none z-10" />
+
+                    {/* 60 FPS WebGL live badge */}
+                    <div className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded-full bg-black/70 backdrop-blur-md border border-white/15 text-[8px] font-mono text-white/90 flex items-center gap-1 pointer-events-none z-10 shadow-sm">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span>60 FPS WEBGL</span>
+                    </div>
+
+                    {/* Active prompt title badge */}
+                    <div className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-[8px] font-mono text-white/70 pointer-events-none z-10">
+                      {randomMobileVideo.name}
+                    </div>
+
+                    {/* Bottom fade into #0B0D12 */}
+                    <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[#0B0D12]/90 via-[#0B0D12]/40 to-transparent pointer-events-none z-10" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Aluminium Base Deck */}
+              <div className="relative w-[104%] -mt-[1px] flex flex-col items-center">
+                <div className="w-[16%] h-[2.5px] bg-gradient-to-r from-[#1c1d20] via-[#52565e] to-[#1c1d20] rounded-t-sm" />
+                <div className="relative w-full h-[7px] rounded-b-[9px] bg-gradient-to-b from-[#2a2c31] via-[#1a1b1e] to-[#0e0f11] shadow-[0_8px_16px_rgba(0,0,0,0.9)] border-t border-white/15 flex items-start justify-center">
+                  <div className="w-8 h-0.5 bg-[#0c0d0f] rounded-b-sm border-b border-white/10" />
+                </div>
+                <div className="w-full flex justify-between px-[6%] -mt-[1px]">
+                  <div className="w-3.5 h-[2px] bg-[#0a0a0c] rounded-b-full shadow-sm" />
+                  <div className="w-3.5 h-[2px] bg-[#0a0a0c] rounded-b-full shadow-sm" />
+                </div>
+                <div className="w-[94%] h-2.5 bg-black/80 blur-lg -mt-1 rounded-full pointer-events-none" />
+              </div>
+            </div>
+          </div>
+
+          {/* ──────── 4. SUB-LINE ──────── */}
+          <p
+            style={{ transitionDelay: '150ms', transitionDuration: '300ms' }}
+            className={`text-center text-[13px] xs:text-[14px] font-medium text-[#D1D5DB] leading-snug whitespace-nowrap shrink-0 transition-all will-change-[transform,opacity] ${
+              mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+            }`}
+          >
+            Become a <span className="text-[#FFFFFF]">3D WebGL Architect</span> · $15k/site
+          </p>
+
+          {/* ──────── 5. FREE / PAID BLOCK (main focus) ──────── */}
+          <div
+            style={{ transitionDelay: '200ms', transitionDuration: '300ms' }}
+            className={`mt-2.5 w-full max-w-[320px] mx-auto flex flex-col gap-2 shrink-0 transition-all will-change-[transform,opacity] ${
+              mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+            }`}
+          >
+            {/* CARD A — FREE (on top, the main action, min-height 64px, padding 10px 14px) */}
+            <button
+              type="button"
+              onClick={() => {
+                try { sound.playSuccess(); } catch {}
+                onFreeDownloadClick();
               }}
-              className="relative w-full aspect-[16/10] rounded-t-[16px] p-[2px] bg-gradient-to-b from-[#4a4d53] via-[#26282c] to-[#141518] shadow-[0_24px_48px_-16px_rgba(0,0,0,0.8)] will-change-transform"
+              className="w-full min-h-[64px] p-[10px_14px] rounded-[13px] bg-[#2563EB] text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] active:scale-[0.98] transition-transform duration-120 flex flex-col justify-between cursor-pointer"
             >
-              {/* Top Metallic Highlight */}
-              <div className="absolute inset-x-4 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none z-20" />
-
-              {/* Display Bezel */}
-              <div className="absolute inset-[2px] rounded-t-[14px] bg-[#0c0d0f] p-[5px] sm:p-[6px] flex flex-col justify-start overflow-hidden border border-black/80">
-                {/* Notch */}
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 z-30 w-[14%] min-w-[42px] max-w-[65px] h-[8px] bg-[#0c0d0f] rounded-b-[5px] flex items-center justify-center gap-1 shadow-md border-b border-x border-black">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#050507] ring-1 ring-white/10" />
-                  <div className="w-1 h-1 rounded-full bg-emerald-400/80 animate-pulse" />
-                </div>
-
-                {/* Inner Screen: Random Prompt Video on Reload / First Load */}
-                <div className="relative w-full h-full rounded-t-[10px] overflow-hidden bg-black flex items-center justify-center">
-                  <video
-                    ref={mobileVideoRef}
-                    key={randomMobileVideo.id}
-                    src={randomMobileVideo.videoUrl}
-                    poster={randomMobileVideo.posterUrl}
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    preload="auto"
-                    className="w-full h-full object-cover object-top"
-                  />
-
-                  {/* Top dark gradient */}
-                  <div className="absolute inset-x-0 top-0 h-6 bg-gradient-to-b from-black/60 to-transparent pointer-events-none z-10" />
-
-                  {/* 60 FPS WebGL live badge */}
-                  <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-md border border-white/15 text-[8px] font-mono text-white/90 flex items-center gap-1.5 pointer-events-none z-10 shadow-sm">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span>60 FPS WEBGL</span>
-                  </div>
-
-                  {/* Active prompt title badge */}
-                  <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-[8px] font-mono text-white/70 pointer-events-none z-10">
-                    {randomMobileVideo.name}
-                  </div>
-
-                  {/* Bottom 40px fade into #0B0D12 */}
-                  <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#0B0D12]/90 via-[#0B0D12]/40 to-transparent pointer-events-none z-10" />
-                </div>
-              </div>
-            </div>
-
-            {/* Aluminium Base Deck */}
-            <div className="relative w-[104%] -mt-[1px] flex flex-col items-center">
-              <div className="w-[16%] h-[2.5px] bg-gradient-to-r from-[#1c1d20] via-[#52565e] to-[#1c1d20] rounded-t-sm" />
-              <div className="relative w-full h-[8px] rounded-b-[10px] bg-gradient-to-b from-[#2a2c31] via-[#1a1b1e] to-[#0e0f11] shadow-[0_8px_16px_rgba(0,0,0,0.9)] border-t border-white/15 flex items-start justify-center">
-                <div className="w-10 h-0.5 bg-[#0c0d0f] rounded-b-sm border-b border-white/10" />
-              </div>
-              <div className="w-full flex justify-between px-[6%] -mt-[1px]">
-                <div className="w-4 h-[2px] bg-[#0a0a0c] rounded-b-full shadow-sm" />
-                <div className="w-4 h-[2px] bg-[#0a0a0c] rounded-b-full shadow-sm" />
-              </div>
-              <div className="w-[94%] h-3 bg-black/80 blur-lg -mt-1.5 rounded-full pointer-events-none" />
-            </div>
-          </div>
-        </div>
-
-        {/* ──────── 4. SUB-LINE (Directly under MacBook, one line at 375px & 360px) ────────
-            "Become a 3D WebGL Architect · $15k/site" — 14px-15px weight 500, #D1D5DB.
-            No underline. Only "3D WebGL Architect" in #FFFFFF. */}
-        <p
-          style={{ transitionDelay: '150ms', transitionDuration: '300ms' }}
-          className={`text-center text-[14px] xs:text-[15px] font-medium text-[#D1D5DB] leading-snug whitespace-nowrap transition-all will-change-[transform,opacity] ${
-            mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
-          }`}
-        >
-          Become a <span className="text-[#FFFFFF]">3D WebGL Architect</span> · $15k/site
-        </p>
-
-        {/* Paragraph is intentionally omitted on mobile so the MacBook and FREE card fit perfectly */}
-
-        {/* ──────── 5. FREE / PAID BLOCK (main focus) ────────
-            2 stacked offer cards, full width, gap 10px, margin-top 14px.
-            Padding 12px 16px, min height 70px.
-            Card A (FREE) + Card B (PAID) + reassurance line. */}
-        <div
-          style={{ transitionDelay: '200ms', transitionDuration: '300ms' }}
-          className={`mt-3.5 w-full max-w-[360px] mx-auto flex flex-col gap-[10px] transition-all will-change-[transform,opacity] ${
-            mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
-          }`}
-        >
-          {/* CARD A — FREE (on top, the main action, min-height 70px, padding 12px 16px) */}
-          <button
-            type="button"
-            onClick={() => {
-              try { sound.playSuccess(); } catch {}
-              onFreeDownloadClick();
-            }}
-            className="w-full min-h-[70px] p-[12px_16px] rounded-[14px] bg-[#2563EB] text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] active:scale-[0.98] transition-transform duration-120 flex flex-col justify-between cursor-pointer"
-          >
-            {/* Row 1: tag "FREE" + "₹0" */}
-            <div className="flex items-center justify-between w-full">
-              <span className="px-1.5 py-0.5 rounded-[6px] bg-white/[0.18] text-[11px] font-bold text-white tracking-wide uppercase">
-                FREE
-              </span>
-              <span className="text-[17px] font-bold text-white tracking-tight">
-                ₹0
-              </span>
-            </div>
-
-            {/* Row 2: "Get 30+ starter prompts" + Arrow */}
-            <div className="flex items-center justify-between w-full mt-1">
-              <span className="text-[17px] font-semibold text-white tracking-tight whitespace-nowrap">
-                Get 30+ starter prompts
-              </span>
-              <span className="text-[18px] text-white font-medium ml-2 shrink-0">→</span>
-            </div>
-
-            {/* Row 3: "Instant download · no card needed" */}
-            <div className="text-[13px] text-white/75 mt-0.5 whitespace-nowrap">
-              Instant download · no card needed
-            </div>
-          </button>
-
-          {/* CARD B — PAID (below, the upgrade, min-height 70px, padding 12px 16px) */}
-          <button
-            type="button"
-            onClick={() => {
-              try { sound.playSuccess(); } catch {}
-              onUnlockClick();
-            }}
-            className="w-full min-h-[70px] p-[12px_16px] rounded-[14px] bg-white/[0.03] border border-white/[0.12] text-left active:scale-[0.98] transition-transform duration-120 flex flex-col justify-between cursor-pointer"
-          >
-            {/* Row 1: tag "FULL VAULT" + Price "₹49" + strikethrough "₹499" */}
-            <div className="flex items-center justify-between w-full">
-              <span className="px-1.5 py-0.5 rounded-[6px] bg-white/[0.08] text-[11px] font-bold text-[#F5F5F7] tracking-wide uppercase">
-                FULL VAULT
-              </span>
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-[17px] font-bold text-white tracking-tight">
-                  ₹49
+              {/* Row 1: tag "FREE" + "₹0" */}
+              <div className="flex items-center justify-between w-full">
+                <span className="px-1.5 py-0.5 rounded-[5px] bg-white/[0.18] text-[10px] font-bold text-white tracking-wide uppercase">
+                  FREE
                 </span>
-                <span className="text-[13px] text-[#6B7280] line-through">
-                  ₹499
+                <span className="text-[16px] font-bold text-white tracking-tight">
+                  ₹0
                 </span>
               </div>
-            </div>
 
-            {/* Row 2: "Unlock all 500+ prompts" + Arrow */}
-            <div className="flex items-center justify-between w-full mt-1">
-              <span className="text-[17px] font-semibold text-[#F5F5F7] tracking-tight whitespace-nowrap">
-                Unlock all 500+ prompts
-              </span>
-              <span className="text-[18px] text-[#F5F5F7] font-medium ml-2 shrink-0">→</span>
-            </div>
+              {/* Row 2: "Get 30+ starter prompts" + Arrow */}
+              <div className="flex items-center justify-between w-full mt-0.5">
+                <span className="text-[15px] sm:text-[16px] font-semibold text-white tracking-tight whitespace-nowrap">
+                  Get 30+ starter prompts
+                </span>
+                <span className="text-[17px] text-white font-medium ml-2 shrink-0">→</span>
+              </div>
 
-            {/* Row 3: "One-time payment · lifetime updates" */}
-            <div className="text-[13px] text-[#8B8F98] mt-0.5 whitespace-nowrap">
-              One-time payment · lifetime updates
-            </div>
-          </button>
+              {/* Row 3: "Instant download · no card needed" */}
+              <div className="text-[12px] text-white/75 mt-0.5 whitespace-nowrap">
+                Instant download · no card needed
+              </div>
+            </button>
 
-          {/* Reassurance line under Card B */}
-          <div className="mt-1 text-center text-[12px] text-[#6B7280] whitespace-nowrap">
-            Start free. Upgrade only if you love it.
+            {/* CARD B — PAID (below, the upgrade, min-height 64px, padding 10px 14px) */}
+            <button
+              type="button"
+              onClick={() => {
+                try { sound.playSuccess(); } catch {}
+                onUnlockClick();
+              }}
+              className="w-full min-h-[64px] p-[10px_14px] rounded-[13px] bg-white/[0.03] border border-white/[0.12] text-left active:scale-[0.98] transition-transform duration-120 flex flex-col justify-between cursor-pointer"
+            >
+              {/* Row 1: tag "FULL VAULT" + Price "₹49" + strikethrough "₹499" */}
+              <div className="flex items-center justify-between w-full">
+                <span className="px-1.5 py-0.5 rounded-[5px] bg-white/[0.08] text-[10px] font-bold text-[#F5F5F7] tracking-wide uppercase">
+                  FULL VAULT
+                </span>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-[16px] font-bold text-white tracking-tight">
+                    ₹49
+                  </span>
+                  <span className="text-[12px] text-[#6B7280] line-through">
+                    ₹499
+                  </span>
+                </div>
+              </div>
+
+              {/* Row 2: "Unlock all 500+ prompts" + Arrow */}
+              <div className="flex items-center justify-between w-full mt-0.5">
+                <span className="text-[15px] sm:text-[16px] font-semibold text-[#F5F5F7] tracking-tight whitespace-nowrap">
+                  Unlock all 500+ prompts
+                </span>
+                <span className="text-[17px] text-[#F5F5F7] font-medium ml-2 shrink-0">→</span>
+              </div>
+
+              {/* Row 3: "One-time payment · lifetime updates" */}
+              <div className="text-[12px] text-[#8B8F98] mt-0.5 whitespace-nowrap">
+                One-time payment · lifetime updates
+              </div>
+            </button>
+
+            {/* Reassurance line under Card B */}
+            <div className="mt-0.5 text-center text-[11px] text-[#6B7280] whitespace-nowrap">
+              Start free. Upgrade only if you love it.
+            </div>
           </div>
-        </div>
 
-        {/* ──────── 6. TRUST LINE ────────
-            3 overlapping avatars (22px, 2px border #0B0D12) + "Used by 2,000+ creators"
-            13px #8B8F98, "2,000+" in #F5F5F7. Centered, margin-top 16px, one line at 360px. */}
-        <div
-          style={{ transitionDelay: '250ms', transitionDuration: '300ms' }}
-          className={`mt-4 flex items-center justify-center gap-2 text-[13px] text-[#8B8F98] whitespace-nowrap transition-all will-change-[transform,opacity] ${
-            mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
-          }`}
-        >
-          <div className="flex -space-x-1.5 shrink-0">
-            {MOBILE_AVATARS.map((src, i) => (
-              <img
-                key={i}
-                src={src}
-                alt="Creator avatar"
-                className="w-[22px] h-[22px] rounded-full border-2 border-[#0B0D12] object-cover"
-              />
-            ))}
+          {/* ──────── 6. TRUST LINE ──────── */}
+          <div
+            style={{ transitionDelay: '250ms', transitionDuration: '300ms' }}
+            className={`mt-2 flex items-center justify-center gap-2 text-[12px] text-[#8B8F98] whitespace-nowrap shrink-0 transition-all will-change-[transform,opacity] ${
+              mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+            }`}
+          >
+            <div className="flex -space-x-1.5 shrink-0">
+              {MOBILE_AVATARS.map((src, i) => (
+                <img
+                  key={i}
+                  src={src}
+                  alt="Creator avatar"
+                  className="w-[20px] h-[20px] rounded-full border-2 border-[#0B0D12] object-cover"
+                />
+              ))}
+            </div>
+            <span>
+              Used by <strong className="text-[#F5F5F7] font-medium">2,000+</strong> creators
+            </span>
           </div>
-          <span>
-            Used by <strong className="text-[#F5F5F7] font-medium">2,000+</strong> creators
-          </span>
         </div>
       </div>
 

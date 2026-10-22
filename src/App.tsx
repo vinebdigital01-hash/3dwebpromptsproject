@@ -150,7 +150,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050508] text-[#f4f4f7] selection:bg-blue-600/40 selection:text-white overflow-x-hidden">
+    <div className="min-h-screen bg-[#050508] text-[#f4f4f7] selection:bg-blue-600/40 selection:text-white overflow-x-clip">
       {/* Non-Neon Custom Magnetic Cursor */}
       <CustomMagneticCursor />
 
