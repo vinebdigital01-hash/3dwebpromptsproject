@@ -51,6 +51,44 @@ function resendDevApiPlugin(): Plugin {
           }
         });
       });
+
+      server.middlewares.use('/api/fetch-prompt', async (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({ message: 'Method not allowed' }));
+          return;
+        }
+
+        let bodyStr = '';
+        req.on('data', (chunk) => {
+          bodyStr += chunk;
+        });
+
+        req.on('end', async () => {
+          try {
+            const body = JSON.parse(bodyStr || '{}');
+            const handlerModule = await import('./api/fetch-prompt.ts');
+            const handler = handlerModule.default;
+            const mockReq = { method: 'POST', body };
+            const mockRes = {
+              status(code: number) {
+                res.statusCode = code;
+                return this;
+              },
+              json(data: any) {
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify(data));
+              },
+            };
+            await handler(mockReq, mockRes);
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ message: err.message || 'Error processing prompt request' }));
+          }
+        });
+      });
     },
   };
 }

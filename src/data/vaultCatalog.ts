@@ -136,25 +136,7 @@ CORE ARCHITECTURE:
       'Frame scrubbing via requestAnimationFrame + linear interpolation (lerp 0.08) against scroll',
       'Four interactive chapter deconstructions: Bezel, Tourbillon, Sapphire Crystal, Bespoke Leather'
     ],
-    promptArchitecture: `Act as a High-End Performance Web Engineer.
-Build the Ora Geneva watch storefront using a pure scroll-scrubbed HTML5 Canvas engine with ZERO animation libraries.
-
-TECHNICAL SPECIFICATIONS:
-1. 240-FRAME WEBP BUFFER:
-   - Pre-decode an array of 240 high-resolution WebP frames into an offscreen ImageBitmap array.
-   - Render a high-precision real-progress numeric preloader (0% -> 100%) tracking actual asset byte transfer.
-   - Scrub the active frame via requestAnimationFrame + linear interpolation (lerp factor 0.08) against scroll progress.
-
-2. CHAPTER DECONSTRUCTION:
-   - Chapter 1: The Bezel & Fluted Case specular light sweep.
-   - Chapter 2: The Mechanical Tourbillon exploded-view complication.
-   - Chapter 3: The Sapphire Crystal double-dome anti-reflective coating.
-   - Chapter 4: The Bespoke Alligator Leather strap tailoring.
-
-3. ZERO-DEPENDENCY CONSTRAINT:
-   - No GSAP, no Framer Motion, no Three.js.
-   - 100% pure vanilla Canvas 2D context with hardware GPU acceleration.
-   - Flawless performance on mobile Safari & high-refresh desktop monitors.`
+    promptArchitecture: `[🔒 ARCHITECTURE LOCKED: 2,500+ TOKENS OF VERIFIED PRODUCTION CODE]\nThis production architecture requires an active Apex3D Vault License (Day Pass, Pro, or Lifetime).\nUnlock at https://3dwebprompts-vineb.vercel.app/#portal to retrieve production code.`
   },
   {
     id: 'fluxora',
@@ -257,15 +239,7 @@ TECHNICAL CORE REQUIREMENTS:
       'Dynamic strap material switcher: Oystersteel, Brushed Rose Gold, and Matte Rubber',
       'Exploded caseback view triggered on user scroll or camera focus click'
     ],
-    promptArchitecture: `Generate an ultra-luxury interactive 3D Timepiece Showcase component for a Swiss horology house.
-STACK: React 19, Three.js, Lucide Icons, Tailwind CSS.
-
-KEY VISUAL SPECIFICATIONS:
-- Watch Case: CylinderGeometry with beveled edges using MeshPhysicalMaterial (metalness: 0.95, roughness: 0.15, clearcoat: 1.0, clearcoatRoughness: 0.1).
-- Bezel: Fluted ring geometry with anisotropic specular highlights.
-- Sapphire Crystal: Double-dome mesh with transmission: 0.98, ior: 1.77, thickness: 1.2, chromaticAberration: 0.04.
-- Hands: Chronograph second hand sweeping smoothly at 28,800 vph (8 ticks per second).
-- Interaction: OrbitControls with polar angle clamping (30° to 105°) and smooth inertia damping (0.05).`
+    promptArchitecture: `[🔒 ARCHITECTURE LOCKED: 2,500+ TOKENS OF VERIFIED PRODUCTION CODE]\nThis production architecture requires an active Apex3D Vault License (Day Pass, Pro, or Lifetime).\nUnlock at https://3dwebprompts-vineb.vercel.app/#portal to retrieve production code.`
   },
   {
     id: 'nike-next-gen',
@@ -288,8 +262,7 @@ KEY VISUAL SPECIFICATIONS:
       'Exploded layer button showing carbon fiber plate, ZoomX foam, and knit upper',
       'Direct integration with high-conversion sticky Add to Bag drawer'
     ],
-    promptArchitecture: `Build a cutting-edge athletic sneaker 3D product visualizer in React & Three.js.
-Include dynamic sole deformation upon hover, exploded anatomy breakdown with annotation pins, and real-time palette swapping. Ensure 60 FPS mobile touch response and full keyboard accessibility.`
+    promptArchitecture: `[🔒 ARCHITECTURE LOCKED: 2,500+ TOKENS OF VERIFIED PRODUCTION CODE]\nThis production architecture requires an active Apex3D Vault License (Day Pass, Pro, or Lifetime).\nUnlock at https://3dwebprompts-vineb.vercel.app/#portal to retrieve production code.`
   },
   {
     id: 'chanel-fluid',
@@ -312,7 +285,7 @@ Include dynamic sole deformation upon hover, exploded anatomy breakdown with ann
       'Volumetric golden dust particle suspension inside the bottle',
       'Editorial typography layer with delicate serif headings and minimalist cues'
     ],
-    promptArchitecture: `Construct a bespoke haute parfumerie 3D experience with optical glass refraction and procedural liquid dynamics in Three.js and React. Liquid must slosh with momentum matching mouse velocity and settle with realistic surface tension damping.`
+    promptArchitecture: `[🔒 ARCHITECTURE LOCKED: 2,500+ TOKENS OF VERIFIED PRODUCTION CODE]\nThis production architecture requires an active Apex3D Vault License (Day Pass, Pro, or Lifetime).\nUnlock at https://3dwebprompts-vineb.vercel.app/#portal to retrieve production code.`
   },
   {
     id: 'hypercar-configurator',
@@ -335,8 +308,7 @@ Include dynamic sole deformation upon hover, exploded anatomy breakdown with ann
       'Interior 360 cockpit inspection with Alcantara stitching and illuminated dashboard',
       'Export high-res PDF client build summary with pricing calculator'
     ],
-    promptArchitecture: `Generate an enterprise-grade 3D Automotive Configurator for an exotic hypercar manufacturer.
-Include real-time PBR material paint swapping (Pearlescent Pearl, British Racing Green, Stealth Carbon), active aerodynamics flap animation, and particle smoke trails illustrating drag coefficients.`
+    promptArchitecture: `[🔒 ARCHITECTURE LOCKED: 2,500+ TOKENS OF VERIFIED PRODUCTION CODE]\nThis production architecture requires an active Apex3D Vault License (Day Pass, Pro, or Lifetime).\nUnlock at https://3dwebprompts-vineb.vercel.app/#portal to retrieve production code.`
   },
   {
     id: 'cartier-diamond-brilliance',
@@ -359,7 +331,7 @@ Include real-time PBR material paint swapping (Pearlescent Pearl, British Racing
       'Pinch-to-zoom macro inspection revealing laser-inscribed serial authentication',
       'Curated audio cues mimicking gentle crystal resonance on rotation'
     ],
-    promptArchitecture: `Architect a photorealistic 3D Diamond Solitaire Ring viewer with custom WebGL internal refraction shaders. Light entering facets must split into chromatic rainbow beams with bloom intensity tied to camera angle.`
+    promptArchitecture: `[🔒 ARCHITECTURE LOCKED: 2,500+ TOKENS OF VERIFIED PRODUCTION CODE]\nThis production architecture requires an active Apex3D Vault License (Day Pass, Pro, or Lifetime).\nUnlock at https://3dwebprompts-vineb.vercel.app/#portal to retrieve production code.`
   },
   {
     id: 'apple-espana',
@@ -382,8 +354,7 @@ Include real-time PBR material paint swapping (Pearlescent Pearl, British Racing
       'Spatial depth stack with 3D card tilt and spring transforms',
       'Modular component library for navigation bars, cards, tabs, and modals'
     ],
-    promptArchitecture: `Architect an Apple VisionOS-inspired spatial design system in React 19 and Tailwind CSS.
-Implement specular border highlights that reflect pointer coordinates, multi-tier backdrop blur depths, and fluid spring animations.`
+    promptArchitecture: `[🔒 ARCHITECTURE LOCKED: 2,500+ TOKENS OF VERIFIED PRODUCTION CODE]\nThis production architecture requires an active Apex3D Vault License (Day Pass, Pro, or Lifetime).\nUnlock at https://3dwebprompts-vineb.vercel.app/#portal to retrieve production code.`
   },
   {
     id: 'fintech-liquidity-pool',
@@ -432,7 +403,7 @@ Implement specular border highlights that reflect pointer coordinates, multi-tie
       'Interactive drilldown into subterranean quantum server rack clusters',
       'High-contrast military aesthetic with phosphor green and tactical slate hues'
     ],
-    promptArchitecture: `Develop an enterprise Autonomous Cyber Defense WebGL command console in React and Three.js. Render a wireframe earth with orbital defense nodes and animated attack telemetry ribbons.`
+    promptArchitecture: `[🔒 ARCHITECTURE LOCKED: 2,500+ TOKENS OF VERIFIED PRODUCTION CODE]\nThis production architecture requires an active Apex3D Vault License (Day Pass, Pro, or Lifetime).\nUnlock at https://3dwebprompts-vineb.vercel.app/#portal to retrieve production code.`
   },
   {
     id: 'rayban-spatial-glasses',
@@ -455,7 +426,7 @@ Implement specular border highlights that reflect pointer coordinates, multi-tie
       'Interactive AR projection cone showing field-of-view capture area',
       'One-click prescription and frame color customizer'
     ],
-    promptArchitecture: `Build a cutting-edge 3D product showcase for smart AI audio glasses in React + Three.js. Include exploded frame breakdown, soundwave emitter animation, and lens transmission toggles.`
+    promptArchitecture: `[🔒 ARCHITECTURE LOCKED: 2,500+ TOKENS OF VERIFIED PRODUCTION CODE]\nThis production architecture requires an active Apex3D Vault License (Day Pass, Pro, or Lifetime).\nUnlock at https://3dwebprompts-vineb.vercel.app/#portal to retrieve production code.`
   },
   {
     id: 'mechanical-keyboard-3d',
@@ -478,7 +449,7 @@ Implement specular border highlights that reflect pointer coordinates, multi-tie
       'Aluminum anodization color switcher with brass weight accent reflection',
       'Export custom layout JSON for instant manufacturing ordering'
     ],
-    promptArchitecture: `Construct a 3D Mechanical Keyboard configurator in Three.js and React. Map physical keyboard inputs to 3D key animations with realistic mechanical acoustics synthesized via Web Audio API.`
+    promptArchitecture: `[🔒 ARCHITECTURE LOCKED: 2,500+ TOKENS OF VERIFIED PRODUCTION CODE]\nThis production architecture requires an active Apex3D Vault License (Day Pass, Pro, or Lifetime).\nUnlock at https://3dwebprompts-vineb.vercel.app/#portal to retrieve production code.`
   },
   {
     id: '3d-character-studio',
@@ -501,7 +472,7 @@ Implement specular border highlights that reflect pointer coordinates, multi-tie
       'Dynamic speed interpolation with cubic-bezier smoothing',
       'Step-by-step agency guide on exporting Blender animations for web delivery'
     ],
-    promptArchitecture: `Develop a 60 FPS mouse-scrub and scroll-synced 3D character engine in React and TypeScript. Buffer high-performance canvas frames and interpolate timeline positions with smooth inertia.`
+    promptArchitecture: `[🔒 ARCHITECTURE LOCKED: 2,500+ TOKENS OF VERIFIED PRODUCTION CODE]\nThis production architecture requires an active Apex3D Vault License (Day Pass, Pro, or Lifetime).\nUnlock at https://3dwebprompts-vineb.vercel.app/#portal to retrieve production code.`
   },
   {
     id: 'dental-clinic-3d',
@@ -524,7 +495,7 @@ Implement specular border highlights that reflect pointer coordinates, multi-tie
       'Automated qualification questionnaire capturing high-ticket patient leads',
       'Sold to local cosmetic clinics for $10,000 - $18,000 per setup'
     ],
-    promptArchitecture: `Build a premium medical/dental clinic booking web app featuring an interactive 3D dental arch with quadrant highlighting and dynamic treatment consultation lead flow.`
+    promptArchitecture: `[🔒 ARCHITECTURE LOCKED: 2,500+ TOKENS OF VERIFIED PRODUCTION CODE]\nThis production architecture requires an active Apex3D Vault License (Day Pass, Pro, or Lifetime).\nUnlock at https://3dwebprompts-vineb.vercel.app/#portal to retrieve production code.`
   },
   {
     id: 'shopify-3d-exp',
@@ -547,7 +518,7 @@ Implement specular border highlights that reflect pointer coordinates, multi-tie
       'Variant selection updating 3D textures in real time with zero flicker',
       'Mobile-optimized touch gestures with automatic pinch-to-zoom clamping'
     ],
-    promptArchitecture: `Create a headless e-commerce 3D product experience with real-time 360 turntable inspection, variant material switching, and animated cart drawer slide-out.`
+    promptArchitecture: `[🔒 ARCHITECTURE LOCKED: 2,500+ TOKENS OF VERIFIED PRODUCTION CODE]\nThis production architecture requires an active Apex3D Vault License (Day Pass, Pro, or Lifetime).\nUnlock at https://3dwebprompts-vineb.vercel.app/#portal to retrieve production code.`
   },
   {
     id: 'voice-ai-outreach',
@@ -570,7 +541,7 @@ Implement specular border highlights that reflect pointer coordinates, multi-tie
       'Commercial contract templates with revision caps and copyright transfer',
       'Step-by-step guide to finding high-ticket e-commerce and luxury brands'
     ],
-    promptArchitecture: `Generate an agency client acquisition cold outreach sequence and video pitch script tailored for pitching $12,000 3D website redesigns to DTC brand founders.`
+    promptArchitecture: `[🔒 ARCHITECTURE LOCKED: 2,500+ TOKENS OF VERIFIED PRODUCTION CODE]\nThis production architecture requires an active Apex3D Vault License (Day Pass, Pro, or Lifetime).\nUnlock at https://3dwebprompts-vineb.vercel.app/#portal to retrieve production code.`
   },
   {
     id: '2000-design-systems',
@@ -593,7 +564,7 @@ Implement specular border highlights that reflect pointer coordinates, multi-tie
       'Includes Tailwind config JSON and CSS custom variable presets',
       'Eliminates generic AI slop with strict zero-pill rules and typographic discipline'
     ],
-    promptArchitecture: `Provide a master design system specification prompt that outputs a production-grade UI design system across tokens, typography, grid math, and micro-interactions.`
+    promptArchitecture: `[🔒 ARCHITECTURE LOCKED: 2,500+ TOKENS OF VERIFIED PRODUCTION CODE]\nThis production architecture requires an active Apex3D Vault License (Day Pass, Pro, or Lifetime).\nUnlock at https://3dwebprompts-vineb.vercel.app/#portal to retrieve production code.`
   },
   {
     id: 'liquid-viscosity-shader',
@@ -642,7 +613,7 @@ Implement specular border highlights that reflect pointer coordinates, multi-tie
       'Catheter navigation step-by-step interactive patient consultation flow',
       'Contracted by private cardiology surgical group for $21,000'
     ],
-    promptArchitecture: `Build an interactive 3D Medical Cardiology simulator in Three.js and React. Feature a rhythmic beating heart with procedural vertex shaders and cross-sectional valve inspection.`
+    promptArchitecture: `[🔒 ARCHITECTURE LOCKED: 2,500+ TOKENS OF VERIFIED PRODUCTION CODE]\nThis production architecture requires an active Apex3D Vault License (Day Pass, Pro, or Lifetime).\nUnlock at https://3dwebprompts-vineb.vercel.app/#portal to retrieve production code.`
   },
   {
     id: 'hermes-leather-craft',
@@ -665,7 +636,7 @@ Implement specular border highlights that reflect pointer coordinates, multi-tie
       'Foil stamping metallic shader with micro-embossing depth under grazing light',
       'Seamless 360 degree turntable with soft luxury studio environment map'
     ],
-    promptArchitecture: `Architect an ultra-luxury 3D Leather Goods product inspection viewport with Three.js. Render photorealistic Togo leather grain with grazing light reflections and gold foil foil-emboss shaders.`
+    promptArchitecture: `[🔒 ARCHITECTURE LOCKED: 2,500+ TOKENS OF VERIFIED PRODUCTION CODE]\nThis production architecture requires an active Apex3D Vault License (Day Pass, Pro, or Lifetime).\nUnlock at https://3dwebprompts-vineb.vercel.app/#portal to retrieve production code.`
   },
   {
     id: 'retainer-closing-framework',
@@ -688,7 +659,7 @@ Implement specular border highlights that reflect pointer coordinates, multi-tie
       'Legal contract protection guaranteeing 50% deposit and zero revision creep',
       'Reseller agreement documentation permitting turnkey handover to other creators'
     ],
-    promptArchitecture: `Generate a high-ticket agency sales script and proposal deck for pitching $15,000 3D website redesigns to DTC and B2B SaaS founders.`
+    promptArchitecture: `[🔒 ARCHITECTURE LOCKED: 2,500+ TOKENS OF VERIFIED PRODUCTION CODE]\nThis production architecture requires an active Apex3D Vault License (Day Pass, Pro, or Lifetime).\nUnlock at https://3dwebprompts-vineb.vercel.app/#portal to retrieve production code.`
   },
   {
     id: 'porsche-taycan-aerodynamics',
@@ -711,9 +682,7 @@ Implement specular border highlights that reflect pointer coordinates, multi-tie
       'Thermal disc brake glowing vertex shader modulating heat under simulated deceleration',
       'Realistic studio lighting preset with specular carbon reflections and asphalt bloom'
     ],
-    promptArchitecture: `Act as a senior Creative Technologist specializing in luxury automotive WebGL.
-Build an interactive Porsche Taycan Wind Tunnel Aerodynamic visualizer using React 19, Three.js, and GLSL shaders.
-Render 15,000 instanced laminar particle streamlines curving over the car chassis with drag coefficient HUD metrics.`
+    promptArchitecture: `[🔒 ARCHITECTURE LOCKED: 2,500+ TOKENS OF VERIFIED PRODUCTION CODE]\nThis production architecture requires an active Apex3D Vault License (Day Pass, Pro, or Lifetime).\nUnlock at https://3dwebprompts-vineb.vercel.app/#portal to retrieve production code.`
   },
   {
     id: 'spatial-galaxy-blackhole',
@@ -736,8 +705,7 @@ Render 15,000 instanced laminar particle streamlines curving over the car chassi
       'Background starfield deflection warping smoothly with camera orbit momentum',
       'Interactive time dilation controls and gravitational wave distortion ripple pulses'
     ],
-    promptArchitecture: `Build a real-time Kerr Black Hole Gravitational Lensing shader in React + Three.js.
-Implement fragment shader raymarching calculating null geodesics around the event horizon with Doppler beaming accretion disk dynamics.`
+    promptArchitecture: `[🔒 ARCHITECTURE LOCKED: 2,500+ TOKENS OF VERIFIED PRODUCTION CODE]\nThis production architecture requires an active Apex3D Vault License (Day Pass, Pro, or Lifetime).\nUnlock at https://3dwebprompts-vineb.vercel.app/#portal to retrieve production code.`
   },
   {
     id: 'neural-brain-connectome',
@@ -760,8 +728,7 @@ Implement fragment shader raymarching calculating null geodesics around the even
       'Interactive exploded lobe inspection highlighting frontal, parietal, and occipital cortices',
       'Designed for enterprise neurological research platforms and high-ticket health-tech SaaS'
     ],
-    promptArchitecture: `Architect an interactive 3D Synaptic Brain Connectome in Three.js and React.
-Simulate 100,000 instanced fiber tracts with glowing action potential electrical impulses and EEG frequency filtering.`
+    promptArchitecture: `[🔒 ARCHITECTURE LOCKED: 2,500+ TOKENS OF VERIFIED PRODUCTION CODE]\nThis production architecture requires an active Apex3D Vault License (Day Pass, Pro, or Lifetime).\nUnlock at https://3dwebprompts-vineb.vercel.app/#portal to retrieve production code.`
   },
   {
     id: 'rolex-submariner-oceanic',
@@ -784,8 +751,7 @@ Simulate 100,000 instanced fiber tracts with glowing action potential electrical
       'Hydrodynamic underwater caustics with volumetric light shafts and micro-bubbles',
       'Unidirectional rotating 120-click knurled bezel with haptic and audio feedback'
     ],
-    promptArchitecture: `Generate a Swiss-grade luxury 3D Horology product showcase for the Rolex Submariner.
-Include photorealistic ceramic Cerachrom bezel reflections, Chromalight lume emission shaders, and underwater caustic light refraction.`
+    promptArchitecture: `[🔒 ARCHITECTURE LOCKED: 2,500+ TOKENS OF VERIFIED PRODUCTION CODE]\nThis production architecture requires an active Apex3D Vault License (Day Pass, Pro, or Lifetime).\nUnlock at https://3dwebprompts-vineb.vercel.app/#portal to retrieve production code.`
   },
   {
     id: 'architectural-concrete-villa',
@@ -808,8 +774,7 @@ Include photorealistic ceramic Cerachrom bezel reflections, Chromalight lume emi
       'Gentle ripple water physics on obsidian reflecting pool with mirror reflection plane',
       'Kinetic sun path slider adjusting time of day and shadow elongation in real time'
     ],
-    promptArchitecture: `Create a brutalist Tadao Ando architectural 3D environment in React 19 + Three.js.
-Feature volumetric god-rays cutting through concrete slits, silky formwork tie-hole textures, and a reflecting pool with water normal perturbation.`
+    promptArchitecture: `[🔒 ARCHITECTURE LOCKED: 2,500+ TOKENS OF VERIFIED PRODUCTION CODE]\nThis production architecture requires an active Apex3D Vault License (Day Pass, Pro, or Lifetime).\nUnlock at https://3dwebprompts-vineb.vercel.app/#portal to retrieve production code.`
   },
   {
     id: 'defi-yield-matrix-cube',
@@ -832,8 +797,7 @@ Feature volumetric god-rays cutting through concrete slits, silky formwork tie-h
       'Obsidian frosted glass panel HUD with neon cyan/magenta liquidity heatmaps',
       'Custom particle bursts radiating upon simulated institutional block trade executions'
     ],
-    promptArchitecture: `Build a 3D Institutional FinTech Liquidity Visualizer in Three.js and React.
-Render real-time 3D orderbook depth walls and a deforming volatility surface with obsidian glass UI and kinetic particle block trades.`
+    promptArchitecture: `[🔒 ARCHITECTURE LOCKED: 2,500+ TOKENS OF VERIFIED PRODUCTION CODE]\nThis production architecture requires an active Apex3D Vault License (Day Pass, Pro, or Lifetime).\nUnlock at https://3dwebprompts-vineb.vercel.app/#portal to retrieve production code.`
   }
 ];
 

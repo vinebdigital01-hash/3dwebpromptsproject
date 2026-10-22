@@ -68,6 +68,7 @@ import { isMediaImage } from '../lib/mediaUtils';
 import { sound } from '../lib/audioEngine';
 import { verifyAndBindLicenseAccess } from '../lib/deviceSecurity';
 import { getEmailValidationError, isDisposableEmail } from '../lib/security';
+import { getAuthorizedPromptArchitecture } from '../lib/securePromptService';
 import { InvoiceModal } from './InvoiceModal';
 import { LicenseModal } from './LicenseModal';
 import { UpgradeShowcaseModal } from './UpgradeShowcaseModal';
@@ -167,6 +168,15 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
     sound.playClick();
     trackPromptInspect(item.id, item.title);
     setInspectingPrompt(item);
+
+    // If paid member, fetch decrypted architecture if not already loaded
+    if (isPaidMember && !isPromptFree(item)) {
+      getAuthorizedPromptArchitecture(item, activeOrder).then((res) => {
+        if (res.success && res.promptArchitecture) {
+          setInspectingPrompt((prev) => (prev && prev.id === item.id ? { ...prev, promptArchitecture: res.promptArchitecture! } : prev));
+        }
+      });
+    }
   };
 
   // Copy State & Toast
@@ -246,27 +256,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
       const promptIdParam = searchParams.get('prompt') || searchParams.get('id');
 
       if (orderIdParam || licenseParam) {
-        let order = findApprovedOrder(licenseParam || orderIdParam || '');
-        if (!order) {
-          // Auto-provision verified active order session for email magic link
-          order = {
-            id: orderIdParam || 'ORD-VERIFIED',
-            orderNumber: orderIdParam || 'APX-849102',
-            name: 'Vault Member',
-            email: 'member@vinebdigital.store',
-            phone: '9876543210',
-            tierId: 'lifetime',
-            tierName: 'Lifetime VIP All-Access',
-            amountINR: 2999,
-            status: 'approved',
-            utrNumber: 'VERIFIED-MAGIC',
-            licenseKey: licenseParam || 'LIC-VIP-99X4-4901',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            approvedAt: new Date().toISOString(),
-          };
-          saveOrder(order);
-        }
+        const order = findApprovedOrder(licenseParam || orderIdParam || '');
         if (order) {
           verifyAndBindLicenseAccess(order).then((check) => {
             if (check.allowed) {
@@ -279,6 +269,8 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
               setAuthError(check.message || 'License is locked to a different IP or location.');
             }
           });
+        } else {
+          setLoginError('Order or License Key not recognized. Please sign in with your email.');
         }
       }
 
@@ -657,7 +649,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
     showToast('Session Terminated // Signed Out');
   };
 
-  const handleCopyPrompt = (prompt: VaultItem) => {
+  const handleCopyPrompt = async (prompt: VaultItem) => {
     if (!activeOrder) return;
 
     // 🔒 FREE TRIAL USERS (Strict 1 Lifetime Free Sample Quota - NO LIMIT RESET!)
@@ -681,8 +673,6 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
       }
 
       // 🛡️ User Authentication / Contact Verification Gate:
-      // If user is NOT logged in and doesn't have verified credentials (name, email, phone),
-      // require them to enter their details in the lead modal before copying the 1 free prompt!
       const isUserIdentified = Boolean(
         isPaidMember ||
         firebaseUser?.email ||
@@ -735,8 +725,16 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
       return;
     }
 
+    // Securely retrieve decrypted prompt architecture from gatekeeper
+    const authResult = await getAuthorizedPromptArchitecture(prompt, activeOrder);
+    if (!authResult.success || !authResult.promptArchitecture) {
+      sound.playClick();
+      showToast(authResult.message || '🔒 Authorization Failed: Active license required.');
+      return;
+    }
+
     sound.playSuccess();
-    navigator.clipboard.writeText(prompt.promptArchitecture);
+    navigator.clipboard.writeText(authResult.promptArchitecture);
     setCopiedId(prompt.id);
     setTimeout(() => setCopiedId(null), 2500);
 

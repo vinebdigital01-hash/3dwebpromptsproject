@@ -163,18 +163,29 @@ export const PromptModal: React.FC<PromptModalProps> = ({ item, onClose, onUnloc
                 <span>MASTER ONE-SHOT PROMPT SPECIFICATION</span>
               </div>
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    sound.playClick();
-                    setIsLeadModalOpen(true);
-                  }}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-mono transition-all active:scale-[0.99]"
-                >
-                  <Copy className="w-3 h-3 text-blue-400" />
-                  <span>Copy Prompt Syntax</span>
-                </button>
-                <span className="text-[11px] font-mono text-zinc-400">Encrypted</span>
+                {isPromptFree(item) ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sound.playClick();
+                      setIsLeadModalOpen(true);
+                    }}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-mono transition-all active:scale-[0.99]"
+                  >
+                    <Sparkles className="w-3 h-3 text-emerald-400" />
+                    <span>Copy Free Blueprint</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleUnlock}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-zinc-800 hover:bg-blue-600/30 text-zinc-200 hover:text-blue-300 border border-zinc-700 hover:border-blue-500/40 text-xs font-mono transition-all active:scale-[0.99]"
+                  >
+                    <Lock className="w-3 h-3 text-blue-400" />
+                    <span>Unlock To Copy</span>
+                  </button>
+                )}
+                <span className="text-[11px] font-mono text-zinc-400">{isPromptFree(item) ? 'Free Tier' : 'Encrypted'}</span>
               </div>
             </div>
 
@@ -239,7 +250,7 @@ export const PromptModal: React.FC<PromptModalProps> = ({ item, onClose, onUnloc
       {/* Copy Prompt Syntax Lead Capture Verification Modal */}
       <CopyPromptLeadModal
         isOpen={isLeadModalOpen}
-        promptSnippet={item.promptArchitecture}
+        promptSnippet={isPromptFree(item) ? item.promptArchitecture : `${item.promptArchitecture.slice(0, 140)}\n\n[Unlock full code at: https://3dwebprompts-vineb.vercel.app/#pricing]`}
         clientTitle={item.title}
         onClose={() => setIsLeadModalOpen(false)}
         onSuccessRedirect={() => {

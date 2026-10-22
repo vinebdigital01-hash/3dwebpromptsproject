@@ -95,26 +95,9 @@ CORE ARCHITECTURE:
     description: 'A Geneva watch storefront built on a scroll-scrubbed canvas: 240 decoded WebP frames taken apart chapter by chapter behind a real-progress preloader, with no animation library anywhere in the dependency list.',
     techStack: ['HTML5 Canvas', '240 Decoded Frames', 'Zero-Dep Animation', 'WebP Memory Buffer'],
     specs: ['240 Decoded WebP Frames', 'Zero Animation Library Overhead', 'True-Progress Chapter Scrub', 'Native 60 FPS Hardware Interpolation'],
-    tokens: '4,150 TOKENS',
-    promptArchitecture: `Act as a High-End Performance Web Engineer.
-Build the Ora Geneva watch storefront using a pure scroll-scrubbed HTML5 Canvas engine with ZERO animation libraries.
-
-TECHNICAL SPECIFICATIONS:
-1. 240-FRAME WEBP BUFFER:
-   - Pre-decode an array of 240 high-resolution WebP frames into an offscreen ImageBitmap array.
-   - Render a high-precision real-progress numeric preloader (0% -> 100%) tracking actual asset byte transfer.
-   - Scrub the active frame via requestAnimationFrame + linear interpolation (lerp factor 0.08) against scroll progress.
-
-2. CHAPTER DECONSTRUCTION:
-   - Chapter 1: The Bezel & Fluted Case specular light sweep.
-   - Chapter 2: The Mechanical Tourbillon exploded-view complication.
-   - Chapter 3: The Sapphire Crystal double-dome anti-reflective coating.
-   - Chapter 4: The Bespoke Alligator Leather strap tailoring.
-
-3. ZERO-DEPENDENCY CONSTRAINT:
-   - No GSAP, no Framer Motion, no Three.js.
-   - 100% pure vanilla Canvas 2D context with hardware GPU acceleration.
-   - Flawless performance on mobile Safari & high-refresh desktop monitors.`
+    promptArchitecture: `[🔒 ARCHITECTURE LOCKED: 4,150 TOKENS OF VERIFIED PRODUCTION CODE]
+This Geneva watch storefront scroll-scrubbed canvas architecture requires an active Apex3D Vault License.
+Unlock at https://3dwebprompts-vineb.vercel.app/#portal to decrypt production code.`
   },
   {
     id: 'fluxora',
