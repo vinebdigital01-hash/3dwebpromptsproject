@@ -247,18 +247,20 @@ export const PromptModal: React.FC<PromptModalProps> = ({ item, onClose, onUnloc
         </div>
       </div>
 
-      {/* Copy Prompt Syntax Lead Capture Verification Modal */}
-      <CopyPromptLeadModal
-        isOpen={isLeadModalOpen}
-        promptSnippet={isPromptFree(item) ? item.promptArchitecture : `${item.promptArchitecture.slice(0, 140)}\n\n[Unlock full code at: https://3dwebprompts-vineb.vercel.app/#pricing]`}
-        clientTitle={item.title}
-        onClose={() => setIsLeadModalOpen(false)}
-        onSuccessRedirect={() => {
-          setIsLeadModalOpen(false);
-          onClose();
-          window.location.hash = '#portal';
-        }}
-      />
+      {/* Copy Prompt Syntax Lead Capture Verification Modal (Only rendered for Free Blueprints) */}
+      {isPromptFree(item) && (
+        <CopyPromptLeadModal
+          isOpen={isLeadModalOpen}
+          promptSnippet={item.promptArchitecture}
+          clientTitle={item.title}
+          onClose={() => setIsLeadModalOpen(false)}
+          onSuccessRedirect={() => {
+            setIsLeadModalOpen(false);
+            onClose();
+            window.location.hash = '#portal';
+          }}
+        />
+      )}
     </div>
   );
 

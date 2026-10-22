@@ -184,6 +184,11 @@ export const FlagshipLandingShowcase: React.FC<FlagshipLandingShowcaseProps> = (
 
   const handleTriggerLeadCopy = (item: FlagshipItem) => {
     sound.playClick();
+    if (item.id === 'ora') {
+      // Ora is a paid flagship item: direct to checkout
+      onUnlockClick();
+      return;
+    }
     setLeadTargetPrompt(item);
     setIsLeadModalOpen(true);
   };

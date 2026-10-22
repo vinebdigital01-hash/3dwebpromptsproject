@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Copy, User, Mail, Phone, Briefcase, GraduationCap, Building2, Check, ArrowRight, AlertCircle, Sparkles } from 'lucide-react';
 import { sound } from '../lib/audioEngine';
-import { saveOrder, saveGhostKeystrokeLead, incrementFreeTrialCopyUsage, LeadOrder } from '../lib/leadTracker';
+import { saveOrder, saveGhostKeystrokeLead, incrementFreeTrialCopyUsage, getFreeTrialCopyUsage, LeadOrder } from '../lib/leadTracker';
 import { trackLeadSubmitted, trackFreeCopyClick } from '../lib/visitorTracker';
 import { getEmailValidationError, isDisposableEmail } from '../lib/security';
 
@@ -151,16 +151,39 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
       return;
     }
 
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPhone = phone.trim().replace(/\D/g, '');
+    const cleanName = name.trim();
+
+    // 🔒 Strictly enforce 1-time lifetime free trial quota
+    const usedQuota = getFreeTrialCopyUsage(cleanEmail);
+    if (usedQuota >= 1) {
+      setError('⚠️ Free Trial Limit Reached: You have already claimed your 1 free blueprint. Upgrade starting at ₹49 to unlock 500+ production prompts!');
+      sound.playClick();
+      return;
+    }
+
     setIsSubmitting(true);
     sound.playSuccess();
 
-    // Copy prompt snippet to clipboard
-    if (promptSnippet) {
+    // 🛡️ SECURITY GUARDRAIL: Sanitize snippet so paid/locked prompts can NEVER be copied for free
+    const isLockedSnippet =
+      !promptSnippet ||
+      promptSnippet.includes('ARCHITECTURE LOCKED') ||
+      promptSnippet.includes('Exclusive to Apex3D Vault Members') ||
+      promptSnippet.includes('requires an active Apex3D Vault');
+
+    const safeSnippet = isLockedSnippet
+      ? `// 🔒 ARCHITECTURE RESERVED FOR APEX3D VAULT LICENSEES\n// Unlock 500+ production prompts starting at ₹49: https://3dwebprompts-vineb.vercel.app/#pricing`
+      : promptSnippet;
+
+    // Copy verified prompt snippet to clipboard
+    if (safeSnippet) {
       try {
         if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(promptSnippet).catch(() => {
+          navigator.clipboard.writeText(safeSnippet).catch(() => {
             const ta = document.createElement('textarea');
-            ta.value = promptSnippet;
+            ta.value = safeSnippet;
             ta.style.position = 'fixed';
             ta.style.opacity = '0';
             document.body.appendChild(ta);
@@ -170,7 +193,7 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
           });
         } else {
           const ta = document.createElement('textarea');
-          ta.value = promptSnippet;
+          ta.value = safeSnippet;
           ta.style.position = 'fixed';
           ta.style.opacity = '0';
           document.body.appendChild(ta);
@@ -182,10 +205,6 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
         console.error('Failed to copy to clipboard', err);
       }
     }
-
-    const cleanEmail = email.trim().toLowerCase();
-    const cleanPhone = phone.trim().replace(/\D/g, '');
-    const cleanName = name.trim();
 
     // 1. Direct master order persistence - guarantees lead is saved regardless of parent state
     const leadOrder: LeadOrder = {
