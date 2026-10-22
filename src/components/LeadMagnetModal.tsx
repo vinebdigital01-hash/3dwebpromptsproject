@@ -134,7 +134,7 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
           tierId: 'member',
           tierName: 'Free Trial Member (1 Free Quota)',
           amountINR: 0,
-          status: 'approved',
+          status: 'free_trial_claimed',
           source,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),

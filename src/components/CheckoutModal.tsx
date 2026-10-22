@@ -304,7 +304,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         tierId: 'member',
         tierName: 'Free Trial Member (1 Free Copy)',
         amountINR: 0,
-        status: 'approved',
+        status: 'free_trial_claimed',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         approvedAt: new Date().toISOString(),

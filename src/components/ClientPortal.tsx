@@ -91,9 +91,18 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
     try {
       const stored = sessionStorage.getItem('apex3d_portal_active_order');
       if (stored) {
-        return JSON.parse(stored);
+        const parsed = JSON.parse(stored);
+        // Security check: if session claims to be paid, ensure it actually exists in verified orders
+        if (parsed && (parsed.amountINR || 0) > 0) {
+          const verified = findApprovedOrder(parsed.licenseKey || parsed.orderNumber || parsed.id || parsed.email || '');
+          if (!verified || verified.status !== 'approved' || (verified.amountINR || 0) <= 0) {
+            sessionStorage.removeItem('apex3d_portal_active_order');
+            return null;
+          }
+          return verified;
+        }
+        return parsed;
       }
-
     } catch {
       // ignore
     }
@@ -322,7 +331,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
             tierId: 'member',
             tierName: 'Free Trial Member (1 Sample Quota)',
             amountINR: 0,
-            status: 'approved',
+            status: 'free_trial_claimed',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             approvedAt: new Date().toISOString(),
@@ -368,7 +377,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
           tierId: 'member',
           tierName: 'Free Trial Member (1 Sample Quota)',
           amountINR: 0,
-          status: 'approved',
+          status: 'free_trial_claimed',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           approvedAt: new Date().toISOString(),
@@ -419,7 +428,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
           tierId: 'member',
           tierName: 'Free Trial Member (1 Sample Quota)',
           amountINR: 0,
-          status: 'approved',
+          status: 'free_trial_claimed',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           approvedAt: new Date().toISOString(),
@@ -492,7 +501,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
           tierId: 'member',
           tierName: 'Free Trial Member (1 Sample Quota)',
           amountINR: 0,
-          status: 'approved',
+          status: 'free_trial_claimed',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           approvedAt: new Date().toISOString(),
@@ -597,7 +606,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
           tierId: 'member',
           tierName: 'Free Trial Member (1 Sample Quota)',
           amountINR: 0,
-          status: 'approved',
+          status: 'free_trial_claimed',
           source: 'portal_email_login',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -1054,7 +1063,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                     tierId: 'member',
                     tierName: 'Free Trial Member (1 Sample Quota)',
                     amountINR: 0,
-                    status: 'approved',
+                    status: 'free_trial_claimed',
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString(),
                     approvedAt: new Date().toISOString(),
