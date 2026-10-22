@@ -12,8 +12,8 @@ import {
   subscribeToFirestoreAdmins,
 } from './firebase';
 
-export const SUPER_ADMIN_EMAIL = 'kumarrneeraj791@gmail.com';
-export const MASTER_EMERGENCY_PIN = '791000'; // Super admin emergency bypass key
+export const SUPER_ADMIN_EMAIL =
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPER_ADMIN_EMAIL) || 'kumarrneeraj791@gmail.com';
 
 export type AdminRole = 'super_admin' | 'moderator';
 
@@ -406,157 +406,68 @@ export async function sendAdminLoginOtp(email: string): Promise<{ success: boole
   if (!isSuper && (!user || user.status === 'revoked')) {
     return {
       success: false,
-      message: `Access denied. Email "${email}" is not authorized as an administrator. Please request an invite from Super Admin (kumarrneeraj791@gmail.com).`,
+      message: `Access denied. Email "${email}" is not authorized as an administrator.`,
     };
   }
 
-  // Generate 6-digit code
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
-  const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
-
-  // Store OTP in localStorage
   try {
-    const raw = localStorage.getItem(ADMIN_OTP_STORAGE_KEY) || '{}';
-    const store: Record<string, StoredOtp> = JSON.parse(raw);
-    store[clean] = { code, expiresAt };
-    localStorage.setItem(ADMIN_OTP_STORAGE_KEY, JSON.stringify(store));
-  } catch (err) {
-    console.error('Failed to save OTP:', err);
+    const res = await fetch('/api/admin-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'send', email: clean }),
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      return {
+        success: true,
+        message: data.message || `Verification code dispatched to ${clean}. Please check your inbox.`,
+      };
+    }
+    return {
+      success: false,
+      message: data.message || 'Failed to dispatch verification code.',
+    };
+  } catch (err: any) {
+    console.error('Error dispatching admin OTP:', err);
+    return {
+      success: false,
+      message: 'Network error communicating with authentication service.',
+    };
   }
-
-  const roleLabel = isSuper ? 'Master Super Admin' : 'Operations Moderator';
-  const recipientName = user?.name || (isSuper ? 'Neeraj Kumar' : 'Administrator');
-
-  const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Your Vine B Digital Admin Access Code</title>
-</head>
-<body style="margin: 0; padding: 0; background-color: #06060c; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #ffffff;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="padding: 36px 12px; background-color: #06060c;">
-    <tr>
-      <td align="center">
-        <table role="presentation" width="100%" style="max-width: 540px; background-color: #0c0c16; border: 1px solid #242438; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.8);">
-          <tr>
-            <td style="height: 4px; background: linear-gradient(90deg, #3b82f6, #8b5cf6, #10b981);"></td>
-          </tr>
-          <tr>
-            <td style="padding: 28px 32px 16px 32px; border-bottom: 1px solid rgba(255,255,255,0.06);">
-              <div style="font-family: monospace; font-size: 10px; color: #60a5fa; text-transform: uppercase; letter-spacing: 0.15em;">
-                VINE B DIGITAL // SECURITY AUTHENTICATION
-              </div>
-              <h1 style="margin: 10px 0 0 0; font-size: 22px; font-weight: 800; color: #ffffff;">
-                Admin Portal Access Verification
-              </h1>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 24px 32px; font-size: 14px; line-height: 1.6; color: #9ca3af;">
-              Hello <strong style="color: #ffffff;">${recipientName}</strong>,<br><br>
-              A sign-in request was initiated for your <strong style="color: #60a5fa;">${roleLabel}</strong> account on the 3D Vault Administration Console.
-              <br><br>
-              Use the single-use 6-digit verification code below to authenticate your session:
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 0 32px 24px 32px;" align="center">
-              <div style="display: inline-block; background-color: #070710; border: 2px solid #3b82f6; border-radius: 12px; padding: 18px 36px; font-family: 'SF Mono', Consolas, monospace; font-size: 32px; font-weight: 900; letter-spacing: 0.25em; color: #ffffff; text-shadow: 0 0 15px rgba(59,130,246,0.6);">
-                ${code}
-              </div>
-              <div style="font-size: 11px; color: #64748b; margin-top: 10px; font-family: monospace;">
-                Valid for 10 minutes &bull; Single-use only &bull; Do not share with anyone
-              </div>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 16px 32px 28px 32px; border-top: 1px solid rgba(255,255,255,0.06); font-size: 11px; color: #52525b; line-height: 1.5;">
-              If you did not request this verification code, please ignore this email or notify Super Admin Neeraj Kumar (<a href="mailto:${SUPER_ADMIN_EMAIL}" style="color: #60a5fa;">${SUPER_ADMIN_EMAIL}</a>).
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;
-
-  const dispatch = await sendEmailViaResend({
-    to: clean,
-    subject: `🔐 Your Admin Access Code: [ ${code} ] // Vine B Digital 3D Vault`,
-    html,
-    text: `Your 6-digit Admin Access Code is: ${code}. Valid for 10 minutes.`,
-  });
-
-  return {
-    success: true,
-    message: dispatch.success
-      ? `Verification code dispatched to ${clean}!`
-      : `Code generated: ${code} (Resend note: ${dispatch.message})`,
-  };
 }
 
 /**
- * Verify 6-digit OTP code
+ * Verify 6-digit OTP code strictly on the server
  */
-export function verifyAdminOtpCode(
+export async function verifyAdminOtpCode(
   email: string,
   inputCode: string
-): { success: boolean; message: string; session?: AdminSession } {
+): Promise<{ success: boolean; message: string; session?: AdminSession }> {
   const clean = email.trim().toLowerCase();
   const code = inputCode.trim();
 
-  // Emergency PIN check for Super Admin
-  if (clean === SUPER_ADMIN_EMAIL.toLowerCase() && code === MASTER_EMERGENCY_PIN) {
-    const session: AdminSession = {
-      email: SUPER_ADMIN_EMAIL,
-      name: 'Neeraj Kumar (Super Admin)',
-      role: 'super_admin',
-      token: `sess_${Date.now().toString(36)}`,
-      loginAt: new Date().toISOString(),
-    };
-    setAdminSession(session);
-    return { success: true, message: 'Super Admin master PIN authenticated successfully.', session };
+  if (!code || code.length !== 6) {
+    return { success: false, message: 'Please enter a valid 6-digit access code.' };
   }
 
   try {
-    const raw = localStorage.getItem(ADMIN_OTP_STORAGE_KEY) || '{}';
-    const store: Record<string, StoredOtp> = JSON.parse(raw);
-    const record = store[clean];
-
-    if (!record) {
-      return { success: false, message: 'No active verification code found. Please request a new code.' };
+    const res = await fetch('/api/admin-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'verify', email: clean, code }),
+    });
+    const data = await res.json();
+    if (res.ok && data.success && data.session) {
+      setAdminSession(data.session);
+      return { success: true, message: 'Authentication successful! Welcome to the Admin Console.', session: data.session };
     }
-
-    if (Date.now() > record.expiresAt) {
-      delete store[clean];
-      localStorage.setItem(ADMIN_OTP_STORAGE_KEY, JSON.stringify(store));
-      return { success: false, message: 'Verification code expired. Please request a new one.' };
-    }
-
-    if (record.code !== code) {
-      return { success: false, message: 'Incorrect verification code. Please check your email and try again.' };
-    }
-
-    // Code matches! Clear OTP
-    delete store[clean];
-    localStorage.setItem(ADMIN_OTP_STORAGE_KEY, JSON.stringify(store));
-
-    const isSuper = clean === SUPER_ADMIN_EMAIL.toLowerCase();
-    const admin = getAdminRecord(clean);
-
-    const session: AdminSession = {
-      email: clean,
-      name: admin?.name || (isSuper ? 'Neeraj Kumar' : 'Administrator'),
-      role: isSuper ? 'super_admin' : (admin?.role || 'moderator'),
-      token: `sess_${Date.now().toString(36)}`,
-      loginAt: new Date().toISOString(),
+    return {
+      success: false,
+      message: data.message || 'Incorrect or expired verification code.',
     };
-
-    setAdminSession(session);
-    return { success: true, message: 'Authentication successful! Welcome to the Admin Console.', session };
   } catch (err: any) {
-    return { success: false, message: err.message || 'Verification error' };
+    console.error('Error verifying admin OTP:', err);
+    return { success: false, message: 'Network error verifying authentication code.' };
   }
 }
 

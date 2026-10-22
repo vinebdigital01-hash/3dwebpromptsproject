@@ -52,7 +52,6 @@ import {
 } from 'lucide-react';
 import {
   SUPER_ADMIN_EMAIL,
-  MASTER_EMERGENCY_PIN,
   AdminUser,
   AdminSession,
   getAllAdmins,
@@ -168,8 +167,6 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [showEmergencyPin, setShowEmergencyPin] = useState(false);
-  const [emergencyPin, setEmergencyPin] = useState('');
 
   const [orders, setOrders] = useState<LeadOrder[]>([]);
   const [copiedUtr, setCopiedUtr] = useState<string | null>(null);
@@ -436,7 +433,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
     setAuthError(null);
     setIsVerifyingOtp(true);
     try {
-      const res = verifyAdminOtpCode(loginEmail, otpInput);
+      const res = await verifyAdminOtpCode(loginEmail, otpInput);
       if (res.success && res.session) {
         setSession(res.session);
         showToast(`Welcome, ${res.session.name}!`);
@@ -447,23 +444,6 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
       setAuthError(err.message || 'Verification error');
     } finally {
       setIsVerifyingOtp(false);
-    }
-  };
-
-  const handleEmergencyPinLogin = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!loginEmail.trim() || loginEmail.trim().toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase()) {
-      setAuthError(`Emergency Master PIN is only valid for Master Super Admin (${SUPER_ADMIN_EMAIL}).`);
-      return;
-    }
-    if (emergencyPin.trim() !== MASTER_EMERGENCY_PIN) {
-      setAuthError('Invalid Emergency Master PIN.');
-      return;
-    }
-    const res = verifyAdminOtpCode(SUPER_ADMIN_EMAIL, MASTER_EMERGENCY_PIN);
-    if (res.success && res.session) {
-      setSession(res.session);
-      showToast('Master Super Admin Emergency Access granted!');
     }
   };
 
@@ -1259,14 +1239,11 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                     type="email"
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
-                    placeholder="kumarrneeraj791@gmail.com"
+                    placeholder="admin@vinebdigital.store"
                     className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-black/50 border border-white/15 text-xs font-mono text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition-colors"
                     required
                     autoFocus
                   />
-                </div>
-                <div className="text-[10px] text-zinc-500 mt-1.5 flex items-center justify-between font-mono">
-                  <span>Super Admin: {SUPER_ADMIN_EMAIL}</span>
                 </div>
               </div>
 
@@ -1287,42 +1264,6 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                   </>
                 )}
               </button>
-
-              {/* Super Admin Emergency Bypass Option */}
-              <div className="pt-3 border-t border-white/10 text-center">
-                <button
-                  type="button"
-                  onClick={() => setShowEmergencyPin(!showEmergencyPin)}
-                  className="text-[11px] font-mono text-zinc-400 hover:text-amber-400 transition-colors flex items-center justify-center gap-1 mx-auto cursor-pointer"
-                >
-                  <Key className="w-3 h-3 text-amber-400" />
-                  <span>Super Admin Emergency Master PIN</span>
-                </button>
-
-                {showEmergencyPin && (
-                  <div className="mt-3 p-3 rounded-xl bg-black/40 border border-amber-500/30 text-left animate-role-fade-in space-y-2">
-                    <label className="block text-[10px] font-mono text-amber-300 uppercase tracking-wider font-bold">
-                      Enter Emergency Master Key
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="password"
-                        placeholder="PIN (6 digits)"
-                        value={emergencyPin}
-                        onChange={(e) => setEmergencyPin(e.target.value)}
-                        className="w-full px-3 py-1.5 rounded-lg bg-black border border-white/15 text-xs font-mono text-white focus:outline-none focus:border-amber-400"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleEmergencyPinLogin}
-                        className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold shrink-0 cursor-pointer"
-                      >
-                        Enter &rarr;
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
             </form>
           ) : (
             /* Step 2: Enter 6-digit Code */
