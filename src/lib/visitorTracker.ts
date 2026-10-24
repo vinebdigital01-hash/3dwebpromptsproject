@@ -36,7 +36,9 @@ export interface VisitorEventItem {
     | 'checkout_initiate'
     | 'checkout_dropoff'
     | 'payment_success'
-    | 'session_ping';
+    | 'session_ping'
+    | 'search'
+    | 'add_payment_info';
   label: string;
   metadata?: Record<string, any>;
 }

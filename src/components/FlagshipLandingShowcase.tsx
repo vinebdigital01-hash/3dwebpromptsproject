@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Play, Pause, Volume2, VolumeX, Maximize2, Sparkles, ArrowRight, ShieldCheck, Copy, Check, Terminal, ExternalLink, Lock } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Maximize2, Sparkles, ArrowRight, ShieldCheck, Copy, Check, Terminal, ExternalLink, Lock, X } from 'lucide-react';
 import { sound } from '../lib/audioEngine';
 import { CopyPromptLeadModal } from './CopyPromptLeadModal';
 import { trackPromptInspect } from '../lib/visitorTracker';
@@ -95,6 +95,7 @@ CORE ARCHITECTURE:
     description: 'A Geneva watch storefront built on a scroll-scrubbed canvas: 240 decoded WebP frames taken apart chapter by chapter behind a real-progress preloader, with no animation library anywhere in the dependency list.',
     techStack: ['HTML5 Canvas', '240 Decoded Frames', 'Zero-Dep Animation', 'WebP Memory Buffer'],
     specs: ['240 Decoded WebP Frames', 'Zero Animation Library Overhead', 'True-Progress Chapter Scrub', 'Native 60 FPS Hardware Interpolation'],
+    tokens: '4,150 TOKENS',
     promptArchitecture: `[🔒 ARCHITECTURE LOCKED: 4,150 TOKENS OF VERIFIED PRODUCTION CODE]
 This Geneva watch storefront scroll-scrubbed canvas architecture requires an active Apex3D Vault License.
 Unlock at https://3dwebprompts-vineb.vercel.app/#portal to decrypt production code.`

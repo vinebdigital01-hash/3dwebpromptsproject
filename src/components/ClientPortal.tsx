@@ -67,7 +67,7 @@ import {
   syncUserQuotaFromCloud,
   syncAllLeadsFromCloud,
 } from '../lib/leadTracker';
-import { VaultItem } from '../data/vaultCatalog';
+import { VaultItem, isPromptFree } from '../data/vaultCatalog';
 import { getAllVaultPrompts, initPromptsCloudSync } from '../lib/promptCatalogStore';
 import { isMediaImage } from '../lib/mediaUtils';
 import { sound } from '../lib/audioEngine';

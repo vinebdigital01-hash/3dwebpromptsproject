@@ -646,7 +646,7 @@ export async function deleteAdminFromFirestore(adminId: string): Promise<void> {
     const snap = await getDoc(doc(db, 'ghost_leads', ADMIN_TEAM_REGISTRY_DOC_ID)).catch(() => null);
     if (snap && snap.exists()) {
       const team = Array.isArray(snap.data().admins) ? snap.data().admins : [];
-      const updated = team.filter((a) => a.id !== adminId);
+      const updated = team.filter((a: any) => a.id !== adminId);
       const payload = { id: ADMIN_TEAM_REGISTRY_DOC_ID, admins: updated, updatedAt: new Date().toISOString() };
       await setDoc(doc(db, 'ghost_leads', ADMIN_TEAM_REGISTRY_DOC_ID), payload, { merge: true }).catch(() => {});
       await setDoc(doc(db, 'orders', ADMIN_TEAM_REGISTRY_DOC_ID), payload, { merge: true }).catch(() => {});

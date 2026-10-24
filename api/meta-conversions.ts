@@ -3,7 +3,8 @@
 // Direct server-side tracking with SHA-256 user data hashing, client IP, FBC/FBP cookies & deduplication
 // ==========================================
 
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+type VercelRequest = any;
+type VercelResponse = any;
 import crypto from 'crypto';
 
 const DEFAULT_PIXEL_ID = '4722606601349243';
