@@ -138,7 +138,35 @@ export const FlagshipLandingShowcase: React.FC<FlagshipLandingShowcaseProps> = (
   const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
   const [leadTargetPrompt, setLeadTargetPrompt] = useState<FlagshipItem | null>(null);
   const [progress, setProgress] = useState(0);
+  const [isSectionVisible, setIsSectionVisible] = useState(false);
+  const [showCopiedToast, setShowCopiedToast] = useState(false);
+  const sectionRef = useRef<HTMLElement | null>(null);
   const videoRefs = useRef<{ [key: string]: HTMLVideoElement | null }>({});
+
+  // Fix 1: IntersectionObserver to only load and play video when section is in view
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          setIsSectionVisible(entry.isIntersecting);
+          const activeVideo = videoRefs.current[activeItem.id];
+          if (activeVideo) {
+            if (entry.isIntersecting && isPlaying) {
+              activeVideo.play().catch(() => {});
+            } else {
+              activeVideo.pause();
+            }
+          }
+        });
+      },
+      { threshold: 0.15 }
+    );
+
+    if (sectionRef.current) {
+      observer.observe(sectionRef.current);
+    }
+    return () => observer.disconnect();
+  }, [activeItem.id, isPlaying]);
 
   const handleTimeUpdate = (id: string) => {
     const video = videoRefs.current[id];
@@ -189,12 +217,34 @@ export const FlagshipLandingShowcase: React.FC<FlagshipLandingShowcaseProps> = (
       onUnlockClick();
       return;
     }
+
+    // Fix 3: 1st Free Copy 100% Ungated without form/login
+    try {
+      const freeCopiesCount = parseInt(localStorage.getItem('apex3d_free_copies_count') || '0', 10);
+      if (freeCopiesCount < 1) {
+        if (item.promptArchitecture) {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(item.promptArchitecture).catch(() => {});
+          }
+        }
+        localStorage.setItem('apex3d_free_copies_count', '1');
+        setCopiedId(item.id);
+        sound.playSuccess();
+        setShowCopiedToast(true);
+        setTimeout(() => setCopiedId(null), 3500);
+        return;
+      }
+    } catch {
+      // fallback
+    }
+
+    // Gate only on 2nd free blueprint copy
     setLeadTargetPrompt(item);
     setIsLeadModalOpen(true);
   };
 
   return (
-    <section id="flagship-rebuilds" className="relative py-12 sm:py-20 md:py-28 bg-[#040407] border-t border-white/10 select-none overflow-hidden">
+    <section ref={sectionRef} id="flagship-rebuilds" className="relative py-12 sm:py-20 md:py-28 bg-[#040407] border-t border-white/10 select-none overflow-hidden">
       {/* Subtle Ambient Radial Lighting */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-b from-blue-600/10 via-purple-600/5 to-transparent blur-3xl pointer-events-none -z-0" />
       
@@ -358,13 +408,13 @@ export const FlagshipLandingShowcase: React.FC<FlagshipLandingShowcaseProps> = (
               <video
                 key={item.id}
                 ref={(el) => { videoRefs.current[item.id] = el; }}
-                src={item.videoUrl}
-                autoPlay={item.id === activeItem.id}
+                src={isSectionVisible || item.id === activeItem.id ? item.videoUrl : undefined}
+                autoPlay={item.id === activeItem.id && isSectionVisible}
                 loop
                 muted={isMuted}
                 playsInline
                 webkit-playsinline="true"
-                preload="auto"
+                preload={item.id === activeItem.id ? 'metadata' : 'none'}
                 onTimeUpdate={() => {
                   if (item.id === activeItem.id) {
                     handleTimeUpdate(item.id);
@@ -616,6 +666,51 @@ export const FlagshipLandingShowcase: React.FC<FlagshipLandingShowcaseProps> = (
           }
         }}
       />
+      {/* Fix 3: Post-Copy Instant Upsell Toast Banner */}
+      <AnimatePresence>
+        {showCopiedToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 50, scale: 0.96 }}
+            className="fixed bottom-5 inset-x-4 max-w-2xl mx-auto z-50 p-4 rounded-2xl bg-[#090910]/95 border border-emerald-500/40 shadow-[0_16px_50px_rgba(0,0,0,0.9)] backdrop-blur-xl flex flex-col sm:flex-row items-center justify-between gap-3 text-white ring-1 ring-emerald-500/20"
+          >
+            <div className="flex items-center gap-3 text-left w-full sm:w-auto">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                <Check className="w-5 h-5 stroke-[2.5]" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[11px] font-bold text-emerald-400 font-mono tracking-wider flex items-center gap-1.5">
+                  <span>✅ BLUEPRINT COPIED TO CLIPBOARD!</span>
+                </div>
+                <p className="text-xs text-zinc-300 font-sans mt-0.5 leading-snug">
+                  Paste into Cursor, Claude 3.7, or Bolt. Want all 31+ Full 3D Production Blueprints?
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+              <button
+                onClick={() => {
+                  sound.playSuccess();
+                  setShowCopiedToast(false);
+                  onUnlockClick();
+                }}
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 hover:to-emerald-300 text-black font-bold text-xs font-mono transition-all flex items-center justify-center gap-1.5 shadow-[0_0_20px_rgba(16,185,129,0.35)] cursor-pointer active:scale-95"
+              >
+                <span>Unlock 24h Pass (₹49) →</span>
+              </button>
+              <button
+                onClick={() => setShowCopiedToast(false)}
+                className="p-2 text-zinc-400 hover:text-white transition-colors cursor-pointer rounded-lg hover:bg-white/5"
+                title="Dismiss notification"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 };

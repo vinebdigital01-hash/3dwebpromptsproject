@@ -28,7 +28,7 @@ import { initPromptsCloudSync } from './lib/promptCatalogStore';
 import { initVisitorTracking, trackModalOpen, trackPortalRedirect } from './lib/visitorTracker';
 
 export default function App() {
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(false); // 0ms immediate render
   const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
   const [isLeadMagnetOpen, setIsLeadMagnetOpen] = useState<boolean>(false);
   const [selectedTier, setSelectedTier] = useState<PricingTier | null>(TIERS[3]); // Default to Lifetime VIP (₹2,999)
@@ -67,24 +67,24 @@ export default function App() {
     };
   }, []);
 
-  // Automatic popup in 5 seconds if user is just browsing and has no active intent to checkout yet
+  // 🛡️ Android Back Button Trap Fix:
+  // When Checkout or Lead Magnet modal is open, intercept the physical Back button to close modal instead of exiting the site
   useEffect(() => {
-    if (isCheckoutOpen || isAdminMode || isPortalMode) return;
+    const isModalOpen = isCheckoutOpen || isLeadMagnetOpen;
+    if (!isModalOpen) return;
 
-    // Check if visitor has already seen or closed the automatic lead magnet in this session
-    const alreadyTriggered = safeSessionStorage.getItem('vineb_lead_magnet_auto_shown');
-    if (alreadyTriggered) return;
+    window.history.pushState({ modalOpen: true }, '');
 
-    const timer = setTimeout(() => {
-      if (!isCheckoutOpen && !isAdminMode && !isPortalMode) {
-        setIsLeadMagnetOpen(true);
-        trackModalOpen('LeadMagnetModal');
-        safeSessionStorage.setItem('vineb_lead_magnet_auto_shown', 'true');
-      }
-    }, 5000); // 5 seconds (grabs visitors before mobile bounce)
+    const handlePopState = () => {
+      if (isCheckoutOpen) setIsCheckoutOpen(false);
+      if (isLeadMagnetOpen) setIsLeadMagnetOpen(false);
+    };
 
-    return () => clearTimeout(timer);
-  }, [isCheckoutOpen, isAdminMode, isPortalMode]);
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [isCheckoutOpen, isLeadMagnetOpen]);
 
   const handleOpenCheckout = (tier?: PricingTier, currency?: Currency) => {
     if (tier) setSelectedTier(tier);

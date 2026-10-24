@@ -72,7 +72,12 @@ export default async function handler(req: any, res: any) {
     const cleanLic = (licenseKey || '').trim().toUpperCase();
     const cleanOrder = (orderId || '').trim().toUpperCase();
 
-    const isAuthorized = isValidPaidLicenseFormat(cleanLic) || (cleanOrder.startsWith('ORD-') && cleanOrder.length >= 10);
+    const hasValidUtr = Boolean(req.body?.utrNumber && String(req.body.utrNumber).replace(/\D/g, '').length >= 10);
+    const isAuthorized =
+      isValidPaidLicenseFormat(cleanLic) ||
+      (cleanOrder.startsWith('ORD-') && cleanOrder.length >= 10) ||
+      (cleanOrder.startsWith('APX-') && cleanOrder.length >= 8) ||
+      hasValidUtr;
 
     if (!isAuthorized) {
       return res.status(403).json({

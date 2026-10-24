@@ -225,7 +225,7 @@ export const Hero: React.FC<HeroProps> = ({
                       loop
                       muted
                       playsInline
-                      preload="auto"
+                      preload="metadata"
                       className="w-full h-full object-cover object-top"
                     />
 

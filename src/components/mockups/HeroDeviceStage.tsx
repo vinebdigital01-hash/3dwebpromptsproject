@@ -237,7 +237,7 @@ export const HeroDeviceStage: React.FC<HeroDeviceStageProps> = ({
                   loop
                   muted
                   playsInline
-                  preload="auto"
+                  preload="metadata"
                   className="w-full h-full object-cover object-top"
                 />
 
@@ -313,7 +313,7 @@ export const HeroDeviceStage: React.FC<HeroDeviceStageProps> = ({
                   loop
                   muted
                   playsInline
-                  preload="auto"
+                  preload="metadata"
                   className="w-full h-full object-cover object-top"
                 />
                 <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-6 sm:w-8 h-[2px] bg-white/40 rounded-full pointer-events-none" />

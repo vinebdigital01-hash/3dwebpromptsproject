@@ -380,7 +380,28 @@ TECHNICAL CORE REQUIREMENTS:
       'Interactive crosshair slice displaying cumulative bid volume and slippage estimates',
       'Dark obsidian UI with high-contrast emerald and crimson execution markers'
     ],
-    promptArchitecture: `Create an institutional quantitative trading terminal featuring an interactive 3D Order Book Depth Mountain in Three.js and React. Vertex heights must morph smoothly based on simulated order flow.`
+    promptArchitecture: `# FINTECH 3D LIQUIDITY ORDER BOOK & DEPTH MOUNTAIN ARCHITECTURE
+Act as a Senior Creative Technologist & Quantitative UI Architect.
+Build a Wall Street institutional trading visualizer featuring an interactive 3D Order Book Depth Mountain in React 19 + Three.js / React Three Fiber + Tailwind CSS.
+
+1. SCENE SETUP & GEOMETRY SPECIFICATION:
+   - Construct a procedural double-sided plane geometry representing Bids (Emerald Green #10b981) and Asks (Crimson Red #f43f5e).
+   - Dynamic vertex height elevation calculated from live cumulative depth metrics: elevation = log(cumulativeVolume) * scaleFactor.
+   - Wireframe overlay with hairline opacity (rgba(255,255,255,0.15)) to give an institutional terminal bloom aesthetic.
+
+2. LIGHTING & SHADER PIPELINE:
+   - Custom vertex displacement GLSL shader providing wave rippling when new large block orders execute.
+   - Fragment shader calculating Fresnel edge rim glow and chromatic dispersion across the liquidity peak.
+   - Screen-space ambient occlusion (SSAO) and subtle bloom post-processing pass using @react-three/postprocessing.
+
+3. INTERACTIVE HUD & TELEMETRY:
+   - OrbitControls with damped inertial rotation, clamped polar angles (0.3 to 1.4 rad) preventing under-floor clipping.
+   - Raycasting cursor hover displaying real-time Price Level, Slippage Estimate, and Volume Delta tooltip.
+   - Monospace telemetry status bar (sub-12ms render budget, 60 FPS locked).
+
+4. DELIVERABLE REQUIREMENTS:
+   - One-shot compilation ready for Claude 3.7 Sonnet & Cursor Composer.
+   - Fallback 2D canvas depth chart for mobile viewports without WebGL2 support.`
   },
   {
     id: 'quantum-defense-core',
@@ -590,7 +611,26 @@ TECHNICAL CORE REQUIREMENTS:
       'Custom color grading: Liquid Mercury, Bioluminescent Ocean, Rose Gold Lava',
       'Drop-in React component with zero external heavy physics engines required'
     ],
-    promptArchitecture: `Code a custom GLSL liquid mercury shader in React Three Fiber that responds dynamically to pointer coordinates and scrolling velocity.`
+    promptArchitecture: `# PROCEDURAL HIGH-VISCOSITY LIQUID MERCURY SHADER BLUEPRINT
+Act as a Lead WebGL Shader Engineer & Creative Director.
+Develop an ultra-responsive, real-time procedural Liquid Mercury & Chromatic Viscosity material in React Three Fiber + Custom GLSL + Tailwind CSS.
+
+1. SHADER ARCHITECTURE (Custom RawShaderMaterial):
+   - Vertex Shader: Displace vertices using multi-octave 3D Simplex noise with dynamic frequency and time uniforms:
+     p_displaced = position + normal * (snoise(position * frequency + time * speed) * amplitude).
+   - Fragment Shader: Raymarched reflective metaball-inspired specular highlights with physically calculated Fresnel Schlick approximation:
+     R = R0 + (1.0 - R0) * pow(1.0 - dot(viewDir, normal), 5.0).
+   - Environment Mapping: Dynamic high-dynamic-range (HDR) studio reflection cube with iridescent chromatic aberration on grazing angles.
+
+2. INTERACTIVE FLUID DYNAMICS:
+   - Cursor velocity vector injected into shader uniforms as a ripple wake that dampens exponentially (viscosity drag coefficient 0.94).
+   - Inertial scroll acceleration expanding surface tension amplitude dynamically.
+   - Acoustic click feedback with micro-vibrations across surface normals.
+
+3. COMPATIBILITY & OPTIMIZATION:
+   - Hardware-accelerated WebGL 2.0 with automatic WebGL 1.0 precision mediump fallback.
+   - Mobile touch event interpolation (touchmove damping) ensuring locked 60 FPS on iOS Safari & Android Chrome.
+   - Pure standalone component structure with zero external asset dependencies.`
   },
   {
     id: 'holographic-cardiology-heart',

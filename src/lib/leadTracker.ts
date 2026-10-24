@@ -912,6 +912,63 @@ export function findApprovedOrder(identifier: string): LeadOrder | null {
 }
 
 /**
+ * Lookup an approved OR valid pending-approval order (with 10-12 digit UTR)
+ * Allows provisional instant access to customers who have submitted payment.
+ */
+export function findPendingOrApprovedOrder(identifier: string): LeadOrder | null {
+  if (!identifier) return null;
+  const clean = identifier.trim().toLowerCase();
+  const digitsOnly = identifier.replace(/\D/g, '');
+  const orders = getAllOrders();
+
+  const found = orders.find((o) => {
+    const isApproved = o.status === 'approved';
+    const isPendingValidUtr =
+      o.status === 'pending_approval' &&
+      Boolean(o.utrNumber && o.utrNumber.replace(/\D/g, '').length >= 10);
+
+    if (!isApproved && !isPendingValidUtr) return false;
+    if (o.licenseKey && o.licenseKey.toLowerCase() === clean) return true;
+    if (o.orderNumber && o.orderNumber.toLowerCase() === clean) return true;
+    if (o.id && o.id.toLowerCase() === clean) return true;
+    if (o.utrNumber && o.utrNumber.toLowerCase() === clean) return true;
+    if (o.email && o.email.toLowerCase() === clean) return true;
+    if (digitsOnly.length >= 10 && o.phone && o.phone.replace(/\D/g, '').includes(digitsOnly)) return true;
+    return false;
+  });
+
+  if (found) return found;
+
+  // Fallback: check active session storage if present
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = sessionStorage.getItem('apex3d_portal_active_order');
+      if (stored) {
+        const parsed = JSON.parse(stored) as LeadOrder;
+        if (
+          parsed &&
+          (parsed.amountINR || 0) > 0 &&
+          (parsed.status === 'approved' || (parsed.status === 'pending_approval' && parsed.utrNumber && parsed.utrNumber.replace(/\D/g, '').length >= 10))
+        ) {
+          if (
+            (parsed.orderNumber && parsed.orderNumber.toLowerCase() === clean) ||
+            (parsed.licenseKey && parsed.licenseKey.toLowerCase() === clean) ||
+            (parsed.id && parsed.id.toLowerCase() === clean) ||
+            (parsed.utrNumber && parsed.utrNumber.toLowerCase() === clean) ||
+            (parsed.email && parsed.email.toLowerCase() === clean) ||
+            (digitsOnly.length >= 10 && parsed.phone && parsed.phone.replace(/\D/g, '').includes(digitsOnly))
+          ) {
+            return parsed;
+          }
+        }
+      }
+    } catch {}
+  }
+
+  return null;
+}
+
+/**
  * Determine daily quota based on tier
  * day_pass / day_1: 1
  * month_1: 3

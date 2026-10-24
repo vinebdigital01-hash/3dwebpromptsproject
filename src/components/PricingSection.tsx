@@ -37,13 +37,13 @@ export const TIERS: PricingTier[] = [
     priceEUR: 1,
     accent: 'cobalt',
     features: [
-      '1/day prompt copies (Any prompt in 500+ vault)',
-      'Personal License included',
-      'Commercial License included (Charge clients $5k+)',
-      'Reseller License included',
+      '1/day prompt copies (Any prompt in 31+ flagship vault)',
+      'Commercial License (Charge clients $5k–$25k)',
+      'Reseller & Personal Rights included',
+      'Agency Outbound Scripts & 3D Prompts PDF Guide',
+      'Three.js & R3F Starter Boilerplates',
       'Instant copy-paste syntax for Claude 3.7 & Cursor',
-      'Three.js & WebGL component boilerplates',
-      'Instant dashboard access'
+      'Provisional Instant Access via UPI UTR'
     ],
     ctaLabel: 'Get 1-Day Pass'
   },
@@ -216,6 +216,33 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSelectTier }) 
             ))}
           </div>
         </motion.div>
+
+        {/* Fix 5: International Buyer Support Banner */}
+        {currency !== 'INR' && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-2xl mx-auto mb-8 p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/30 text-center text-xs text-blue-200 font-sans flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg"
+          >
+            <div className="flex items-center gap-2.5 text-left">
+              <span className="text-xl">🌍</span>
+              <div>
+                <strong className="text-white">International Buyer?</strong>
+                <p className="text-[11px] text-zinc-300">
+                  Instant activation via PayPal, Wise, or International Credit Card on WhatsApp.
+                </p>
+              </div>
+            </div>
+            <a
+              href="https://wa.me/919931354378?text=Hi%2C%20I%20am%20an%20international%20buyer%20interested%20in%20Apex3D%20Vault.%20Can%20I%20pay%20via%20PayPal%2FWise%2FCard%3F"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-mono font-bold text-xs shrink-0 transition-all flex items-center gap-1 shadow-md cursor-pointer"
+            >
+              <span>Chat on WhatsApp →</span>
+            </a>
+          </motion.div>
+        )}
 
         {/* 4 Tiers Grid (Mobile: 1 col, Tablet: 2 cols, Desktop: 4 cols) */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-stretch">

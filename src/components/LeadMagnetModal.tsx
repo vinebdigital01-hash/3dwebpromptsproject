@@ -261,8 +261,8 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
     }
 
     const cleanPhone = phone.replace(/\D/g, '');
-    if (!cleanPhone || cleanPhone.length !== 10) {
-      setError('Please enter a valid 10-digit WhatsApp number.');
+    if (cleanPhone && (cleanPhone.length < 7 || cleanPhone.length > 15)) {
+      setError('Please enter a valid phone number (minimum 7 digits).');
       try { sound.playClick(); } catch {}
       return;
     }
@@ -584,7 +584,7 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
               {/* Field 2: WhatsApp Phone */}
               <div>
                 <label className="block text-[11px] font-mono uppercase tracking-wider text-zinc-400 mb-1.5">
-                  WhatsApp Phone <span className="text-blue-400">*</span>
+                  WhatsApp Phone <span className="text-zinc-500 font-normal lowercase">(optional — for instant backup link)</span>
                 </label>
                 <div className="flex rounded-lg bg-zinc-900/60 border border-zinc-800 overflow-hidden focus-within:border-zinc-500 focus-within:ring-1 focus-within:ring-zinc-500/20 transition-all">
                   <span className="px-3 py-2 bg-zinc-800/60 border-r border-zinc-800 text-xs font-mono text-zinc-300 flex items-center shrink-0">
@@ -593,7 +593,6 @@ export const LeadMagnetModal: React.FC<LeadMagnetModalProps> = ({
                   <input
                     ref={phoneInputRef}
                     type="tel"
-                    required
                     autoComplete="tel"
                     maxLength={10}
                     value={phone}

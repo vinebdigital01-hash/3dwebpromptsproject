@@ -235,17 +235,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     return () => window.removeEventListener('visibilitychange', handleVisibility);
   }, [hasLaunchedUpiApp, view]);
 
-  // Wait 1 min 05 seconds (65 seconds = 65,000ms) before automatically popping up to ask "Payment Done? Enter UTR"
-  useEffect(() => {
-    if (isOpen && view === 'options') {
-      const popupTimeout = setTimeout(() => {
-        sound.playSweep();
-        setShowPaymentDonePopup(true);
-      }, 65000); // 1 min 05 sec (65s)
-
-      return () => clearTimeout(popupTimeout);
-    }
-  }, [isOpen, view]);
+  // Immediate UTR submission is now available directly on screen (Fix 5: No 65s delay)
 
   // Timer ticker
   useEffect(() => {
@@ -440,16 +430,37 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     setTimeout(() => {
       setIsSubmittingUtr(false);
       setShowPaymentDonePopup(false);
-      if (currentOrder) {
-        const verifiedOrder: LeadOrder = {
-          ...currentOrder,
-          status: 'pending_approval',
-          utrNumber: cleanUtr,
-          upiId: senderUpiId.trim() || undefined,
-          updatedAt: new Date().toISOString(),
-        };
-        saveOrder(verifiedOrder);
-        setCurrentOrder(verifiedOrder);
+      const orderToSave: LeadOrder = currentOrder ? {
+        ...currentOrder,
+        status: 'pending_approval',
+        utrNumber: cleanUtr,
+        upiId: senderUpiId.trim() || undefined,
+        updatedAt: new Date().toISOString(),
+      } : {
+        id: `ORD-${Date.now().toString().slice(-6)}`,
+        orderNumber: `APX-${Math.floor(100000 + Math.random() * 900000)}`,
+        name: name.trim() || 'Developer',
+        email: email.trim().toLowerCase() || 'buyer@apex3d.local',
+        phone: phone.trim().replace(/\D/g, '') || '',
+        tierId: tier.id,
+        tierName: tier.name,
+        amountINR: tier.priceINR,
+        status: 'pending_approval',
+        utrNumber: cleanUtr,
+        upiId: senderUpiId.trim() || undefined,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      saveOrder(orderToSave);
+      setCurrentOrder(orderToSave);
+
+      // Persist active order session for instant provisional access in ClientPortal
+      try {
+        sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(orderToSave));
+        localStorage.setItem('apex3d_pending_utr_order', JSON.stringify(orderToSave));
+      } catch (err) {
+        console.debug('Session storage order save:', err);
       }
       setView('success');
       sound.playSuccess();
@@ -581,20 +592,17 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               </span>
             </button>
 
-            {/* Offers Pill */}
-            <div className="w-full bg-[#e7f7ed] rounded-xl py-3 px-3.5 flex items-center justify-between text-emerald-950 mb-3">
+            {/* High-Trust Zero Fee UPI Badge */}
+            <div className="w-full bg-[#e7f7ed] border border-emerald-500/20 rounded-xl py-2.5 px-3.5 flex items-center justify-between text-emerald-950 mb-3">
               <div className="flex items-center gap-2 truncate">
-                <div className="w-4 h-4 rounded-full bg-[#e11d48] flex items-center justify-center text-[9px] text-white font-black shrink-0">
-                  %
-                </div>
-                <div className="w-4 h-4 rounded-full bg-[#2563eb] flex items-center justify-center text-[8px] text-white font-bold shrink-0">
-                  i
-                </div>
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
                 <span className="text-xs font-semibold text-emerald-950 truncate">
-                  Offers on Card and Emi
+                  Instant Zero-Fee UPI
                 </span>
               </div>
-              <ChevronRight className="w-4 h-4 text-emerald-700 shrink-0" />
+              <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full shrink-0">
+                NPCI SECURED
+              </span>
             </div>
           </div>
 
@@ -841,72 +849,26 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   </div>
                 </div>
 
-                {/* Cards, Netbanking, Wallet */}
-                <div className="bg-[#f7f8f9] rounded-2xl p-4 space-y-3.5">
-                  {/* Cards */}
-                  <div
-                    onClick={() => {
-                      sound.playClick();
-                      setUnsupportedMethod(unsupportedMethod === 'cards' ? null : 'cards');
-                    }}
-                    className="cursor-pointer hover:bg-black/[0.03] p-1.5 -mx-1.5 rounded-xl transition-colors"
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-semibold text-slate-900">Cards</span>
-                      <CardLogosGroup />
-                    </div>
-                    <div>
-                      <span className="inline-block bg-[#e7f7ed] text-[#056d38] text-[10px] font-semibold px-2 py-0.5 rounded-full">
-                        Upto 10% rewards...
-                      </span>
-                    </div>
-                    {unsupportedMethod === 'cards' && (
-                      <div className="text-[11px] text-red-600 font-medium mt-1.5 leading-snug animate-role-fade-in flex items-start gap-1">
-                        <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" />
-                        <span>This merchant does not support this type of payment for now</span>
-                      </div>
-                    )}
+                {/* High-Trust UPI Verification Notice & Supported Apps */}
+                <div className="bg-[#f7f8f9] rounded-2xl p-4 space-y-3 border border-slate-200/60">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-700 font-mono">
+                      Fast UPI Checkout
+                    </span>
+                    <span className="text-[10px] font-mono text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full font-bold">
+                      Zero Fees
+                    </span>
                   </div>
-
-                  {/* Netbanking */}
-                  <div
-                    onClick={() => {
-                      sound.playClick();
-                      setUnsupportedMethod(unsupportedMethod === 'netbanking' ? null : 'netbanking');
-                    }}
-                    className="cursor-pointer hover:bg-black/[0.03] p-1.5 -mx-1.5 rounded-xl transition-colors pt-1"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-slate-900">Netbanking</span>
-                      <BankLogosGroup />
-                    </div>
-                    {unsupportedMethod === 'netbanking' && (
-                      <div className="text-[11px] text-red-600 font-medium mt-1.5 leading-snug animate-role-fade-in flex items-start gap-1">
-                        <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" />
-                        <span>This merchant does not support this type of payment for now</span>
-                      </div>
-                    )}
+                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                    <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-800 text-xs font-semibold shadow-xs">Google Pay</span>
+                    <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-800 text-xs font-semibold shadow-xs">PhonePe</span>
+                    <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-800 text-xs font-semibold shadow-xs">Paytm</span>
+                    <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-800 text-xs font-semibold shadow-xs">CRED</span>
+                    <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-800 text-xs font-semibold shadow-xs">BHIM UPI</span>
                   </div>
-
-                  {/* Wallet */}
-                  <div
-                    onClick={() => {
-                      sound.playClick();
-                      setUnsupportedMethod(unsupportedMethod === 'wallet' ? null : 'wallet');
-                    }}
-                    className="cursor-pointer hover:bg-black/[0.03] p-1.5 -mx-1.5 rounded-xl transition-colors pt-1"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-slate-900">Wallet</span>
-                      <WalletLogosGroup />
-                    </div>
-                    {unsupportedMethod === 'wallet' && (
-                      <div className="text-[11px] text-red-600 font-medium mt-1.5 leading-snug animate-role-fade-in flex items-start gap-1">
-                        <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" />
-                        <span>This merchant does not support this type of payment for now</span>
-                      </div>
-                    )}
-                  </div>
+                  <p className="text-[11px] text-slate-500 leading-relaxed font-sans pt-1">
+                    Scan the QR code on the right with any UPI app. After sending payment, enter your 12-digit UTR below for immediate provisional access to the portal!
+                  </p>
                 </div>
               </div>
 
@@ -940,13 +902,27 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     Scan the QR using any UPI App
                   </div>
 
-                  <div className="flex items-center justify-center gap-3">
+                  <div className="flex items-center justify-center gap-3 mb-3">
                     <GooglePayIcon className="w-5 h-5 hover:scale-110 transition-transform shrink-0" />
                     <PhonePeIcon className="w-5 h-5 hover:scale-110 transition-transform shrink-0" />
                     <PaytmIcon className="w-7 h-4 hover:scale-110 transition-transform shrink-0" />
                     <CredIcon className="w-4 h-5 hover:scale-110 transition-transform shrink-0" />
                     <AmazonPayIcon className="w-7 h-4 hover:scale-110 transition-transform shrink-0" />
                   </div>
+
+                  {/* Immediate 1-Click UTR Button */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      sound.playClick();
+                      setShowPaymentDonePopup(true);
+                    }}
+                    className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold text-xs font-mono shadow-md shadow-emerald-500/25 flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 transition-all"
+                  >
+                    <Check className="w-4 h-4 stroke-[3]" />
+                    <span>Paid? Enter 12-Digit UTR →</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -1187,14 +1163,18 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 )}
               </div>
 
-              {/* Already Paid Button for mobile */}
-              <div className="pt-2">
+              {/* Already Paid Button for mobile - Prominent Emerald CTA */}
+              <div className="pt-3">
                 <button
                   type="button"
-                  onClick={() => setShowPaymentDonePopup(true)}
-                  className="w-full py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold text-center transition-colors"
+                  onClick={() => {
+                    sound.playClick();
+                    setShowPaymentDonePopup(true);
+                  }}
+                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold text-xs font-mono shadow-md shadow-emerald-500/30 flex items-center justify-center gap-2 active:scale-98 transition-all ring-1 ring-emerald-400/40 cursor-pointer"
                 >
-                  Already paid? Click here to enter 12-Digit UTR
+                  <Check className="w-4 h-4 stroke-[3]" />
+                  <span>Paid via UPI? Click to Enter 12-Digit UTR →</span>
                 </button>
               </div>
             </>

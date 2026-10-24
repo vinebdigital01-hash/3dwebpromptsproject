@@ -45,14 +45,24 @@ export async function getAuthorizedPromptArchitecture(
     };
   }
 
-  // 3. For paid items, must verify active order status before requesting
-  const isPaidOrder = Boolean(
+  // 3. For paid items, must verify active order status before requesting (Full approved or provisional 12-digit UTR)
+  const isProvisionalPaid = Boolean(
+    activeOrder &&
+    activeOrder.status === 'pending_approval' &&
+    (activeOrder.amountINR || 0) > 0 &&
+    activeOrder.utrNumber &&
+    activeOrder.utrNumber.replace(/\D/g, '').length >= 10
+  );
+
+  const isApprovedPaid = Boolean(
     activeOrder &&
     activeOrder.status === 'approved' &&
     (activeOrder.amountINR || 0) > 0 &&
     activeOrder.licenseKey &&
     !activeOrder.licenseKey.startsWith('LIC-MBR-')
   );
+
+  const isPaidOrder = isApprovedPaid || isProvisionalPaid;
 
   if (!isPaidOrder) {
     return {
@@ -74,6 +84,7 @@ export async function getAuthorizedPromptArchitecture(
         licenseKey: activeOrder?.licenseKey,
         orderId: activeOrder?.orderNumber || activeOrder?.id,
         userEmail: activeOrder?.email,
+        utrNumber: activeOrder?.utrNumber,
       }),
     });
 

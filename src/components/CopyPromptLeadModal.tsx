@@ -139,7 +139,7 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
       return;
     }
 
-    if (!phone.trim() || !validatePhone(phone)) {
+    if (phone.trim() && !validatePhone(phone)) {
       setError('Please provide a valid phone number (minimum 7 digits).');
       sound.playClick();
       return;
@@ -393,7 +393,7 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
           {/* Field 3: Phone Number */}
           <div>
             <label className="block text-[11px] font-mono uppercase tracking-wider text-zinc-400 mb-1.5">
-              WhatsApp Phone <span className="text-blue-400">*</span>
+              Phone / WhatsApp <span className="text-zinc-500 font-normal lowercase">(optional — for instant backup link)</span>
             </label>
             <div className="flex rounded-lg bg-zinc-900/60 border border-zinc-800 overflow-hidden focus-within:border-zinc-500 focus-within:ring-1 focus-within:ring-zinc-500/20 transition-all">
               <span className="px-3 py-2 bg-zinc-800/60 border-r border-zinc-800 text-xs font-mono text-zinc-300 flex items-center shrink-0">
@@ -404,7 +404,7 @@ export const CopyPromptLeadModal: React.FC<CopyPromptLeadModalProps> = ({
                 type="tel"
                 name="phone"
                 autoComplete="tel"
-                required
+                
                 maxLength={10}
                 value={phone}
                 onAnimationStart={(e) => {

@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   ShieldCheck,
+  MessageSquare,
+  Send,
+  Users,
+  LifeBuoy,
   Search,
   Copy,
   Check,
@@ -52,6 +56,7 @@ import {
   LeadOrder,
   getAllOrders,
   findApprovedOrder,
+  findPendingOrApprovedOrder,
   saveOrder,
   getMaxDailyCopies,
   getDailyCopyUsage,
@@ -82,7 +87,7 @@ interface ClientPortalProps {
   onUpgradeClick?: (tierId?: TierId) => void;
 }
 
-type PortalTab = 'vault' | 'boilerplates' | 'license';
+type PortalTab = 'vault' | 'boilerplates' | 'guides_scripts' | 'community' | 'license';
 type ViewMode = 'grid' | 'ledger';
 
 export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgradeClick }) => {
@@ -92,16 +97,31 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
       const stored = sessionStorage.getItem('apex3d_portal_active_order');
       if (stored) {
         const parsed = JSON.parse(stored);
-        // Security check: if session claims to be paid, ensure it actually exists in verified orders
         if (parsed && (parsed.amountINR || 0) > 0) {
-          const verified = findApprovedOrder(parsed.licenseKey || parsed.orderNumber || parsed.id || parsed.email || '');
-          if (!verified || verified.status !== 'approved' || (verified.amountINR || 0) <= 0) {
+          // Fix 4: If customer has submitted a valid 10-12 digit UTR, grant instant provisional access!
+          if (parsed.status === 'pending_approval' && parsed.utrNumber && parsed.utrNumber.replace(/\D/g, '').length >= 10) {
+            return parsed;
+          }
+          const verified = findPendingOrApprovedOrder(parsed.licenseKey || parsed.orderNumber || parsed.id || parsed.email || parsed.utrNumber || '');
+          if (!verified || (verified.amountINR || 0) <= 0) {
+            if (parsed.status === 'pending_approval' && parsed.utrNumber && parsed.utrNumber.replace(/\D/g, '').length >= 10) {
+              return parsed;
+            }
             sessionStorage.removeItem('apex3d_portal_active_order');
             return null;
           }
           return verified;
         }
         return parsed;
+      }
+
+      // Check localStorage for pending UTR order if session is empty
+      const pendingUtr = localStorage.getItem('apex3d_pending_utr_order');
+      if (pendingUtr) {
+        const parsed = JSON.parse(pendingUtr);
+        if (parsed && (parsed.amountINR || 0) > 0 && parsed.utrNumber && parsed.utrNumber.replace(/\D/g, '').length >= 10) {
+          return parsed;
+        }
       }
     } catch {
       // ignore
@@ -207,13 +227,24 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
   const [freeTrialUsage, setFreeTrialUsage] = useState<number>(0);
 
   // Strict Paid Member Check: Must have amountINR > 0, approved status, and authentic commercial licenseKey
-  const isPaidMember = Boolean(
+  // Fix 4: Provisional Access for valid 12-digit UTR orders + Full verified paid members
+  const isProvisionalPaid = Boolean(
+    activeOrder &&
+    (activeOrder.amountINR || 0) > 0 &&
+    activeOrder.status === 'pending_approval' &&
+    activeOrder.utrNumber &&
+    activeOrder.utrNumber.replace(/\D/g, '').length >= 10
+  );
+
+  const isFullyApprovedPaid = Boolean(
     activeOrder &&
     (activeOrder.amountINR || 0) > 0 &&
     activeOrder.status === 'approved' &&
     activeOrder.licenseKey &&
     !activeOrder.licenseKey.startsWith('LIC-MBR')
   );
+
+  const isPaidMember = isFullyApprovedPaid || isProvisionalPaid;
 
   // Real-time ticking timer for countdown
   const [, setClockTick] = useState(0);
@@ -1100,6 +1131,35 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
           </div>
         </main>
 
+      {/* Fix 4: Sticky Bottom Upgrade Bar for True Free Leads (Never Trapped) */}
+      {!isPaidMember && (
+        <div className="fixed bottom-0 inset-x-0 z-40 bg-[#090910]/95 border-t border-white/10 p-3 sm:p-4 backdrop-blur-xl shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
+          <div className="max-w-[1400px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-white text-xs">
+            <div className="flex items-center gap-2.5 text-left">
+              <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse shrink-0" />
+              <div>
+                <span className="font-mono text-blue-400 font-bold uppercase tracking-wider text-[10px]">
+                  FREE TRIAL MODE • 1 STARTER BLUEPRINT QUOTA
+                </span>
+                <p className="text-zinc-300 mt-0.5 text-xs">
+                  Unlock all 31+ Flagship Production Blueprints, Three.js Boilerplates & Agency Outbound Scripts.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                sound.playSuccess();
+                if (onUpgradeClick) onUpgradeClick();
+              }}
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs font-mono shadow-[0_0_20px_rgba(59,130,246,0.4)] flex items-center justify-center gap-1.5 shrink-0 cursor-pointer active:scale-98 transition-all"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Unlock Vault (From ₹49) →</span>
+            </button>
+          </div>
+        </div>
+      )}
+
         <footer className="border-t border-white/[0.06] py-4 text-center text-[10px] font-mono text-zinc-600 uppercase tracking-widest">
           Vine B Digital Marketing Agency · Architectural Systems Enclave
         </footer>
@@ -1196,6 +1256,35 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 rounded-full bg-[#11111a] border border-white/20 text-white text-xs font-mono tracking-wide shadow-2xl animate-role-fade-in flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping" />
           <span>{portalToast}</span>
+        </div>
+      )}
+
+      {/* Fix 4: Top Provisional Status Banner for Pending UTR Orders */}
+      {isProvisionalPaid && activeOrder && (
+        <div className="w-full bg-gradient-to-r from-amber-500/20 via-amber-600/15 to-emerald-500/15 border-b border-amber-500/40 px-4 py-3 text-white text-xs z-50 relative">
+          <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 text-left">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping shrink-0" />
+              <div>
+                <div className="font-mono text-amber-300 font-bold uppercase tracking-wider text-[11px] flex items-center gap-2">
+                  <span>⏳ PAYMENT RECONCILIATION IN PROGRESS</span>
+                  <span className="text-zinc-500">•</span>
+                  <span className="text-emerald-400">PROVISIONAL ACCESS ACTIVE</span>
+                </div>
+                <p className="text-zinc-200 mt-0.5 leading-snug">
+                  Submitted UTR: <code className="font-mono text-amber-300 font-bold bg-black/40 px-1.5 py-0.5 rounded border border-amber-500/30">{activeOrder.utrNumber}</code> • Plan: <strong className="text-white">{activeOrder.tierName}</strong>. Admin verification takes 5–15 mins. You have full instant access now!
+                </p>
+              </div>
+            </div>
+            <a
+              href={`https://wa.me/919931354378?text=${encodeURIComponent(`Hi, I paid for Apex3D Vault (${activeOrder.tierName || 'Sprint Pass'}) and submitted UTR ${activeOrder.utrNumber || ''}. Please expedite my priority verification!`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full md:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-emerald-500 hover:from-amber-400 hover:to-emerald-400 text-black font-bold text-xs font-mono shadow-md flex items-center justify-center gap-1.5 shrink-0 transition-all cursor-pointer"
+            >
+              <span>⚡ Get Instant Priority Verification on WhatsApp →</span>
+            </a>
+          </div>
         </div>
       )}
 
@@ -1440,6 +1529,36 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
             >
               <FolderGit2 className="w-3.5 h-3.5 text-purple-400" />
               <span>Three.js Starter Racks</span>
+            </button>
+
+            <button
+              onClick={() => {
+                sound.playClick();
+                setActiveTab('guides_scripts');
+              }}
+              className={`py-3 text-[11px] font-mono uppercase tracking-[0.16em] border-b-2 flex items-center gap-2 transition-all shrink-0 ${
+                activeTab === 'guides_scripts'
+                  ? 'border-white text-white font-bold'
+                  : 'border-transparent text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              <FileText className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Agency Outbound Scripts & PDF</span>
+            </button>
+
+            <button
+              onClick={() => {
+                sound.playClick();
+                setActiveTab('community');
+              }}
+              className={`py-3 text-[11px] font-mono uppercase tracking-[0.16em] border-b-2 flex items-center gap-2 transition-all shrink-0 ${
+                activeTab === 'community'
+                  ? 'border-white text-white font-bold'
+                  : 'border-transparent text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5 text-blue-400" />
+              <span>VIP Community & Support</span>
             </button>
 
             <button
@@ -2365,6 +2484,227 @@ Rules:
                 </div>
               </>
             )}
+          </div>
+        )}
+
+        {/* ========================================================
+            TAB 3: AGENCY OUTBOUND SCRIPTS & MASTER PDF GUIDES
+           ======================================================== */}
+        {activeTab === 'guides_scripts' && (
+          <div className="space-y-6 max-w-4xl animate-role-fade-in pb-16">
+            {/* Header Card with PDF Download */}
+            <div className="p-6 rounded-2xl bg-[#09090e] border border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <div className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  <span>CLIENT ACQUISITION DELIVERABLES</span>
+                </div>
+                <h2 className="text-xl font-bold text-white tracking-tight">
+                  Agency Outbound Scripts & 30+ Prompts PDF
+                </h2>
+                <p className="text-xs text-zinc-400 mt-1 max-w-xl">
+                  Tested outbound email, LinkedIn, and Loom scripts to pitch and close $5,000–$25,000 3D spatial web design contracts.
+                </p>
+              </div>
+
+              <a
+                href="/30_Production_3D_WebGL_Prompts_VineB.pdf"
+                download="30_Production_3D_WebGL_Prompts_VineB.pdf"
+                className="px-5 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 hover:to-emerald-300 text-black font-bold text-xs font-mono shadow-md flex items-center justify-center gap-2 shrink-0 transition-all cursor-pointer"
+              >
+                <Download className="w-4 h-4" />
+                <span>Download Master PDF Guide</span>
+              </a>
+            </div>
+
+            {/* Script 1: Cold Email */}
+            <div className="p-6 rounded-2xl bg-[#09090e] border border-white/[0.08] space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono font-bold text-emerald-400 uppercase">
+                  Script 01: Cold Email to Luxury & E-Commerce Brands ($5k–$25k Deals)
+                </span>
+                <button
+                  onClick={() => {
+                    const text = `Subject: Quick question regarding {{company}}'s mobile 3D experience\n\nHi {{firstName}},\n\nI noticed {{company}}'s current website is using traditional 2D flat imagery for {{productLine}}.\n\nBrands like Porsche, Balenciaga, and Apple saw a 40%+ conversion lift when introducing interactive WebGL spatial models where visitors can rotate materials in 60 FPS directly on mobile without installing an app.\n\nWe built an interactive 3D concept prototype for {{company}} that loads in sub-1.2 seconds.\n\nMind if I send over a 60-second video demo showing how it works?\n\nBest regards,\n{{yourName}}\nCreative Technologist`;
+                    navigator.clipboard.writeText(text);
+                    sound.playSuccess();
+                    showToast('Copied Cold Email Script to clipboard!');
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-mono text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <Copy className="w-3.5 h-3.5 text-zinc-300" />
+                  <span>Copy Script</span>
+                </button>
+              </div>
+              <pre className="p-4 rounded-xl bg-black/60 border border-white/5 text-xs font-mono text-zinc-300 whitespace-pre-wrap leading-relaxed">
+{`Subject: Quick question regarding {{company}}'s mobile 3D experience
+
+Hi {{firstName}},
+
+I noticed {{company}}'s current website is using traditional 2D flat imagery for {{productLine}}.
+
+Brands like Porsche, Balenciaga, and Apple saw a 40%+ conversion lift when introducing interactive WebGL spatial models where visitors can rotate materials in 60 FPS directly on mobile without installing an app.
+
+We built an interactive 3D concept prototype for {{company}} that loads in sub-1.2 seconds.
+
+Mind if I send over a 60-second video demo showing how it works?
+
+Best regards,
+{{yourName}}
+Creative Technologist`}
+              </pre>
+            </div>
+
+            {/* Script 2: LinkedIn DM */}
+            <div className="p-6 rounded-2xl bg-[#09090e] border border-white/[0.08] space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono font-bold text-blue-400 uppercase">
+                  Script 02: LinkedIn DM to Creative Directors & Agency Founders
+                </span>
+                <button
+                  onClick={() => {
+                    const text = `Hey {{firstName}} - saw your team recently shipped {{projectName}}, incredible work on the art direction.\n\nI specialize in building zero-dependency WebGL shaders and interactive Three.js hero stages for award-winning agency pitches.\n\nIf you ever have a client asking for Awwwards-caliber 3D motion but don't want to spend 3 weeks coding shaders from scratch, I have production blueprints ready that compile in 1-shot in Cursor/Claude.\n\nHappy to send over a link to our live showcase if you're exploring spatial web for upcoming briefs!`;
+                    navigator.clipboard.writeText(text);
+                    sound.playSuccess();
+                    showToast('Copied LinkedIn Script to clipboard!');
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-mono text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <Copy className="w-3.5 h-3.5 text-zinc-300" />
+                  <span>Copy Script</span>
+                </button>
+              </div>
+              <pre className="p-4 rounded-xl bg-black/60 border border-white/5 text-xs font-mono text-zinc-300 whitespace-pre-wrap leading-relaxed">
+{`Hey {{firstName}} - saw your team recently shipped {{projectName}}, incredible work on the art direction.
+
+I specialize in building zero-dependency WebGL shaders and interactive Three.js hero stages for award-winning agency pitches.
+
+If you ever have a client asking for Awwwards-caliber 3D motion but don't want to spend 3 weeks coding shaders from scratch, I have production blueprints ready that compile in 1-shot in Cursor/Claude.
+
+Happy to send over a link to our live showcase if you're exploring spatial web for upcoming briefs!`}
+              </pre>
+            </div>
+
+            {/* Script 3: Loom 3D Audit Formula */}
+            <div className="p-6 rounded-2xl bg-[#09090e] border border-white/[0.08] space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono font-bold text-amber-400 uppercase">
+                  Script 03: Loom 3-Minute 3D Audit Video Breakdown Formula
+                </span>
+                <button
+                  onClick={() => {
+                    const text = `LOOM 3-MINUTE AUDIT FORMULA (1 in 4 Close Rate):\n\n[0:00 - 0:30] The Friction Hook: Open client's live website. Highlight that their hero section looks identical to competitors.\n[0:30 - 1:15] The Prototype Reveal: Switch tab to the 3D WebGL prototype you spun up using Apex3D prompt. Interact with the model (orbit, drag, scroll physics).\n[1:15 - 2:00] The Technical Proof: Show that frame rate stays 60 FPS and load time is under 1.5s on mobile.\n[2:00 - 2:45] The Revenue Impact: Explain how this visual differentiation commands premium pricing and reduces bounce rate.\n[2:45 - 3:00] No-Risk Call to Action: 'I already have this component coded. If you'd like to integrate it into your Next.js/React repo this week, let me know.'`;
+                    navigator.clipboard.writeText(text);
+                    sound.playSuccess();
+                    showToast('Copied Loom Audit Script to clipboard!');
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-mono text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <Copy className="w-3.5 h-3.5 text-zinc-300" />
+                  <span>Copy Script</span>
+                </button>
+              </div>
+              <pre className="p-4 rounded-xl bg-black/60 border border-white/5 text-xs font-mono text-zinc-300 whitespace-pre-wrap leading-relaxed">
+{`LOOM 3-MINUTE AUDIT FORMULA (1 in 4 Close Rate):
+
+[0:00 - 0:30] The Friction Hook: Open client's live website. Highlight that their hero section looks identical to competitors.
+[0:30 - 1:15] The Prototype Reveal: Switch tab to the 3D WebGL prototype you spun up using Apex3D prompt. Interact with the model (orbit, drag, scroll physics).
+[1:15 - 2:00] The Technical Proof: Show that frame rate stays 60 FPS and load time is under 1.5s on mobile.
+[2:00 - 2:45] The Revenue Impact: Explain how this visual differentiation commands premium pricing and reduces bounce rate.
+[2:45 - 3:00] No-Risk Call to Action: "I already have this component coded. If you'd like to integrate it into your Next.js/React repo this week, let me know."`}
+              </pre>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================
+            TAB 4: VIP COMMUNITY & PRIORITY SUPPORT
+           ======================================================== */}
+        {activeTab === 'community' && (
+          <div className="space-y-6 max-w-4xl animate-role-fade-in pb-16">
+            <div className="p-6 rounded-2xl bg-[#09090e] border border-white/[0.08]">
+              <div className="text-[10px] font-mono text-blue-400 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-blue-400" />
+                <span>ENGINEER ECOSYSTEM</span>
+              </div>
+              <h2 className="text-xl font-bold text-white tracking-tight">
+                VIP Community & Priority Support
+              </h2>
+              <p className="text-xs text-zinc-400 mt-1 max-w-xl">
+                Get direct access to our core creative technologists for shader debugging, custom prompt requests, and instant priority verification.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* WhatsApp Priority Support */}
+              <div className="p-6 rounded-2xl bg-[#09090e] border border-emerald-500/20 flex flex-col justify-between space-y-4">
+                <div>
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-3">
+                    <MessageSquare className="w-5 h-5" />
+                  </div>
+                  <h3 className="text-base font-bold text-white">WhatsApp Priority Support</h3>
+                  <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+                    Direct line for payment verification, license questions, or urgent Three.js / shader debugging help.
+                  </p>
+                </div>
+                <a
+                  href="https://wa.me/919931354378?text=Hi%2C%20I%20am%20an%20Apex3D%20Vault%20member%20requesting%20priority%20support."
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs font-mono flex items-center justify-center gap-2 transition-all cursor-pointer"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>Chat on WhatsApp (+91 99313 54378)</span>
+                </a>
+              </div>
+
+              {/* VIP Discord / Dev Community */}
+              <div className="p-6 rounded-2xl bg-[#09090e] border border-blue-500/20 flex flex-col justify-between space-y-4">
+                <div>
+                  <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 mb-3">
+                    <Users className="w-5 h-5" />
+                  </div>
+                  <h3 className="text-base font-bold text-white">VIP Creative Engineers Group</h3>
+                  <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+                    Collaborate with fellow frontend architects, agency founders, and creative technologists shipping WebGL sites.
+                  </p>
+                </div>
+                <a
+                  href="https://wa.me/919931354378?text=Hi%2C%20please%20send%20me%20the%20VIP%20Developer%20Community%20invite%20link."
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs font-mono flex items-center justify-center gap-2 transition-all cursor-pointer"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Request VIP Community Invite</span>
+                </a>
+              </div>
+            </div>
+
+            {/* Custom Shader / Prompt Request Card */}
+            <div className="p-6 rounded-2xl bg-[#09090e] border border-amber-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <div className="text-[10px] font-mono text-amber-400 uppercase tracking-widest mb-1">
+                  BESPOKE ARCHITECTURE
+                </div>
+                <h3 className="text-base font-bold text-white">
+                  Have an Awwwards site you want reverse-engineered?
+                </h3>
+                <p className="text-xs text-zinc-400 mt-1 max-w-xl">
+                  Send us any live 3D website URL. Our creative engineering team will analyze its WebGL shaders, camera tracks, and compile a one-shot prompt architecture for you.
+                </p>
+              </div>
+
+              <a
+                href="https://wa.me/919931354378?text=Hi%2C%20I%20would%20like%20to%20request%20a%20custom%203D%20website%20prompt%20rebuild."
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-5 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs font-mono shadow-md flex items-center justify-center gap-2 shrink-0 transition-all cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4 text-black" />
+                <span>Submit Site URL →</span>
+              </a>
+            </div>
           </div>
         )}
 
