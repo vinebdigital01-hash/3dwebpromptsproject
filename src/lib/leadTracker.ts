@@ -196,6 +196,16 @@ const DUMMY_EMAILS = new Set([
  */
 export function isDummyOrder(order?: Partial<LeadOrder> | null): boolean {
   if (!order) return false;
+
+  // CRITICAL SECURITY RULE: Any order with pending_approval, approved, or a submitted UTR is NEVER a dummy order!
+  if (
+    order.status === 'pending_approval' ||
+    order.status === 'approved' ||
+    (order.utrNumber && order.utrNumber.replace(/\D/g, '').length >= 8)
+  ) {
+    return false;
+  }
+
   const cleanEmail = (order.email || '').toLowerCase().trim();
   const cleanName = (order.name || '').trim();
   const cleanId = (order.id || '').trim();
@@ -371,8 +381,17 @@ export function isLeadDeleted(order: Partial<LeadOrder>): boolean {
   if ((order as any).isDeleted) return true;
   if (order.status === ('deleted_purged' as any)) return true;
 
+  // CRITICAL RULE: An order with pending_approval, approved, or a submitted UTR must NEVER be filtered as deleted!
+  if (
+    order.status === 'pending_approval' ||
+    order.status === 'approved' ||
+    (order.utrNumber && order.utrNumber.replace(/\D/g, '').length >= 8)
+  ) {
+    return false;
+  }
+
   // 1. Check real-time cloud blacklist from Firestore
-  if (isLeadDeletedInCloud(order.id, order.email, order.phone, order.createdAt || order.updatedAt)) {
+  if (isLeadDeletedInCloud(order.id, order.email, order.phone, order.createdAt || order.updatedAt, order.status, order.utrNumber)) {
     return true;
   }
 
@@ -454,56 +473,76 @@ if (typeof window !== 'undefined') {
 }
 
 /**
- * Save or update an order (Optimistic local cache + Direct Firebase Firestore sync + Serverless Relay)
+ * Save or update an order asynchronously (Guaranteed cloud persistence across devices)
  */
-export function saveOrder(order: LeadOrder): void {
-  if (typeof window === 'undefined' || !order) return;
+export async function saveOrderAsync(order: LeadOrder): Promise<boolean> {
+  if (typeof window === 'undefined' || !order) return false;
   // Never save dummy or guest orders to storage
-  if (isDummyOrder(order)) return;
+  if (isDummyOrder(order)) return false;
 
   try {
     const existingIndex = memoryCloudOrders.findIndex(
       (o) =>
         o.id === order.id ||
+        (o.orderNumber && order.orderNumber && o.orderNumber === order.orderNumber) ||
+        (o.utrNumber && order.utrNumber && o.utrNumber.replace(/\D/g, '') === order.utrNumber.replace(/\D/g, '')) ||
         (o.email && order.email && o.email.toLowerCase() === order.email.toLowerCase() && o.status !== 'approved') ||
         (o.phone && order.phone && o.phone.replace(/\D/g, '') === order.phone.replace(/\D/g, '') && o.status !== 'approved')
     );
 
+    const updatedOrder: LeadOrder = {
+      ...order,
+      updatedAt: new Date().toISOString(),
+    };
+
     if (existingIndex >= 0) {
       memoryCloudOrders[existingIndex] = {
         ...memoryCloudOrders[existingIndex],
-        ...order,
-        updatedAt: new Date().toISOString(),
+        ...updatedOrder,
       };
     } else {
-      memoryCloudOrders.unshift({
-        ...order,
-        updatedAt: new Date().toISOString(),
+      memoryCloudOrders.unshift(updatedOrder);
+    }
+
+    // 1. Direct real-time cloud persistence on Firebase Firestore (Zero localStorage)
+    const firestorePromise = saveOrderToFirestore(updatedOrder).catch((err) => {
+      console.warn('Firebase Firestore saveOrder notice:', err);
+    });
+
+    // 2. Serverless dual-write to first-party relay bridge (/api/sync-lead)
+    let relayPromise: Promise<any> = Promise.resolve();
+    if (typeof fetch !== 'undefined') {
+      relayPromise = fetch('/api/sync-lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedOrder),
+      }).catch((err) => {
+        console.warn('Relay API save notice:', err);
       });
     }
 
-    // Direct real-time cloud persistence on Firebase Firestore (Zero localStorage)
-    saveOrderToFirestore(order).catch((err) => {
-      console.debug('Firebase Firestore saveOrder notice:', err);
-    });
-
-    // Serverless lead relay & email notification dispatch
-    if (typeof fetch !== 'undefined') {
-      fetch('/api/sync-lead', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(order),
-      }).catch(() => {});
-    }
+    await Promise.allSettled([firestorePromise, relayPromise]);
 
     // Dispatch browser event for current tab
     window.dispatchEvent(new CustomEvent('apex_order_updated', { detail: memoryCloudOrders }));
 
     // Broadcast to other open browser tabs/windows
-    syncChannel?.postMessage({ type: 'apex_order_updated', order });
+    syncChannel?.postMessage({ type: 'apex_order_updated', order: updatedOrder });
+
+    return true;
   } catch (err) {
-    console.error('Failed to save order:', err);
+    console.error('Failed to save order async:', err);
+    return false;
   }
+}
+
+/**
+ * Save or update an order (Optimistic local cache + Direct Firebase Firestore sync + Serverless Relay)
+ */
+export function saveOrder(order: LeadOrder): void {
+  saveOrderAsync(order).catch((err) => {
+    console.debug('saveOrder notice:', err);
+  });
 }
 
 // Background Firestore real-time listener (Singleton)
@@ -525,13 +564,42 @@ export function initFirestoreSync(): () => void {
 }
 
 /**
- * Actively pull all real orders and ghost leads directly from Firebase Cloud Database (Zero localStorage)
+ * Actively pull all real orders and ghost leads directly from Firebase Cloud Database + Serverless Bridge
  */
 export async function syncAllLeadsFromCloud(): Promise<LeadOrder[]> {
   if (typeof window === 'undefined') return [];
   try {
     const cloudOrders = await fetchAllCloudOrdersAndGhostLeads();
-    const cleanCloud = cloudOrders.filter((o) => !isDummyOrder(o) && !isLeadDeleted(o));
+
+    // Dual-poll /api/sync-lead to catch orders saved from incognito sessions
+    let apiLeads: any[] = [];
+    if (typeof fetch !== 'undefined') {
+      try {
+        const res = await fetch('/api/sync-lead');
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && Array.isArray(json.leads)) {
+            apiLeads = json.leads;
+          }
+        }
+      } catch {}
+    }
+
+    const mergedMap = new Map<string, LeadOrder>();
+    (cloudOrders || []).forEach((o) => {
+      if (o && o.id) mergedMap.set(o.id, o);
+    });
+    apiLeads.forEach((o) => {
+      if (o && o.id) {
+        const existing = mergedMap.get(o.id);
+        if (!existing || new Date(o.updatedAt || 0) >= new Date(existing.updatedAt || 0)) {
+          mergedMap.set(o.id, o);
+        }
+      }
+    });
+
+    const cleanCloud = Array.from(mergedMap.values()).filter((o) => !isDummyOrder(o) && !isLeadDeleted(o));
+    cleanCloud.sort((a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime());
     memoryCloudOrders = cleanCloud;
     window.dispatchEvent(new CustomEvent('apex_order_updated', { detail: cleanCloud }));
     return cleanCloud;
@@ -860,7 +928,15 @@ export function approveOrder(orderId: string, fallbackOrder?: LeadOrder): LeadOr
   }
 
   saveOrderToFirestore(updated).catch(() => {});
+  if (typeof fetch !== 'undefined') {
+    fetch('/api/sync-lead', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updated),
+    }).catch(() => {});
+  }
   window.dispatchEvent(new CustomEvent('apex_order_updated', { detail: memoryCloudOrders }));
+  syncChannel?.postMessage({ type: 'apex_order_updated', order: updated });
   return updated;
 }
 
@@ -886,7 +962,15 @@ export function rejectOrder(orderId: string, reason: string, fallbackOrder?: Lea
   }
 
   saveOrderToFirestore(updated).catch(() => {});
+  if (typeof fetch !== 'undefined') {
+    fetch('/api/sync-lead', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updated),
+    }).catch(() => {});
+  }
   window.dispatchEvent(new CustomEvent('apex_order_updated', { detail: memoryCloudOrders }));
+  syncChannel?.postMessage({ type: 'apex_order_updated', order: updated });
   return updated;
 }
 

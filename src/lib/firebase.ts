@@ -99,7 +99,12 @@ function isAuthorizedAdminSession(requireSuperAdmin = false): boolean {
 let globalCloudDeletedKeys = new Set<string>();
 let globalCloudPurgedAllAt: number = 0;
 
-export function isLeadDeletedInCloud(id?: string, email?: string, phone?: string, timeIso?: string): boolean {
+export function isLeadDeletedInCloud(id?: string, email?: string, phone?: string, timeIso?: string, status?: string, utrNumber?: string): boolean {
+  // CRITICAL RULE: An order with pending_approval, approved, or a submitted UTR is NEVER deleted!
+  if (status === 'pending_approval' || status === 'approved' || (utrNumber && utrNumber.replace(/\D/g, '').length >= 8)) {
+    return false;
+  }
+
   const cleanId = (id || '').trim().toLowerCase();
   const cleanEmail = (email || '').trim().toLowerCase();
   const cleanPhone = (phone || '').trim().replace(/\D/g, '');
@@ -128,8 +133,13 @@ export function getCloudPurgedAllAt(): number {
  */
 export async function saveOrderToFirestore(order: any): Promise<void> {
   if (typeof window === 'undefined' || !order || !order.id) return;
-  // Never save or recreate deleted leads
-  if (isLeadDeletedInCloud(order.id, order.email, order.phone, order.createdAt || order.updatedAt)) {
+  const isProtected =
+    order.status === 'pending_approval' ||
+    order.status === 'approved' ||
+    (order.utrNumber && order.utrNumber.replace(/\D/g, '').length >= 8);
+
+  // Never save or recreate deleted leads (unless it's an active pending or approved order)
+  if (!isProtected && isLeadDeletedInCloud(order.id, order.email, order.phone, order.createdAt || order.updatedAt, order.status, order.utrNumber)) {
     return;
   }
   try {
@@ -141,23 +151,30 @@ export async function saveOrderToFirestore(order: any): Promise<void> {
     const orderRef = doc(db, 'orders', order.id);
     await setDoc(orderRef, cleanData, { merge: true });
 
-    // If it's a ghost lead / abandoned lead / free lead magnet / free trial copy, also persist to 'ghost_leads'
-    const isGhost =
-      order.status === 'unsubmitted_keystroke' ||
-      order.status === 'abandoned_at_qr' ||
-      order.status === 'abandoned_checkout' ||
-      order.status === 'lead_magnet' ||
-      order.status === 'free_trial_claimed' ||
-      order.source === 'lead_magnet' ||
-      order.source === 'portal_free_copy_modal' ||
-      order.tierId === 'free_pdf' ||
-      order.tierId === 'prompt_copy' ||
-      (order.tierId === 'member' && (order.amountINR || 0) === 0) ||
-      order.isAbandoned;
+    // If order has pending approval or is approved, clean up any previous ghost lead
+    if (isProtected) {
+      if (order.id.startsWith('GHOST-')) {
+        await deleteDoc(doc(db, 'ghost_leads', order.id)).catch(() => {});
+      }
+    } else {
+      // If it's a ghost lead / abandoned lead / free lead magnet / free trial copy, also persist to 'ghost_leads'
+      const isGhost =
+        order.status === 'unsubmitted_keystroke' ||
+        order.status === 'abandoned_at_qr' ||
+        order.status === 'abandoned_checkout' ||
+        order.status === 'lead_magnet' ||
+        order.status === 'free_trial_claimed' ||
+        order.source === 'lead_magnet' ||
+        order.source === 'portal_free_copy_modal' ||
+        order.tierId === 'free_pdf' ||
+        order.tierId === 'prompt_copy' ||
+        (order.tierId === 'member' && (order.amountINR || 0) === 0) ||
+        order.isAbandoned;
 
-    if (isGhost) {
-      const ghostRef = doc(db, 'ghost_leads', order.id);
-      await setDoc(ghostRef, cleanData, { merge: true }).catch(() => {});
+      if (isGhost) {
+        const ghostRef = doc(db, 'ghost_leads', order.id);
+        await setDoc(ghostRef, cleanData, { merge: true }).catch(() => {});
+      }
     }
   } catch (err) {
     console.debug('Cloud saveOrder error:', err);
@@ -407,11 +424,19 @@ export function subscribeToFirestoreOrders(callback: (orders: any[]) => void): U
         mergedMap.set(key, val);
       });
 
-      // 2. Merge ghosts: keep newer
+      // 2. Merge ghosts: keep newer (unless existing order is pending_approval or approved)
       ghostsMap.forEach((val, key) => {
         const existing = mergedMap.get(key);
-        if (!existing || new Date(val.updatedAt || 0) >= new Date(existing.updatedAt || 0)) {
+        if (!existing) {
           mergedMap.set(key, val);
+        } else {
+          const isExistingProtected =
+            existing.status === 'pending_approval' ||
+            existing.status === 'approved' ||
+            (existing.utrNumber && existing.utrNumber.replace(/\D/g, '').length >= 8);
+          if (!isExistingProtected && new Date(val.updatedAt || 0) >= new Date(existing.updatedAt || 0)) {
+            mergedMap.set(key, val);
+          }
         }
       });
 
@@ -425,14 +450,22 @@ export function subscribeToFirestoreOrders(callback: (orders: any[]) => void): U
         ) {
           return false;
         }
-        const itemTime = new Date(item.updatedAt || item.createdAt || 0).getTime();
-        if (globalCloudPurgedAllAt > 0 && itemTime <= globalCloudPurgedAllAt) return false;
-        const id = (item.id || '').trim();
-        const email = (item.email || '').trim().toLowerCase();
-        const phone = (item.phone || '').trim().replace(/\D/g, '');
-        if (id && globalCloudDeletedKeys.has(id.toLowerCase())) return false;
-        if (email && globalCloudDeletedKeys.has(email)) return false;
-        if (phone && globalCloudDeletedKeys.has(phone)) return false;
+
+        const isProtectedOrder =
+          item.status === 'pending_approval' ||
+          item.status === 'approved' ||
+          (item.utrNumber && item.utrNumber.replace(/\D/g, '').length >= 8);
+
+        if (!isProtectedOrder) {
+          const itemTime = new Date(item.updatedAt || item.createdAt || 0).getTime();
+          if (globalCloudPurgedAllAt > 0 && itemTime <= globalCloudPurgedAllAt) return false;
+          const id = (item.id || '').trim();
+          const email = (item.email || '').trim().toLowerCase();
+          const phone = (item.phone || '').trim().replace(/\D/g, '');
+          if (id && globalCloudDeletedKeys.has(id.toLowerCase())) return false;
+          if (email && globalCloudDeletedKeys.has(email)) return false;
+          if (phone && globalCloudDeletedKeys.has(phone)) return false;
+        }
         return true;
       });
 
@@ -554,11 +587,41 @@ export async function fetchAllCloudOrdersAndGhostLeads(): Promise<any[]> {
         const docId = (data.id || d.id || '').trim();
         if (data && docId && !docId.startsWith('GLOBAL_') && !docId.startsWith('QUOTA_')) {
           const existing = masterMap.get(docId);
-          if (!existing || new Date(data.updatedAt || 0) >= new Date(existing.updatedAt || 0)) {
+          if (!existing) {
             masterMap.set(docId, { ...data, id: docId });
+          } else {
+            const isProtected =
+              existing.status === 'pending_approval' ||
+              existing.status === 'approved' ||
+              (existing.utrNumber && existing.utrNumber.replace(/\D/g, '').length >= 8);
+            if (!isProtected && new Date(data.updatedAt || 0) >= new Date(existing.updatedAt || 0)) {
+              masterMap.set(docId, { ...data, id: docId });
+            }
           }
         }
       });
+    }
+
+    // 3. Dual-poll /api/sync-lead to catch orders saved from incognito sessions
+    if (typeof fetch !== 'undefined') {
+      try {
+        const res = await fetch('/api/sync-lead').catch(() => null);
+        if (res && res.ok) {
+          const json = await res.json();
+          if (json.success && Array.isArray(json.leads)) {
+            json.leads.forEach((l: any) => {
+              if (l && l.id && !l.id.startsWith('GLOBAL_') && !l.id.startsWith('QUOTA_')) {
+                const existing = masterMap.get(l.id);
+                if (!existing) {
+                  masterMap.set(l.id, l);
+                } else if (l.status === 'pending_approval' || l.status === 'approved') {
+                  masterMap.set(l.id, { ...existing, ...l });
+                }
+              }
+            });
+          }
+        }
+      } catch {}
     }
 
     const list = Array.from(masterMap.values()).filter((item) => {
@@ -573,14 +636,23 @@ export async function fetchAllCloudOrdersAndGhostLeads(): Promise<any[]> {
       ) {
         return false;
       }
-      const itemTime = new Date(item.updatedAt || item.createdAt || 0).getTime();
-      if (cloudPurgedAllAt > 0 && itemTime <= cloudPurgedAllAt) return false;
-      const id = (item.id || '').trim();
-      const email = (item.email || '').trim().toLowerCase();
-      const phone = (item.phone || '').trim().replace(/\D/g, '');
-      if (id && cloudDeletedKeys.has(id.toLowerCase())) return false;
-      if (email && cloudDeletedKeys.has(email)) return false;
-      if (phone && cloudDeletedKeys.has(phone)) return false;
+
+      const isProtectedOrder =
+        item.status === 'pending_approval' ||
+        item.status === 'approved' ||
+        (item.utrNumber && item.utrNumber.replace(/\D/g, '').length >= 8);
+
+      if (!isProtectedOrder) {
+        const itemTime = new Date(item.updatedAt || item.createdAt || 0).getTime();
+        if (cloudPurgedAllAt > 0 && itemTime <= cloudPurgedAllAt) return false;
+        const id = (item.id || '').trim();
+        const email = (item.email || '').trim().toLowerCase();
+        const phone = (item.phone || '').trim().replace(/\D/g, '');
+        if (id && cloudDeletedKeys.has(id.toLowerCase())) return false;
+        if (email && cloudDeletedKeys.has(email)) return false;
+        if (phone && cloudDeletedKeys.has(phone)) return false;
+      }
+
       return true;
     });
 

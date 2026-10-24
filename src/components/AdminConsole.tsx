@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Activity,
   ShieldCheck,
@@ -147,6 +147,7 @@ type AdminTab = 'analytics' | 'approvals' | 'retargeting' | 'ghosts' | 'orders' 
 
 export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
   const [tab, setTab] = useState<AdminTab>('analytics');
+  const prevPendingCountRef = useRef<number>(0);
 
   // RBAC & Authentication State
   const [session, setSession] = useState<AdminSession | null>(() => getCurrentAdminSession());
@@ -381,7 +382,13 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
     window.addEventListener('apex_admin_auth_changed', handleAuthChange);
     window.addEventListener('apex_admins_updated', handleTeamChange);
 
+    // 5-second polling interval for cross-device / Incognito order synchronization
+    const pollInterval = setInterval(() => {
+      loadData();
+    }, 5000);
+
     return () => {
+      clearInterval(pollInterval);
       unsubOrders();
       unsubAdmins();
       unsubPrompts();
@@ -525,6 +532,13 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
     const approved = approveOrder(order.id, order);
     if (approved) {
       await saveOrderToFirestore(approved);
+      if (typeof fetch !== 'undefined') {
+        fetch('/api/sync-lead', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(approved),
+        }).catch(() => {});
+      }
       showToast(`Order ${approved.orderNumber} Approved! License ${approved.licenseKey} & Invoice generated.`);
 
       // Automated Resend transactional fulfillment email
@@ -555,6 +569,13 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
     const rejected = rejectOrder(rejectionModalOrder.id, rejectionReason, rejectionModalOrder);
     if (rejected) {
       await saveOrderToFirestore(rejected);
+      if (typeof fetch !== 'undefined') {
+        fetch('/api/sync-lead', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(rejected),
+        }).catch(() => {});
+      }
       showToast(`Order ${rejected.orderNumber} marked as Rejected.`);
 
       // Automated Resend rejection notice
@@ -938,6 +959,14 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
 
   // Filtered lists
   const pendingApprovals = orders.filter((o) => !isDummyOrder(o) && o.status === 'pending_approval');
+
+  // Trigger real-time audio chime whenever a new pending UTR verification order arrives
+  useEffect(() => {
+    if (pendingApprovals.length > prevPendingCountRef.current) {
+      sound.playNotification();
+    }
+    prevPendingCountRef.current = pendingApprovals.length;
+  }, [pendingApprovals.length]);
 
   // Check if an order is a free trial copy / lead magnet lead
   const isFreeTrialLead = (o: LeadOrder) =>
@@ -1514,6 +1543,32 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
           </div>
         </div>
 
+        {/* Real-time Pending Approvals Alert Banner */}
+        {pendingApprovals.length > 0 && tab !== 'approvals' && (
+          <div className="mb-6 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-4 animate-pulse">
+            <div className="flex items-center gap-3">
+              <span className="text-xl">🔔</span>
+              <div>
+                <p className="text-sm font-bold text-amber-300">
+                  {pendingApprovals.length} Payment{pendingApprovals.length > 1 ? 's' : ''} Awaiting Your UTR Verification!
+                </p>
+                <p className="text-xs text-amber-300/70">
+                  A customer just entered their UPI Reference Number and is waiting on the Client Portal for approval.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                sound.playClick();
+                setTab('approvals');
+              }}
+              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold transition-all shadow-md shrink-0 cursor-pointer"
+            >
+              Verify &amp; Approve Now →
+            </button>
+          </div>
+        )}
+
         {/* Tab Navigation */}
         <div className="flex items-center gap-2 border-b border-white/10 mb-6 overflow-x-auto no-scrollbar whitespace-nowrap pb-2 -mx-3 px-3 sm:mx-0 sm:px-0">
           <button
@@ -1538,12 +1593,21 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
             }}
             className={`px-4 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 shrink-0 ${
               tab === 'approvals'
-                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 font-bold'
+                : pendingApprovals.length > 0
+                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 animate-pulse font-bold'
                 : 'text-white/60 hover:text-white hover:bg-white/5'
             }`}
           >
-            <Clock className="w-4 h-4" />
-            <span>Pending Approvals ({pendingApprovals.length})</span>
+            <Clock className={`w-4 h-4 ${pendingApprovals.length > 0 ? 'text-amber-400 animate-spin' : ''}`} />
+            <span>Pending Approvals</span>
+            {pendingApprovals.length > 0 ? (
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-400 text-black">
+                {pendingApprovals.length} PENDING
+              </span>
+            ) : (
+              <span className="text-white/40 text-[11px] font-mono">(0)</span>
+            )}
           </button>
 
           <button

@@ -225,6 +225,38 @@ class AudioEngine {
       // ignore
     }
   }
+
+  // Pending order alert chime (plays when customer submits UTR in Incognito or any device)
+  public playNotification() {
+    if (this.isMuted) return;
+    this.initCtx();
+    if (!this.ctx) return;
+
+    try {
+      const now = this.ctx.currentTime;
+      const notes = [587.33, 880]; // D5, A5
+      notes.forEach((freq, idx) => {
+        if (!this.ctx) return;
+        const noteStart = now + idx * 0.12;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, noteStart);
+
+        gain.gain.setValueAtTime(0.05, noteStart);
+        gain.gain.exponentialRampToValueAtTime(0.0001, noteStart + 0.35);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(noteStart);
+        osc.stop(noteStart + 0.35);
+      });
+    } catch {
+      // ignore
+    }
+  }
 }
 
 export const sound = new AudioEngine();

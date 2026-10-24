@@ -22,6 +22,7 @@ import { PricingTier, Currency } from './PricingSection';
 import { sound } from '../lib/audioEngine';
 import {
   saveOrder,
+  saveOrderAsync,
   saveGhostKeystrokeLead,
   generateOrderNumber,
   getAdAttribution,
@@ -413,7 +414,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     }, 1200);
   };
 
-  const handleUtrSubmit = (e: React.FormEvent) => {
+  const handleUtrSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setUtrError(null);
 
@@ -427,51 +428,58 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     setIsSubmittingUtr(true);
     sound.playClick();
 
-    setTimeout(() => {
-      setIsSubmittingUtr(false);
-      setShowPaymentDonePopup(false);
-      const orderToSave: LeadOrder = currentOrder ? {
-        ...currentOrder,
-        status: 'pending_approval',
-        utrNumber: cleanUtr,
-        upiId: senderUpiId.trim() || undefined,
-        updatedAt: new Date().toISOString(),
-      } : {
-        id: `ORD-${Date.now().toString().slice(-6)}`,
-        orderNumber: `APX-${Math.floor(100000 + Math.random() * 900000)}`,
-        name: name.trim() || 'Developer',
-        email: email.trim().toLowerCase() || 'buyer@apex3d.local',
-        phone: phone.trim().replace(/\D/g, '') || '',
+    try {
+      const cleanEmail = (currentOrder?.email || email || '').trim().toLowerCase();
+      const cleanPhone = (currentOrder?.phone || phone || '').trim().replace(/\D/g, '');
+      const cleanName = (currentOrder?.name || name || '').trim() || 'Developer';
+
+      const finalOrderId =
+        currentOrder?.id && !currentOrder.id.startsWith('GHOST-')
+          ? currentOrder.id
+          : `ORD-${Date.now().toString().slice(-6)}`;
+
+      const orderToSave: LeadOrder = {
+        ...(currentOrder || {}),
+        id: finalOrderId,
+        orderNumber: currentOrder?.orderNumber || `APX-${Math.floor(100000 + Math.random() * 900000)}`,
+        name: cleanName,
+        email: cleanEmail || 'customer@vault.in',
+        phone: cleanPhone,
         tierId: tier?.id || 'day_pass',
         tierName: tier?.name || '1-Day Sprint Pass',
         amountINR: tier?.priceINR || 49,
         status: 'pending_approval',
         utrNumber: cleanUtr,
         upiId: senderUpiId.trim() || undefined,
-        createdAt: new Date().toISOString(),
+        createdAt: currentOrder?.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        utm: getAdAttribution(),
       };
 
-      saveOrder(orderToSave);
+      // Explicitly await dual cloud persistence (Firestore + Serverless Bridge) before transitioning
+      await saveOrderAsync(orderToSave);
       setCurrentOrder(orderToSave);
 
-      // Persist active order session for instant provisional access in ClientPortal
+      // Persist active order session for instant recognition in ClientPortal
       try {
         sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(orderToSave));
         localStorage.setItem('apex3d_pending_utr_order', JSON.stringify(orderToSave));
       } catch (err) {
         console.debug('Session storage order save:', err);
       }
+
+      setIsSubmittingUtr(false);
+      setShowPaymentDonePopup(false);
       setView('success');
       sound.playSuccess();
       trackPaymentSuccess(
-        currentOrder?.orderNumber || 'PENDING',
+        orderToSave.orderNumber || 'PENDING',
         tier?.priceINR || 0,
         tier?.name || 'Vault Access',
         {
-          email: currentOrder?.email || email,
-          phone: currentOrder?.phone || phone,
-          name: currentOrder?.name || name,
+          email: orderToSave.email,
+          phone: orderToSave.phone,
+          name: orderToSave.name,
         }
       );
 
@@ -485,7 +493,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       } catch (err) {
         console.debug('Confetti suppressed:', err);
       }
-    }, 850);
+    } catch (err) {
+      console.error('Error submitting UTR:', err);
+      setIsSubmittingUtr(false);
+      setUtrError('Network error saving your order. Please check your connection and tap Submit again.');
+    }
   };
 
   if (!isOpen || !tier || !mounted) return null;

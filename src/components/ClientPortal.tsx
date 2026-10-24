@@ -254,13 +254,37 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
         const latestCloudOrders = await syncAllLeadsFromCloud();
         if (!isMounted) return;
 
-        const updatedOrder = latestCloudOrders.find((o) => {
+        const cleanActiveUtr = (activeOrder.utrNumber || '').replace(/\D/g, '');
+        const cleanActivePhone = (activeOrder.phone || '').replace(/\D/g, '');
+        const cleanActiveEmail = (activeOrder.email || '').trim().toLowerCase();
+
+        let updatedOrder = latestCloudOrders.find((o) => {
           if (activeOrder.id && o.id === activeOrder.id) return true;
           if (activeOrder.orderNumber && o.orderNumber === activeOrder.orderNumber) return true;
-          if (activeOrder.utrNumber && o.utrNumber === activeOrder.utrNumber) return true;
-          if (activeOrder.email && o.email && o.email.toLowerCase() === activeOrder.email.toLowerCase()) return true;
+          if (cleanActiveUtr.length >= 8 && o.utrNumber && o.utrNumber.replace(/\D/g, '') === cleanActiveUtr) return true;
+          if (cleanActiveEmail && o.email && o.email.trim().toLowerCase() === cleanActiveEmail) return true;
+          if (cleanActivePhone.length >= 10 && o.phone && o.phone.replace(/\D/g, '').includes(cleanActivePhone)) return true;
           return false;
         });
+
+        // Direct serverless bridge fallback check
+        if (!updatedOrder && typeof fetch !== 'undefined') {
+          try {
+            const apiRes = await fetch('/api/sync-lead').catch(() => null);
+            if (apiRes && apiRes.ok) {
+              const json = await apiRes.json();
+              if (json.success && Array.isArray(json.leads)) {
+                updatedOrder = json.leads.find((o: any) => {
+                  if (activeOrder.id && o.id === activeOrder.id) return true;
+                  if (activeOrder.orderNumber && o.orderNumber === activeOrder.orderNumber) return true;
+                  if (cleanActiveUtr.length >= 8 && o.utrNumber && o.utrNumber.replace(/\D/g, '') === cleanActiveUtr) return true;
+                  if (cleanActiveEmail && o.email && o.email.trim().toLowerCase() === cleanActiveEmail) return true;
+                  return false;
+                });
+              }
+            }
+          } catch {}
+        }
 
         if (updatedOrder && updatedOrder.status === 'approved' && updatedOrder.licenseKey) {
           sound.playSuccess();
