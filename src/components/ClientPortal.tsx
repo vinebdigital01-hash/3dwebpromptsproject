@@ -52,6 +52,7 @@ import {
   syncGhostLeadToCloud,
 } from '../lib/firebase';
 import { User } from 'firebase/auth';
+import confetti from 'canvas-confetti';
 import {
   LeadOrder,
   getAllOrders,
@@ -226,17 +227,8 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
   // Free Trial Lifetime Copy Usage State (Free Users: Max 1 Lifetime - Never Resets)
   const [freeTrialUsage, setFreeTrialUsage] = useState<number>(0);
 
-  // Strict Paid Member Check: Must have amountINR > 0, approved status, and authentic commercial licenseKey
-  // Fix 4: Provisional Access for valid 12-digit UTR orders + Full verified paid members
-  const isProvisionalPaid = Boolean(
-    activeOrder &&
-    (activeOrder.amountINR || 0) > 0 &&
-    activeOrder.status === 'pending_approval' &&
-    activeOrder.utrNumber &&
-    activeOrder.utrNumber.replace(/\D/g, '').length >= 10
-  );
-
-  const isFullyApprovedPaid = Boolean(
+  // 1. Strict Paid Member Check: ONLY approved status with authentic commercial licenseKey
+  const isPaidMember = Boolean(
     activeOrder &&
     (activeOrder.amountINR || 0) > 0 &&
     activeOrder.status === 'approved' &&
@@ -244,7 +236,68 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
     !activeOrder.licenseKey.startsWith('LIC-MBR')
   );
 
-  const isPaidMember = isFullyApprovedPaid || isProvisionalPaid;
+  // 2. Anti-Panic Pending Verification State (Submitted UTR, waiting for admin approval <60s)
+  const isPendingVerification = Boolean(
+    activeOrder &&
+    (activeOrder.amountINR || 0) > 0 &&
+    activeOrder.status === 'pending_approval'
+  );
+
+  // 3. Real-time auto-unlock polling (every 5s) while UTR verification is pending
+  useEffect(() => {
+    if (!isPendingVerification || !activeOrder) return;
+
+    let isMounted = true;
+
+    const checkApproval = async () => {
+      try {
+        const latestCloudOrders = await syncAllLeadsFromCloud();
+        if (!isMounted) return;
+
+        const updatedOrder = latestCloudOrders.find((o) => {
+          if (activeOrder.id && o.id === activeOrder.id) return true;
+          if (activeOrder.orderNumber && o.orderNumber === activeOrder.orderNumber) return true;
+          if (activeOrder.utrNumber && o.utrNumber === activeOrder.utrNumber) return true;
+          if (activeOrder.email && o.email && o.email.toLowerCase() === activeOrder.email.toLowerCase()) return true;
+          return false;
+        });
+
+        if (updatedOrder && updatedOrder.status === 'approved' && updatedOrder.licenseKey) {
+          sound.playSuccess();
+          setActiveOrder(updatedOrder);
+          sessionStorage.setItem('apex3d_portal_active_order', JSON.stringify(updatedOrder));
+          localStorage.removeItem('apex3d_pending_utr_order');
+
+          try {
+            confetti({
+              particleCount: 90,
+              spread: 70,
+              origin: { y: 0.6 },
+              colors: ['#00BA88', '#00E575', '#3b82f6', '#ffffff'],
+            });
+          } catch {}
+
+          showToast(`🎉 Payment Verified! Welcome to ${updatedOrder.tierName}. Your entire vault is now unlocked!`);
+        }
+      } catch (err) {
+        console.debug('Polling check error:', err);
+      }
+    };
+
+    checkApproval();
+    const interval = setInterval(checkApproval, 5000);
+
+    const onOrderUpdate = () => {
+      checkApproval();
+    };
+    window.addEventListener('apex_order_updated', onOrderUpdate);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+      window.removeEventListener('apex_order_updated', onOrderUpdate);
+    };
+  }, [isPendingVerification, activeOrder]);
 
   // Real-time ticking timer for countdown
   const [, setClockTick] = useState(0);
@@ -694,6 +747,11 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
 
     // 🔒 FREE TRIAL USERS (Strict 1 Lifetime Free Sample Quota - NO LIMIT RESET!)
     if (!isPaidMember) {
+      if (isPendingVerification) {
+        sound.playClick();
+        showToast(`⏳ Verifying Payment (UTR: ${activeOrder.utrNumber || 'Submitted'}): Admin is reviewing your payment. Prompts unlock automatically in <60 seconds!`);
+        return;
+      }
       if (!prompt.allowFreeTrialCopy) {
         sound.playClick();
         setUpgradeTriggerReason('quota_exceeded');
@@ -1132,7 +1190,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
         </main>
 
       {/* Fix 4: Sticky Bottom Upgrade Bar for True Free Leads (Never Trapped) */}
-      {!isPaidMember && (
+      {!isPaidMember && !isPendingVerification && (
         <div className="fixed bottom-0 inset-x-0 z-40 bg-[#090910]/95 border-t border-white/10 p-3 sm:p-4 backdrop-blur-xl shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
           <div className="max-w-[1400px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-white text-xs">
             <div className="flex items-center gap-2.5 text-left">
@@ -1259,30 +1317,31 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
         </div>
       )}
 
-      {/* Fix 4: Top Provisional Status Banner for Pending UTR Orders */}
-      {isProvisionalPaid && activeOrder && (
-        <div className="w-full bg-gradient-to-r from-amber-500/20 via-amber-600/15 to-emerald-500/15 border-b border-amber-500/40 px-4 py-3 text-white text-xs z-50 relative">
+      {/* Anti-Panic Live Verification Banner (<60s) */}
+      {isPendingVerification && activeOrder && (
+        <div className="w-full bg-gradient-to-r from-amber-500/25 via-amber-600/20 to-blue-500/20 border-b border-amber-500/40 px-4 py-3.5 text-white text-xs z-50 relative">
           <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5 text-left">
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping shrink-0" />
+            <div className="flex items-center gap-3 text-left">
+              <span className="relative flex h-3 w-3 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+              </span>
               <div>
                 <div className="font-mono text-amber-300 font-bold uppercase tracking-wider text-[11px] flex items-center gap-2">
-                  <span>⏳ PAYMENT RECONCILIATION IN PROGRESS</span>
-                  <span className="text-zinc-500">•</span>
-                  <span className="text-emerald-400">PROVISIONAL ACCESS ACTIVE</span>
+                  <span>⏳ VERIFYING YOUR PAYMENT • ADMIN APPROVES WITHIN 60 SECONDS!</span>
                 </div>
                 <p className="text-zinc-200 mt-0.5 leading-snug">
-                  Submitted UTR: <code className="font-mono text-amber-300 font-bold bg-black/40 px-1.5 py-0.5 rounded border border-amber-500/30">{activeOrder.utrNumber}</code> • Plan: <strong className="text-white">{activeOrder.tierName}</strong>. Admin verification takes 5–15 mins. You have full instant access now!
+                  Submitted UTR: <code className="font-mono text-amber-300 font-bold bg-black/40 px-1.5 py-0.5 rounded border border-amber-500/30">{activeOrder.utrNumber}</code> • Plan: <strong className="text-white">{activeOrder.tierName}</strong>. Please stay on this page — your vault will unlock automatically as soon as verified.
                 </p>
               </div>
             </div>
             <a
-              href={`https://wa.me/919931354378?text=${encodeURIComponent(`Hi, I paid for Apex3D Vault (${activeOrder.tierName || 'Sprint Pass'}) and submitted UTR ${activeOrder.utrNumber || ''}. Please expedite my priority verification!`)}`}
+              href={`https://wa.me/919931354378?text=${encodeURIComponent(`Hi Admin, I submitted payment for Apex3D Vault (${activeOrder.tierName || 'Sprint Pass'}) with UTR ${activeOrder.utrNumber || ''}. It has been 60+ seconds, please expedite my verification!`)}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full md:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-emerald-500 hover:from-amber-400 hover:to-emerald-400 text-black font-bold text-xs font-mono shadow-md flex items-center justify-center gap-1.5 shrink-0 transition-all cursor-pointer"
+              className="w-full md:w-auto px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs font-mono shadow-md flex items-center justify-center gap-1.5 shrink-0 transition-all cursor-pointer"
             >
-              <span>⚡ Get Instant Priority Verification on WhatsApp →</span>
+              <span>⚡ Taking longer than 60s? Ping Admin on WhatsApp →</span>
             </a>
           </div>
         </div>
@@ -1350,12 +1409,16 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                 <div className="text-[10px] font-mono text-zinc-500 flex items-center gap-1.5 truncate">
                   {isPaidMember ? (
                     <span className="text-amber-300 font-bold truncate max-w-[120px]">{activeOrder.licenseKey}</span>
+                  ) : isPendingVerification ? (
+                    <span className="text-amber-300 font-mono font-bold truncate max-w-[240px]">
+                      ⏳ Payment Verification in Progress (UTR: {activeOrder.utrNumber || 'Submitted'})
+                    </span>
                   ) : (
                     <span className="text-zinc-500 italic">Free Account</span>
                   )}
                   <span>·</span>
-                  <span className={!isPaidMember ? 'text-blue-400' : 'text-emerald-400'}>
-                    {!isPaidMember ? '1 Free Quota' : 'Verified Licensee'}
+                  <span className={isPaidMember ? 'text-emerald-400 font-bold' : isPendingVerification ? 'text-amber-400 font-bold animate-pulse' : 'text-blue-400'}>
+                    {isPaidMember ? 'Verified Licensee' : isPendingVerification ? 'Admin Reviewing (<60s)' : '1 Free Quota'}
                   </span>
                 </div>
               </div>
@@ -1377,17 +1440,19 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                   <span>Link <span className="hidden xs:inline">License </span>Key</span>
                 </button>
 
-                <button
-                  onClick={() => {
-                    sound.playClick();
-                    setUpgradeTriggerReason('manual');
-                    setIsUpgradeShowcaseOpen(true);
-                  }}
-                  className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-white hover:bg-zinc-200 text-black text-[10px] sm:text-[11px] font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-md shadow-white/10 cursor-pointer whitespace-nowrap"
-                >
-                  <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-black" />
-                  <span>Upgrade VIP</span>
-                </button>
+                {!isPendingVerification && (
+                  <button
+                    onClick={() => {
+                      sound.playClick();
+                      setUpgradeTriggerReason('manual');
+                      setIsUpgradeShowcaseOpen(true);
+                    }}
+                    className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-white hover:bg-zinc-200 text-black text-[10px] sm:text-[11px] font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-md shadow-white/10 cursor-pointer whitespace-nowrap"
+                  >
+                    <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-black" />
+                    <span>Upgrade VIP</span>
+                  </button>
+                )}
               </>
             )}
 
@@ -1784,6 +1849,8 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                       className={`flex-1 py-3 px-4 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 active:scale-[0.98] cursor-pointer ${
                         copiedId === spotlightPrompt.id
                           ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20'
+                          : isPendingVerification
+                          ? 'bg-amber-500/20 border border-amber-500/50 text-amber-300 shadow-lg shadow-amber-500/10'
                           : !isPaidMember && !spotlightPrompt.allowFreeTrialCopy
                           ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black shadow-lg shadow-amber-500/20'
                           : !isPaidMember && spotlightPrompt.allowFreeTrialCopy && freeTrialUsage >= 1
@@ -1797,6 +1864,11 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                         <>
                           <Check className="w-3.5 h-3.5" />
                           <span>Copied to Clipboard</span>
+                        </>
+                      ) : isPendingVerification ? (
+                        <>
+                          <Clock className="w-3.5 h-3.5 text-amber-400 animate-spin" />
+                          <span>⏳ Verifying UTR (Unlocks in &lt;60s)...</span>
                         </>
                       ) : !isPaidMember && !spotlightPrompt.allowFreeTrialCopy ? (
                         <>
@@ -1904,7 +1976,39 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
             </div>
 
             {/* FREE TRIAL STATUS BANNER OR PAID VIP UPGRADE BANNER */}
-            {!isPaidMember ? (
+            {isPendingVerification ? (
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-[#1a1508] to-[#07070b] border border-amber-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-[0_10px_30px_-10px_rgba(245,158,11,0.2)]">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0">
+                    <Clock className="w-5 h-5 text-amber-400 animate-spin" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-bold text-white uppercase tracking-tight">
+                        Payment Verification in Progress
+                      </span>
+                      <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold">
+                        UTR: {activeOrder?.utrNumber || 'Submitted'} · &lt;60s
+                      </span>
+                    </div>
+                    <p className="text-xs text-zinc-300 mt-1 leading-snug max-w-2xl">
+                      Admin is currently reconciling your payment. Your vault access ({activeOrder?.tierName}) will unlock automatically right here within 60 seconds.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
+                  <a
+                    href={`https://wa.me/919931354378?text=${encodeURIComponent(`Hi Admin, I submitted payment for Apex3D Vault (${activeOrder?.tierName || 'Sprint Pass'}) with UTR ${activeOrder?.utrNumber || ''}. Please expedite my verification!`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-amber-500/20"
+                  >
+                    <span>⚡ Expedite on WhatsApp →</span>
+                  </a>
+                </div>
+              </div>
+            ) : !isPaidMember ? (
               <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-[#0a120e] to-[#07070b] border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-[0_10px_30px_-10px_rgba(16,185,129,0.15)]">
                 <div className="flex items-center gap-3.5">
                   <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center shrink-0">
@@ -2117,6 +2221,8 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                           >
                             {isCopied
                               ? 'Copied'
+                              : isPendingVerification
+                              ? '⏳ Verifying UTR...'
                               : !isPaidMember && !item.allowFreeTrialCopy
                               ? '🔒 Unlock ₹49'
                               : !isPaidMember && item.allowFreeTrialCopy && freeTrialUsage >= 1
@@ -2186,6 +2292,8 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
                           >
                             {copiedId === item.id
                               ? 'Copied'
+                              : isPendingVerification
+                              ? '⏳ Verifying...'
                               : !isPaidMember && !item.allowFreeTrialCopy
                               ? '🔒 Unlock'
                               : !isPaidMember && item.allowFreeTrialCopy && freeTrialUsage >= 1
@@ -2407,26 +2515,43 @@ Rules:
             {!isPaidMember ? (
               <div className="p-8 sm:p-10 rounded-2xl bg-[#09090e] border border-amber-500/30 text-center space-y-4 shadow-2xl">
                 <div className="w-14 h-14 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 mx-auto">
-                  <Lock className="w-7 h-7" />
+                  {isPendingVerification ? <Clock className="w-7 h-7 animate-pulse text-amber-400" /> : <Lock className="w-7 h-7" />}
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-white">Commercial Documents Locked (Paid Members Only)</h3>
+                  <h3 className="text-base font-bold text-white">
+                    {isPendingVerification
+                      ? 'Commercial Documents Generating (Awaiting Verification)'
+                      : 'Commercial Documents Locked (Paid Members Only)'}
+                  </h3>
                   <p className="text-xs text-zinc-400 max-w-md mx-auto mt-2 leading-relaxed">
-                    Official MSME-registered tax invoices (UDYAM-UP-29-0208780) and Commercial Deployment License Certificates are issued exclusively to verified paid passholders (₹49+). Free accounts do not generate legal commercial licenses or invoices.
+                    {isPendingVerification
+                      ? `Official MSME-registered tax invoice (UDYAM-UP-29-0208780) and Commercial Deployment License Certificate for UTR ${activeOrder?.utrNumber} will be generated immediately once Admin verifies your payment (<60s).`
+                      : 'Official MSME-registered tax invoices (UDYAM-UP-29-0208780) and Commercial Deployment License Certificates are issued exclusively to verified paid passholders (₹49+). Free accounts do not generate legal commercial licenses or invoices.'}
                   </p>
                 </div>
                 <div className="pt-2">
-                  <button
-                    onClick={() => {
-                      sound.playClick();
-                      setUpgradeTriggerReason('manual');
-                      setIsUpgradeShowcaseOpen(true);
-                    }}
-                    className="px-5 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-mono font-bold uppercase transition-all shadow-lg shadow-amber-500/20 cursor-pointer inline-flex items-center gap-2"
-                  >
-                    <Sparkles className="w-4 h-4 text-black" />
-                    <span>Upgrade to Paid Pass (₹49)</span>
-                  </button>
+                  {isPendingVerification ? (
+                    <a
+                      href={`https://wa.me/919931354378?text=${encodeURIComponent(`Hi Admin, I submitted payment with UTR ${activeOrder?.utrNumber || ''}. Please expedite my commercial invoice & license generation!`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-5 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-mono font-bold uppercase transition-all shadow-lg shadow-amber-500/20 cursor-pointer inline-flex items-center gap-2"
+                    >
+                      <span>⚡ Expedite on WhatsApp →</span>
+                    </a>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        sound.playClick();
+                        setUpgradeTriggerReason('manual');
+                        setIsUpgradeShowcaseOpen(true);
+                      }}
+                      className="px-5 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-mono font-bold uppercase transition-all shadow-lg shadow-amber-500/20 cursor-pointer inline-flex items-center gap-2"
+                    >
+                      <Sparkles className="w-4 h-4 text-black" />
+                      <span>Upgrade to Paid Pass (₹49)</span>
+                    </button>
+                  )}
                 </div>
               </div>
             ) : (
@@ -2492,6 +2617,51 @@ Rules:
            ======================================================== */}
         {activeTab === 'guides_scripts' && (
           <div className="space-y-6 max-w-4xl animate-role-fade-in pb-16">
+            {!isPaidMember ? (
+              <div className="p-8 sm:p-10 rounded-2xl bg-[#09090e] border border-amber-500/30 text-center space-y-4 shadow-2xl">
+                <div className="w-14 h-14 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 mx-auto">
+                  <Clock className="w-7 h-7 text-amber-400 animate-pulse" />
+                </div>
+                <div>
+                  <div className="text-[10px] font-mono text-amber-400 uppercase tracking-widest mb-1">
+                    {isPendingVerification ? 'PAYMENT VERIFICATION IN PROGRESS' : 'RESERVED FOR APEX3D VAULT LICENSEES'}
+                  </div>
+                  <h3 className="text-xl font-bold text-white">
+                    Agency Outbound Scripts & 30+ Prompts PDF
+                  </h3>
+                  <p className="text-xs text-zinc-400 max-w-md mx-auto mt-2 leading-relaxed">
+                    {isPendingVerification
+                      ? `Your payment with UTR ${activeOrder?.utrNumber} is being verified by Admin (<60s). These high-converting outbound pitch scripts and PDF guide will unlock automatically the moment Admin approves!`
+                      : 'These high-converting cold email scripts, LinkedIn outreach frameworks, and Loom audit templates are available exclusively for paid passholders (₹49+).'}
+                  </p>
+                </div>
+                <div className="pt-2">
+                  {isPendingVerification ? (
+                    <a
+                      href={`https://wa.me/919931354378?text=${encodeURIComponent(`Hi Admin, I submitted payment with UTR ${activeOrder?.utrNumber || ''}. Please expedite my access to the outbound scripts!`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-5 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-mono font-bold uppercase transition-all shadow-lg shadow-amber-500/20 cursor-pointer inline-flex items-center gap-2"
+                    >
+                      <span>⚡ Expedite on WhatsApp →</span>
+                    </a>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        sound.playClick();
+                        setUpgradeTriggerReason('manual');
+                        setIsUpgradeShowcaseOpen(true);
+                      }}
+                      className="px-5 py-3 rounded-xl bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-mono font-bold uppercase transition-all shadow-lg shadow-blue-500/20 cursor-pointer inline-flex items-center gap-2"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span>Upgrade to Paid Pass (₹49)</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <>
             {/* Header Card with PDF Download */}
             <div className="p-6 rounded-2xl bg-[#09090e] border border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
@@ -2614,6 +2784,8 @@ Happy to send over a link to our live showcase if you're exploring spatial web f
 [2:45 - 3:00] No-Risk Call to Action: "I already have this component coded. If you'd like to integrate it into your Next.js/React repo this week, let me know."`}
               </pre>
             </div>
+              </>
+            )}
           </div>
         )}
 
@@ -2840,21 +3012,33 @@ Happy to send over a link to our live showcase if you're exploring spatial web f
                       </div>
                       <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/85 backdrop-blur-sm p-6 text-center">
                         <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-2">
-                          <Lock className="w-5 h-5" />
+                          {isPendingVerification ? <Clock className="w-5 h-5 animate-pulse" /> : <Lock className="w-5 h-5" />}
                         </div>
-                        <h4 className="text-sm font-bold text-white mb-1">Paid Vault Architecture</h4>
+                        <h4 className="text-sm font-bold text-white mb-1">
+                          {isPendingVerification ? 'Verifying Payment (<60s)' : 'Paid Vault Architecture'}
+                        </h4>
                         <p className="text-xs text-zinc-400 max-w-sm mb-4 leading-relaxed font-sans">
-                          This prompt is reserved for paid passholders. Unlock full architecture syntax + commercial deployment rights starting at ₹49.
+                          {isPendingVerification
+                            ? `Your UTR ${activeOrder?.utrNumber} is being verified by Admin. This full production architecture unlocks automatically upon approval!`
+                            : 'This prompt is reserved for paid passholders. Unlock full architecture syntax + commercial deployment rights starting at ₹49.'}
                         </p>
                         <button
                           onClick={() => {
-                            setInspectingPrompt(null);
-                            setUpgradeTriggerReason('quota_exceeded');
-                            setIsUpgradeShowcaseOpen(true);
+                            if (isPendingVerification) {
+                              showToast(`⏳ Verifying Payment (UTR: ${activeOrder?.utrNumber}): Admin is reviewing your payment. Unlocks automatically in <60s!`);
+                            } else {
+                              setInspectingPrompt(null);
+                              setUpgradeTriggerReason('quota_exceeded');
+                              setIsUpgradeShowcaseOpen(true);
+                            }
                           }}
-                          className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-mono font-bold uppercase transition-all shadow-lg shadow-amber-500/20 cursor-pointer"
+                          className={`px-4 py-2 rounded-xl text-xs font-mono font-bold uppercase transition-all shadow-lg cursor-pointer ${
+                            isPendingVerification
+                              ? 'bg-amber-500/20 border border-amber-500/40 text-amber-300'
+                              : 'bg-amber-500 hover:bg-amber-400 text-black shadow-amber-500/20'
+                          }`}
                         >
-                          Unlock with Pass (₹49)
+                          {isPendingVerification ? '⏳ Verifying UTR (Unlocks in <60s)...' : 'Unlock with Pass (₹49)'}
                         </button>
                       </div>
                     </div>
@@ -2952,6 +3136,8 @@ Happy to send over a link to our live showcase if you're exploring spatial web f
                   >
                     {copiedId === inspectingPrompt.id
                       ? 'Copied'
+                      : isPendingVerification
+                      ? '⏳ Verifying UTR (Unlocks in <60s)...'
                       : !isPaidMember && !inspectingPrompt.allowFreeTrialCopy
                       ? 'Unlock with Pass (₹49)'
                       : !isPaidMember && inspectingPrompt.allowFreeTrialCopy && freeTrialUsage >= 1

@@ -45,15 +45,7 @@ export async function getAuthorizedPromptArchitecture(
     };
   }
 
-  // 3. For paid items, must verify active order status before requesting (Full approved or provisional 12-digit UTR)
-  const isProvisionalPaid = Boolean(
-    activeOrder &&
-    activeOrder.status === 'pending_approval' &&
-    (activeOrder.amountINR || 0) > 0 &&
-    activeOrder.utrNumber &&
-    activeOrder.utrNumber.replace(/\D/g, '').length >= 10
-  );
-
+  // 3. For paid items, strictly verify that order status is APPROVED (Zero provisional access)
   const isApprovedPaid = Boolean(
     activeOrder &&
     activeOrder.status === 'approved' &&
@@ -62,9 +54,14 @@ export async function getAuthorizedPromptArchitecture(
     !activeOrder.licenseKey.startsWith('LIC-MBR-')
   );
 
-  const isPaidOrder = isApprovedPaid || isProvisionalPaid;
-
-  if (!isPaidOrder) {
+  if (!isApprovedPaid) {
+    if (activeOrder && activeOrder.status === 'pending_approval') {
+      return {
+        success: false,
+        isLocked: true,
+        message: '⏳ Payment verification in progress (UTR submitted). Admin approves within 60 seconds — vault will unlock automatically!',
+      };
+    }
     return {
       success: false,
       isLocked: true,
@@ -84,7 +81,6 @@ export async function getAuthorizedPromptArchitecture(
         licenseKey: activeOrder?.licenseKey,
         orderId: activeOrder?.orderNumber || activeOrder?.id,
         userEmail: activeOrder?.email,
-        utrNumber: activeOrder?.utrNumber,
       }),
     });
 

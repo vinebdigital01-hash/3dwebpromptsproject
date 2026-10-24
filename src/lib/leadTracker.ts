@@ -912,8 +912,9 @@ export function findApprovedOrder(identifier: string): LeadOrder | null {
 }
 
 /**
- * Lookup an approved OR valid pending-approval order (with 10-12 digit UTR)
- * Allows provisional instant access to customers who have submitted payment.
+ * Lookup an approved order OR a pending-approval order (with UTR submitted)
+ * for status tracking and auto-unlock polling in ClientPortal.
+ * NOTE: Paid prompts, PDFs, and scripts remain 100% strictly locked until Admin marks status === 'approved'.
  */
 export function findPendingOrApprovedOrder(identifier: string): LeadOrder | null {
   if (!identifier) return null;

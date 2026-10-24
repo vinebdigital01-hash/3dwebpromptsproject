@@ -68,22 +68,15 @@ export default async function handler(req: any, res: any) {
       });
     }
 
-    // 3. Authorization verification
+    // 3. Authorization verification (Strict: Only approved paid license keys)
     const cleanLic = (licenseKey || '').trim().toUpperCase();
-    const cleanOrder = (orderId || '').trim().toUpperCase();
-
-    const hasValidUtr = Boolean(req.body?.utrNumber && String(req.body.utrNumber).replace(/\D/g, '').length >= 10);
-    const isAuthorized =
-      isValidPaidLicenseFormat(cleanLic) ||
-      (cleanOrder.startsWith('ORD-') && cleanOrder.length >= 10) ||
-      (cleanOrder.startsWith('APX-') && cleanOrder.length >= 8) ||
-      hasValidUtr;
+    const isAuthorized = isValidPaidLicenseFormat(cleanLic);
 
     if (!isAuthorized) {
       return res.status(403).json({
         success: false,
         isLocked: true,
-        message: '🔒 Access Denied: A verified active Apex3D Vault license key is required to view or copy this proprietary prompt architecture.',
+        message: '🔒 Access Denied: An approved active Apex3D Vault license key is required to view or copy this proprietary prompt architecture. If your UTR is pending, access unlocks immediately upon Admin approval.',
       });
     }
 
