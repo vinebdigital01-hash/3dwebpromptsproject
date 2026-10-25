@@ -17,6 +17,7 @@ import {
   BASE_PORTAL_URL,
   WHATSAPP_LINK,
   WHATSAPP_DISPLAY,
+  CALL_PHONE_DISPLAY,
   ShowcaseMode,
 } from './vaultEmailShowcase';
 
@@ -615,7 +616,7 @@ export function buildRejectionEmailHtml(order: LeadOrder, reason: string): strin
                 Reason: ${reason || 'Payment reference could not be located in bank statement.'}
               </div>
               <br>
-              If you already completed the payment, please reply to this email with your UPI receipt or WhatsApp our founder at <a href="${WHATSAPP_LINK}" style="color: #34d399; font-weight: bold; text-decoration: underline;">${WHATSAPP_DISPLAY}</a> with your 12-digit UTR number. We will manually approve your access immediately.
+              If you already completed the payment, please reply to this email with your UPI receipt, call our support at <a href="tel:8287578025" style="color: #60a5fa; font-weight: bold; text-decoration: underline;">+91 8287578025</a> or WhatsApp us at <a href="${WHATSAPP_LINK}" style="color: #34d399; font-weight: bold; text-decoration: underline;">${WHATSAPP_DISPLAY}</a> with your 12-digit UTR number. We will manually approve your access immediately.
             </td>
           </tr>
           <tr>
@@ -1013,10 +1014,10 @@ export async function sendCartRecoveryEmail(lead: {
             </td>
           </tr>
 
-          <!-- Secondary WhatsApp Assistance -->
+          <!-- Secondary Assistance -->
           <tr>
             <td style="padding: 0 32px 24px 32px; text-align: center; font-size: 12px; color: #64748b;">
-              Need UPI assistance or official invoice copy? Chat directly on WhatsApp:
+              Need UPI assistance or official invoice copy? Call <a href="tel:8287578025" style="color: #60a5fa; font-weight: bold; text-decoration: underline;">+91 8287578025</a> or WhatsApp:
               <a href="${WHATSAPP_LINK}" style="color: #34d399; font-weight: bold; text-decoration: underline;">${WHATSAPP_DISPLAY}</a>
             </td>
           </tr>

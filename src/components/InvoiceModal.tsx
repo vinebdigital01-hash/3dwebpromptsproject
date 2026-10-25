@@ -164,7 +164,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, isOpen, onClo
                 <div className="text-[10px] text-zinc-500 font-mono space-y-0.5 mt-2">
                   <p>MSME Reg: <span className="text-zinc-900 font-bold">UDYAM-UP-29-0208780</span> (Govt. of India)</p>
                   <p>UPI Merchant VPA: <span className="text-zinc-900 font-semibold">s5305704393562990@slc</span></p>
-                  <p>Support Hotline: <span className="text-zinc-900">support@vinebdigital.store</span> &bull; +91 8860090791</p>
+                  <p>Support Hotline: <span className="text-zinc-900">support@vinebdigital.store</span> &bull; Call: +91 8287578025 &bull; Call/WhatsApp: +91 9717466626</p>
                   <p>Issuing Entity: Vine B Digital Marketing Agency (India)</p>
                 </div>
               </div>

@@ -123,7 +123,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onSelectTier }) 
               </div>
             </div>
             <a
-              href="https://wa.me/919931354378?text=Hi%2C%20I%20am%20an%20international%20buyer%20interested%20in%20Apex3D%20Vault.%20Can%20I%20pay%20via%20PayPal%2FWise%2FCard%3F"
+              href="https://wa.me/919717466626?text=Hi%2C%20I%20am%20an%20international%20buyer%20interested%20in%20Apex3D%20Vault.%20Can%20I%20pay%20via%20PayPal%2FWise%2FCard%3F"
               target="_blank"
               rel="noopener noreferrer"
               className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-mono font-bold text-xs shrink-0 transition-all flex items-center gap-1 shadow-md cursor-pointer"

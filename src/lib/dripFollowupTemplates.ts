@@ -104,7 +104,7 @@ export function buildDay1FollowupEmailHtml(lead: FollowupLeadInfo): string {
           <!-- Footer -->
           <tr>
             <td style="padding: 24px 32px; border-top: 1px solid rgba(255, 255, 255, 0.06); text-align: center; font-size: 11px; color: #6b7280;">
-              Questions? Reply directly to this email or chat with our founder on <a href="https://wa.me/918860090791" style="color: #60a5fa; text-decoration: underline;">WhatsApp</a>.<br><br>
+              Questions? Reply directly to this email, call <a href="tel:8287578025" style="color: #60a5fa; text-decoration: underline;">+91 8287578025</a> or WhatsApp us on <a href="https://wa.me/919717466626" style="color: #60a5fa; text-decoration: underline;">+91 9717466626</a>.<br><br>
               &copy; 2026 Vine B Digital Marketing Agency &bull; <a href="${SITE_URL}" style="color: #6b7280; text-decoration: underline;">3dwebprompts-vineb.vercel.app</a>
             </td>
           </tr>
@@ -207,7 +207,7 @@ export function buildDay2FollowupEmailHtml(lead: FollowupLeadInfo): string {
           <!-- Footer -->
           <tr>
             <td style="padding: 24px 32px; border-top: 1px solid rgba(255, 255, 255, 0.06); text-align: center; font-size: 11px; color: #6b7280;">
-              Need help? WhatsApp us at <a href="https://wa.me/918860090791" style="color: #60a5fa; text-decoration: underline;">+91 88600 90791</a>.<br><br>
+              Need help? Call <a href="tel:8287578025" style="color: #60a5fa; text-decoration: underline;">+91 8287578025</a> or WhatsApp us at <a href="https://wa.me/919717466626" style="color: #60a5fa; text-decoration: underline;">+91 9717466626</a>.<br><br>
               &copy; 2026 Vine B Digital Marketing Agency &bull; <a href="${SITE_URL}" style="color: #6b7280; text-decoration: underline;">3dwebprompts-vineb.vercel.app</a>
             </td>
           </tr>

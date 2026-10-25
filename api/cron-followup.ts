@@ -16,8 +16,9 @@ export interface FollowupLeadInfo {
 }
 
 const SITE_URL = 'https://3dwebprompts-vineb.vercel.app';
-const WHATSAPP_LINK = 'https://wa.me/918860090791';
-const WHATSAPP_DISPLAY = '+91 8860090791';
+const WHATSAPP_LINK = 'https://wa.me/919717466626';
+const WHATSAPP_DISPLAY = '+91 9717466626';
+const CALL_PHONE_DISPLAY = '+91 8287578025';
 
 function buildDay1Email(lead: FollowupLeadInfo): string {
   const checkoutUrl = `${SITE_URL}/#pricing?tier=${encodeURIComponent(lead.tierId || 'day_pass')}&email=${encodeURIComponent(lead.email)}`;
@@ -243,7 +244,7 @@ function buildDay1Email(lead: FollowupLeadInfo): string {
           <!-- Footer -->
           <tr>
             <td style="padding: 24px 32px; border-top: 1px solid rgba(255, 255, 255, 0.06); text-align: center; font-size: 11px; color: #64748b; line-height: 1.6;">
-              WhatsApp Founder Hotline: <a href="${WHATSAPP_LINK}" style="color: #34d399; font-weight: 600; text-decoration: underline;">${WHATSAPP_DISPLAY}</a> &bull;
+              Call: <a href="tel:8287578025" style="color: #60a5fa; font-weight: 600; text-decoration: underline;">${CALL_PHONE_DISPLAY}</a> &bull; Call/WhatsApp: <a href="${WHATSAPP_LINK}" style="color: #34d399; font-weight: 600; text-decoration: underline;">${WHATSAPP_DISPLAY}</a> &bull;
               Email: <a href="mailto:support@vinebdigital.store" style="color: #60a5fa; text-decoration: underline;">support@vinebdigital.store</a><br>
               &copy; 2026 Vine B Digital Marketing Agency &bull; <a href="${SITE_URL}" style="color: #94a3b8; text-decoration: underline;">3dwebprompts-vineb.vercel.app</a>
               <div style="margin-top: 10px; font-size: 10px; color: #475569;">
@@ -398,7 +399,7 @@ function buildDay2Email(lead: FollowupLeadInfo): string {
           <!-- Footer -->
           <tr>
             <td style="padding: 24px 32px; border-top: 1px solid rgba(255, 255, 255, 0.06); text-align: center; font-size: 11px; color: #64748b; line-height: 1.6;">
-              Founder Hotline WhatsApp: <a href="${WHATSAPP_LINK}" style="color: #34d399; font-weight: 600; text-decoration: underline;">${WHATSAPP_DISPLAY}</a> &bull;
+              Call: <a href="tel:8287578025" style="color: #60a5fa; font-weight: 600; text-decoration: underline;">${CALL_PHONE_DISPLAY}</a> &bull; Call/WhatsApp: <a href="${WHATSAPP_LINK}" style="color: #34d399; font-weight: 600; text-decoration: underline;">${WHATSAPP_DISPLAY}</a> &bull;
               Email: <a href="mailto:support@vinebdigital.store" style="color: #60a5fa; text-decoration: underline;">support@vinebdigital.store</a><br>
               &copy; 2026 Vine B Digital Marketing Agency &bull; <a href="${SITE_URL}" style="color: #94a3b8; text-decoration: underline;">3dwebprompts-vineb.vercel.app</a>
               <div style="margin-top: 10px; font-size: 10px; color: #475569;">

@@ -651,7 +651,7 @@ async function sendAdminInvitationEmail(admin: AdminUser): Promise<EmailDispatch
           <tr>
             <td style="padding: 20px 32px; border-top: 1px solid rgba(255,255,255,0.06); font-size: 11px; color: #64748b; line-height: 1.5; text-align: center;">
               Appointed by Vine B Digital Marketing Agency &bull; Executive Operations<br>
-              Direct questions to Super Admin: <a href="mailto:${SUPER_ADMIN_EMAIL}" style="color: #60a5fa;">${SUPER_ADMIN_EMAIL}</a> &bull; WhatsApp Desk: +91 8860090791
+              Direct questions to Super Admin: <a href="mailto:${SUPER_ADMIN_EMAIL}" style="color: #60a5fa;">${SUPER_ADMIN_EMAIL}</a> &bull; Call: +91 8287578025 &bull; WhatsApp: +91 9717466626
             </td>
           </tr>
         </table>

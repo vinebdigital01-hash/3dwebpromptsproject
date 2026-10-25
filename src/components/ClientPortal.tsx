@@ -39,6 +39,7 @@ import {
   ChevronRight,
   Key,
   Loader2,
+  Phone,
 } from 'lucide-react';
 import {
   loginWithGoogle,
@@ -1201,12 +1202,12 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
 
             <div className="mt-4 pt-3 border-t border-white/[0.08] text-center">
               <a
-                href="https://wa.me/918860090791?text=Hello%20APEX3D%20Support,%20I%20need%20help%20accessing%20my%20client%20portal"
+                href="https://wa.me/919717466626?text=Hello%20APEX3D%20Support,%20I%20need%20help%20accessing%20my%20client%20portal"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-[11px] font-mono text-zinc-400 hover:text-zinc-200 transition-colors"
               >
-                Need customer support? WhatsApp Team (+91 8860090791) →
+                Need support? Call (+91 8287578025) / WhatsApp (+91 9717466626) →
               </a>
             </div>
 
@@ -1360,7 +1361,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
               </div>
             </div>
             <a
-              href={`https://wa.me/919931354378?text=${encodeURIComponent(`Hi Admin, I submitted payment for Apex3D Vault (${activeOrder.tierName || 'Sprint Pass'}) with UTR ${activeOrder.utrNumber || ''}. It has been 60+ seconds, please expedite my verification!`)}`}
+              href={`https://wa.me/919717466626?text=${encodeURIComponent(`Hi Admin, I submitted payment for Apex3D Vault (${activeOrder.tierName || 'Sprint Pass'}) with UTR ${activeOrder.utrNumber || ''}. It has been 60+ seconds, please expedite my verification!`)}`}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full md:w-auto px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs font-mono shadow-md flex items-center justify-center gap-1.5 shrink-0 transition-all cursor-pointer"
@@ -2023,7 +2024,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onBackToSite, onUpgr
 
                 <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
                   <a
-                    href={`https://wa.me/919931354378?text=${encodeURIComponent(`Hi Admin, I submitted payment for Apex3D Vault (${activeOrder?.tierName || 'Sprint Pass'}) with UTR ${activeOrder?.utrNumber || ''}. Please expedite my verification!`)}`}
+                    href={`https://wa.me/919717466626?text=${encodeURIComponent(`Hi Admin, I submitted payment for Apex3D Vault (${activeOrder?.tierName || 'Sprint Pass'}) with UTR ${activeOrder?.utrNumber || ''}. Please expedite my verification!`)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-amber-500/20"
@@ -2556,7 +2557,7 @@ Rules:
                 <div className="pt-2">
                   {isPendingVerification ? (
                     <a
-                      href={`https://wa.me/919931354378?text=${encodeURIComponent(`Hi Admin, I submitted payment with UTR ${activeOrder?.utrNumber || ''}. Please expedite my commercial invoice & license generation!`)}`}
+                      href={`https://wa.me/919717466626?text=${encodeURIComponent(`Hi Admin, I submitted payment with UTR ${activeOrder?.utrNumber || ''}. Please expedite my commercial invoice & license generation!`)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="px-5 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-mono font-bold uppercase transition-all shadow-lg shadow-amber-500/20 cursor-pointer inline-flex items-center gap-2"
@@ -2662,7 +2663,7 @@ Rules:
                 <div className="pt-2">
                   {isPendingVerification ? (
                     <a
-                      href={`https://wa.me/919931354378?text=${encodeURIComponent(`Hi Admin, I submitted payment with UTR ${activeOrder?.utrNumber || ''}. Please expedite my access to the outbound scripts!`)}`}
+                      href={`https://wa.me/919717466626?text=${encodeURIComponent(`Hi Admin, I submitted payment with UTR ${activeOrder?.utrNumber || ''}. Please expedite my access to the outbound scripts!`)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="px-5 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-mono font-bold uppercase transition-all shadow-lg shadow-amber-500/20 cursor-pointer inline-flex items-center gap-2"
@@ -2838,20 +2839,29 @@ Happy to send over a link to our live showcase if you're exploring spatial web f
                   <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-3">
                     <MessageSquare className="w-5 h-5" />
                   </div>
-                  <h3 className="text-base font-bold text-white">WhatsApp Priority Support</h3>
+                  <h3 className="text-base font-bold text-white">Priority Support Hotline</h3>
                   <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
                     Direct line for payment verification, license questions, or urgent Three.js / shader debugging help.
                   </p>
                 </div>
-                <a
-                  href="https://wa.me/919931354378?text=Hi%2C%20I%20am%20an%20Apex3D%20Vault%20member%20requesting%20priority%20support."
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs font-mono flex items-center justify-center gap-2 transition-all cursor-pointer"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>Chat on WhatsApp (+91 99313 54378)</span>
-                </a>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <a
+                    href="https://wa.me/919717466626?text=Hi%2C%20I%20am%20an%20Apex3D%20Vault%20member%20requesting%20priority%20support."
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs font-mono flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>WhatsApp (+91 9717466626)</span>
+                  </a>
+                  <a
+                    href="tel:8287578025"
+                    className="flex-1 py-2.5 px-3 rounded-xl bg-white/[0.08] hover:bg-white text-zinc-200 hover:text-black font-bold text-xs font-mono flex items-center justify-center gap-1.5 transition-all cursor-pointer border border-white/10"
+                  >
+                    <Phone className="w-3.5 h-3.5" />
+                    <span>Call (+91 8287578025)</span>
+                  </a>
+                </div>
               </div>
 
               {/* VIP Discord / Dev Community */}
@@ -2866,7 +2876,7 @@ Happy to send over a link to our live showcase if you're exploring spatial web f
                   </p>
                 </div>
                 <a
-                  href="https://wa.me/919931354378?text=Hi%2C%20please%20send%20me%20the%20VIP%20Developer%20Community%20invite%20link."
+                  href="https://wa.me/919717466626?text=Hi%2C%20please%20send%20me%20the%20VIP%20Developer%20Community%20invite%20link."
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs font-mono flex items-center justify-center gap-2 transition-all cursor-pointer"
@@ -2892,7 +2902,7 @@ Happy to send over a link to our live showcase if you're exploring spatial web f
               </div>
 
               <a
-                href="https://wa.me/919931354378?text=Hi%2C%20I%20would%20like%20to%20request%20a%20custom%203D%20website%20prompt%20rebuild."
+                href="https://wa.me/919717466626?text=Hi%2C%20I%20would%20like%20to%20request%20a%20custom%203D%20website%20prompt%20rebuild."
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-5 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs font-mono shadow-md flex items-center justify-center gap-2 shrink-0 transition-all cursor-pointer"

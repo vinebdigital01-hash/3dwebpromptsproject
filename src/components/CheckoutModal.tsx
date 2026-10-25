@@ -1010,7 +1010,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
           {/* Bottom Security Footer */}
           <div className="px-7 py-2.5 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400 font-sans">
-            <span>Customer ID: {phone.replace(/\D/g, '') || '8860090791'}</span>
+            <span>Customer ID: {phone.replace(/\D/g, '') || '9717466626'}</span>
             <span className="flex items-center gap-1">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
               <span>Secured by Slice.</span>

@@ -3637,7 +3637,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({ onBackToSite }) => {
                   className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-xs font-mono text-white focus:outline-none focus:border-blue-500"
                 />
                 <span className="text-[10px] text-white/40 mt-1 block">
-                  Format: 91XXXXXXXXXX (e.g. 918860090791) for direct recovery chat links.
+                  Format: 91XXXXXXXXXX (e.g. 919717466626) for direct recovery chat links.
                 </span>
               </div>
             </div>

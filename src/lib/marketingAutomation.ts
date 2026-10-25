@@ -93,7 +93,7 @@ ${checkoutUrl}
 License Key: ${order.licenseKey || 'Available in portal'}
 Order ID: ${order.orderNumber}
 
-Need personal support? Reply directly or message us on WhatsApp: +91 8860090791.
+Need personal support? Call: +91 8287578025 or WhatsApp: +91 9717466626.
 
 Best regards,
 APEX 3D Creative Engineering Team
@@ -140,7 +140,7 @@ Vine B Digital Marketing Agency`;
     </div>
   </div>
   <div style="background: #06060a; padding: 20px 32px; font-size: 11px; font-family: monospace; color: #64748b; border-top: 1px solid rgba(255,255,255,0.06);">
-    Order: ${order.orderNumber} · License: ${order.licenseKey || 'N/A'} · WhatsApp Desk: +91 8860090791
+    Order: ${order.orderNumber} · License: ${order.licenseKey || 'N/A'} · Call: +91 8287578025 · WhatsApp: +91 9717466626
   </div>
 </div>`;
 

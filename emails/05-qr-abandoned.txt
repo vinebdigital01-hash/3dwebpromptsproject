@@ -67,7 +67,7 @@ If your payment failed, UPI timed out, or you prefer a direct QR code,
 message our priority desk on WhatsApp:
 
 -> WhatsApp Desk:
-{{whatsapp_link}} (Priority Desk: +91 8860090791)
+{{whatsapp_link}} (Priority Desk: +91 9717466626)
 
 
 ------------------------------------------------------------------------

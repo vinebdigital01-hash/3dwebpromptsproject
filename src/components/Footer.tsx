@@ -64,6 +64,22 @@ export const Footer: React.FC<FooterProps> = ({ onAdminClick }) => {
           >
             Contact
           </a>
+          <a
+            href="tel:8287578025"
+            onClick={() => sound.playClick()}
+            className="hover:text-blue-400 transition-colors flex items-center gap-1 font-mono text-[11px]"
+          >
+            <span>📞 Call: +91 8287578025</span>
+          </a>
+          <a
+            href="https://wa.me/919717466626"
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => sound.playClick()}
+            className="hover:text-emerald-400 transition-colors flex items-center gap-1 font-mono text-[11px]"
+          >
+            <span>💬 Call/WhatsApp: +91 9717466626</span>
+          </a>
           <button
             onClick={() => {
               sound.playClick();

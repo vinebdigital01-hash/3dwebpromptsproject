@@ -15,6 +15,7 @@ export interface AdminSettings {
   merchantUpi: string;
   supportEmail: string;
   whatsappNumber: string;
+  supportPhone?: string;
   transactionNote: string;
   pricing: TierPricing;
   // Cloud Sync (Supabase)
@@ -37,7 +38,8 @@ export const DEFAULT_ADMIN_SETTINGS: AdminSettings = {
   merchantName: 'Vine B Digital Marketing Agency',
   merchantUpi: 's5305704393562990@slc',
   supportEmail: 'support@vinebdigital.store',
-  whatsappNumber: '918860090791',
+  whatsappNumber: '919717466626',
+  supportPhone: '8287578025',
   transactionNote: 'Payment to slice merchant QR',
   pricing: {
     day_1: 49,

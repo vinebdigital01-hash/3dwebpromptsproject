@@ -322,7 +322,7 @@ export function buildBroadcastHtml(options: {
                   Vault Catalog
                 </a>
                 &bull;
-                <a href="https://wa.me/918860090791" style="color: #22c55e; text-decoration: none; font-weight: 600; margin: 0 8px;">
+                <a href="https://wa.me/919717466626" style="color: #22c55e; text-decoration: none; font-weight: 600; margin: 0 8px;">
                   WhatsApp Support
                 </a>
               </div>

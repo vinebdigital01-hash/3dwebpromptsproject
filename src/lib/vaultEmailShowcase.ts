@@ -10,8 +10,9 @@ import { VAULT_CATALOG, VaultItem } from '../data/vaultCatalog';
 export type ShowcaseMode = 'latest' | 'most_views' | 'most_copies' | 'random';
 
 export const BASE_PORTAL_URL = 'https://3dwebprompts-vineb.vercel.app';
-export const WHATSAPP_LINK = 'https://wa.me/918860090791';
-export const WHATSAPP_DISPLAY = '+91 8860090791';
+export const WHATSAPP_LINK = 'https://wa.me/919717466626';
+export const WHATSAPP_DISPLAY = '+91 9717466626';
+export const CALL_PHONE_DISPLAY = '+91 8287578025';
 
 export interface PromptShowcaseData {
   item: VaultItem;
