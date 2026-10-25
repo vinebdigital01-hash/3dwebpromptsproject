@@ -3,9 +3,7 @@ import { Preloader } from './components/Preloader';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
 import { AgencyMarquee } from './components/AgencyMarquee';
-import { PricingSection, PricingTier, Currency, TIERS } from './components/PricingSection';
-import { StickyFunnelBar } from './components/StickyFunnelBar';
-import { LiveSalesToasts } from './components/LiveSalesToasts';
+import { TIERS, type PricingTier, type Currency } from './data/pricingTiers';
 import { CustomMagneticCursor } from './components/CustomMagneticCursor';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { initAntiScraperShield } from './lib/security';
@@ -13,6 +11,15 @@ import { initVisitorTracking, trackModalOpen, trackPortalRedirect } from './lib/
 
 // 🚀 Performance Optimization: Lazy-load isolated routes and below-the-fold sections
 // Reduces initial JavaScript bundle by ~88% without altering any visual frontend design.
+const PricingSection = React.lazy(() =>
+  import('./components/PricingSection').then((m) => ({ default: m.PricingSection }))
+);
+const StickyFunnelBar = React.lazy(() =>
+  import('./components/StickyFunnelBar').then((m) => ({ default: m.StickyFunnelBar }))
+);
+const LiveSalesToasts = React.lazy(() =>
+  import('./components/LiveSalesToasts').then((m) => ({ default: m.LiveSalesToasts }))
+);
 const AdminConsole = React.lazy(() =>
   import('./components/AdminConsole').then((m) => ({ default: m.AdminConsole }))
 );
@@ -315,8 +322,10 @@ export default function App() {
         <RoiCalculator onUnlockClick={handleScrollToPricing} />
       </LazyViewportSection>
 
-      {/* 8. High-Converting Urgency Pricing (Always eager for instant jump & conversions) */}
-      <PricingSection onSelectTier={handleOpenCheckout} />
+      {/* 8. High-Converting Urgency Pricing */}
+      <LazyViewportSection id="pricing" minHeight="500px">
+        <PricingSection onSelectTier={handleOpenCheckout} />
+      </LazyViewportSection>
 
       {/* 9. Social Proof Wall of Love, 30-Day Guarantee & Interactive FAQ */}
       <LazyViewportSection minHeight="400px">
@@ -329,10 +338,14 @@ export default function App() {
       </LazyViewportSection>
 
       {/* Sticky Bottom Urgency Funnel Bar */}
-      <StickyFunnelBar onUnlockClick={handleScrollToPricing} />
+      <Suspense fallback={null}>
+        <StickyFunnelBar onUnlockClick={handleScrollToPricing} />
+      </Suspense>
 
       {/* Verified Live Agency Activity Notifications */}
-      <LiveSalesToasts />
+      <Suspense fallback={null}>
+        <LiveSalesToasts />
+      </Suspense>
 
       {/* Free Lead Capture Magnet Modal */}
       {isLeadMagnetOpen && (

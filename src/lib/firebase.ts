@@ -830,16 +830,19 @@ export async function syncGhostLeadToCloud(lead: {
   }
 }
 
-// Initialize Analytics conditionally
+// Initialize Analytics lazily (prevents injecting GTM/GA4 on critical initial page render)
 let analyticsInstance: Analytics | null = null;
-if (typeof window !== 'undefined') {
-  isSupported().then((supported) => {
+export async function getFirebaseAnalytics(): Promise<Analytics | null> {
+  if (analyticsInstance) return analyticsInstance;
+  if (typeof window === 'undefined') return null;
+  try {
+    const supported = await isSupported();
     if (supported) {
       analyticsInstance = getAnalytics(app);
+      return analyticsInstance;
     }
-  }).catch(() => {
-    // Ignore analytics unsupported environment
-  });
+  } catch {}
+  return null;
 }
 
 // Providers

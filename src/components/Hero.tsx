@@ -181,10 +181,7 @@ export const Hero: React.FC<HeroProps> = ({
 
           {/* ──────── 1. BADGE ──────── */}
           <div
-            style={{ transitionDuration: '300ms' }}
-            className={`h-[26px] px-2.5 rounded-full border border-white/10 bg-white/[0.03] inline-flex items-center gap-1.5 self-center shrink-0 transition-all will-change-[transform,opacity] ${
-              mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
-            }`}
+            className="h-[26px] px-2.5 rounded-full border border-white/10 bg-white/[0.03] inline-flex items-center gap-1.5 self-center shrink-0 opacity-100 translate-y-0"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E] shrink-0" />
             <span className="text-[11px] font-medium text-white/90 whitespace-nowrap">
@@ -194,10 +191,7 @@ export const Hero: React.FC<HeroProps> = ({
 
           {/* ──────── 2. HEADLINE ──────── */}
           <h1
-            style={{ transitionDelay: '50ms', transitionDuration: '300ms' }}
-            className={`mt-1.5 text-center font-heading font-semibold text-[clamp(24px,7.5vw,32px)] leading-[1.04] tracking-[-0.035em] text-[#F5F5F7] shrink-0 transition-all will-change-[transform,opacity] ${
-              mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
-            }`}
+            className="mt-1.5 text-center font-heading font-semibold text-[clamp(24px,7.5vw,32px)] leading-[1.04] tracking-[-0.035em] text-[#F5F5F7] shrink-0 opacity-100 translate-y-0"
           >
             Build <span className="text-[#3B82F6] font-semibold">$10,000</span>
             <br />
@@ -211,10 +205,7 @@ export const Hero: React.FC<HeroProps> = ({
               - Scroll-synced close-to-open (38deg -> 0deg) on mobile devices only
               - Pinned in place during opening scroll track */}
           <div
-            style={{ transitionDelay: '100ms', transitionDuration: '300ms' }}
-            className={`w-full my-1.5 sm:my-2 max-w-[270px] xs:max-w-[290px] sm:max-w-[320px] mx-auto select-none pointer-events-none shrink-0 transition-all will-change-[transform,opacity] ${
-              mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
-            }`}
+            className="w-full my-1.5 sm:my-2 max-w-[270px] xs:max-w-[290px] sm:max-w-[320px] mx-auto select-none pointer-events-none shrink-0 opacity-100 translate-y-0"
           >
             <div className="w-full flex flex-col items-center">
               {/* Display Assembly with 3D scroll sync (close-to-open) */}
@@ -265,7 +256,9 @@ export const Hero: React.FC<HeroProps> = ({
                         className={`w-full h-full object-cover object-top transition-opacity duration-700 ${
                           videoPlaying ? 'opacity-100' : 'opacity-0'
                         }`}
-                      />
+                      >
+                        <track kind="captions" src="data:text/vtt,WEBVTT" label="English" default={false} />
+                      </video>
                     )}
 
                     {/* Top dark gradient */}
@@ -399,10 +392,7 @@ export const Hero: React.FC<HeroProps> = ({
 
           {/* ──────── 6. TRUST LINE ──────── */}
           <div
-            style={{ transitionDelay: '250ms', transitionDuration: '300ms' }}
-            className={`mt-1.5 flex items-center justify-center gap-1.5 text-[11px] text-[#8B8F98] whitespace-nowrap shrink-0 transition-all will-change-[transform,opacity] ${
-              mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
-            }`}
+            className="mt-1.5 flex items-center justify-center gap-1.5 text-[11px] text-[#8B8F98] whitespace-nowrap shrink-0 opacity-100 translate-y-0"
           >
             <div className="flex -space-x-1 shrink-0">
               {MOBILE_AVATARS.map((src, i) => (
@@ -445,10 +435,7 @@ export const Hero: React.FC<HeroProps> = ({
             <div className="flex flex-col justify-center text-left items-start max-w-[560px]">
               {/* Badge: Pill shape, blue glow, uppercase luxury tracking */}
               <div
-                style={{ transitionDuration: '400ms' }}
-                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 shadow-[0_0_16px_rgba(59,130,246,0.25)] text-blue-300 text-[12px] font-mono tracking-widest uppercase mb-4 transition-all will-change-[transform,opacity] ${
-                  mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
-                }`}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 shadow-[0_0_16px_rgba(59,130,246,0.25)] text-blue-300 text-[12px] font-mono tracking-widest uppercase mb-4 opacity-100 translate-y-0"
               >
                 <Sparkles className="w-3.5 h-3.5 text-blue-400 shrink-0" />
                 <span>30+ FREE MASTER PROMPTS · $10K WEB</span>
@@ -456,10 +443,7 @@ export const Hero: React.FC<HeroProps> = ({
 
               {/* Headline */}
               <h1
-                style={{ transitionDelay: '60ms', transitionDuration: '400ms' }}
-                className={`font-heading font-semibold text-[44px] md:text-[52px] lg:text-[clamp(44px,4.5vw,70px)] 2xl:text-[76px] leading-[1.04] lg:leading-[1.0] tracking-[-0.035em] text-white mb-3.5 transition-all will-change-[transform,opacity] ${
-                  mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
-                }`}
+                className="font-heading font-semibold text-[44px] md:text-[52px] lg:text-[clamp(44px,4.5vw,70px)] 2xl:text-[76px] leading-[1.04] lg:leading-[1.0] tracking-[-0.035em] text-white mb-3.5 opacity-100 translate-y-0"
               >
                 Build{' '}
                 <span className="font-serif-accent italic font-normal text-transparent bg-clip-text bg-gradient-to-r from-[#38bdf8] via-[#818cf8] to-[#fbbf24] drop-shadow-[0_0_24px_rgba(56,189,248,0.35)]">
@@ -473,10 +457,7 @@ export const Hero: React.FC<HeroProps> = ({
 
               {/* Sub line */}
               <p
-                style={{ transitionDelay: '120ms', transitionDuration: '400ms' }}
-                className={`text-[17px] font-body text-white/75 max-w-[460px] leading-snug mb-4 transition-all will-change-[transform,opacity] ${
-                  mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
-                }`}
+                className="text-[17px] font-body text-white/75 max-w-[460px] leading-snug mb-4 opacity-100 translate-y-0"
               >
                 Become a{' '}
                 <span className="text-white font-medium relative inline-block after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[1.5px] after:bg-gradient-to-r after:from-blue-400 after:via-indigo-400 after:to-amber-400">
@@ -487,20 +468,14 @@ export const Hero: React.FC<HeroProps> = ({
 
               {/* Body Description */}
               <p
-                style={{ transitionDelay: '160ms', transitionDuration: '400ms' }}
-                className={`text-[16px] font-body text-white/65 max-w-[480px] leading-[1.6] mb-6 transition-all will-change-[transform,opacity] ${
-                  mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
-                }`}
+                className="text-[16px] font-body text-white/65 max-w-[480px] leading-[1.6] mb-6 opacity-100 translate-y-0"
               >
                 Stop spending 6 months learning WebGL, Three.js, and GLSL shaders. Copy our vault of 500+ battle-tested one-shot prompts to deploy jaw-dropping 3D interactive experiences in minutes.
               </p>
 
               {/* Action Row */}
               <div
-                style={{ transitionDelay: '200ms', transitionDuration: '400ms' }}
-                className={`w-full flex items-center justify-start gap-3.5 mb-4 transition-all will-change-[transform,opacity] ${
-                  mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
-                }`}
+                className="w-full flex items-center justify-start gap-3.5 mb-4 opacity-100 translate-y-0"
               >
                 <button
                   type="button"
@@ -535,10 +510,7 @@ export const Hero: React.FC<HeroProps> = ({
 
               {/* Social Proof */}
               <div
-                style={{ transitionDelay: '260ms', transitionDuration: '400ms' }}
-                className={`flex items-center justify-start gap-4 text-[13px] font-body text-zinc-300 transition-all will-change-[transform,opacity] ${
-                  mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
-                }`}
+                className="flex items-center justify-start gap-4 text-[13px] font-body text-zinc-300 opacity-100 translate-y-0"
               >
                 <div className="flex items-center gap-1.5 whitespace-nowrap">
                   <span className="text-amber-400 text-[14px] leading-none">★★★★★</span>
@@ -570,12 +542,7 @@ export const Hero: React.FC<HeroProps> = ({
             </div>
 
             {/* VISUAL COLUMN (MacBook + iPhone Stage on Tablet/Desktop) */}
-            <div
-              style={{ transitionDelay: '300ms', transitionDuration: '400ms' }}
-              className={`w-full transition-all will-change-[transform,opacity] ${
-                mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
-              }`}
-            >
+            <div className="w-full opacity-100 translate-y-0">
               {mounted && typeof window !== 'undefined' && window.innerWidth >= 768 && (
                 <HeroDeviceStage />
               )}

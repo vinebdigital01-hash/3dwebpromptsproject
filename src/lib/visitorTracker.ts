@@ -3,10 +3,8 @@
 // Automatic tracking for Meta Ads, Google Ads, Organic Search, Dwell Time, Scroll Depth & Funnel Drop-offs
 // ==========================================
 
-import {
-  saveVisitorSessionToFirestore,
-  logVisitorEventToFirestore,
-} from './firebase';
+// Firebase is loaded dynamically on high-intent actions (lead/checkout/payment)
+// to prevent loading the 596KB Firebase runtime on public landing page load.
 import { getAdminSettings } from './adminSettings';
 
 export type TrafficChannel = 'meta_ads' | 'google_ads' | 'organic_search' | 'organic_social' | 'direct';
@@ -453,9 +451,15 @@ function persistSession(session: VisitorSession) {
     sessionStorage.setItem(SESSION_DATA_KEY, JSON.stringify(session));
   } catch {}
 
-  saveVisitorSessionToFirestore(session).catch((err) => {
-    console.debug('Telemetry session sync notice:', err);
-  });
+  // Only sync to Firestore when high-intent actions happen (lead submitted, checkout, payment)
+  // to keep the initial public load 100% free of Firestore network overhead.
+  if (session.hasSubmittedLead || session.hasInitiatedCheckout || session.hasConvertedPaid) {
+    import('./firebase')
+      .then((fb) => fb.saveVisitorSessionToFirestore(session))
+      .catch((err) => {
+        console.debug('Telemetry session sync notice:', err);
+      });
+  }
 
   // Relay to real-time serverless visitor stream without blocking page navigation or critical path
   if (typeof navigator !== 'undefined' && 'sendBeacon' in navigator) {
@@ -539,9 +543,17 @@ export function trackVisitorEvent(
     activeSession.hasConvertedPaid = true;
   }
 
-  // 4. Save session and log event to Firestore
+  // 4. Save session and log high-intent events to Firestore
   persistSession(activeSession);
-  logVisitorEventToFirestore(eventItem).catch(() => {});
+  if (
+    eventType === 'lead_submitted' ||
+    eventType === 'checkout_initiate' ||
+    eventType === 'payment_success'
+  ) {
+    import('./firebase')
+      .then((fb) => fb.logVisitorEventToFirestore(eventItem))
+      .catch(() => {});
+  }
 }
 
 /**
@@ -561,9 +573,6 @@ export function initVisitorTracking(): void {
   }
 
   isInitialized = true;
-
-  // Initialize Meta Pixel & Microsoft Clarity if configured
-  initializeThirdPartyScripts();
 
   const nowIso = new Date().toISOString();
 

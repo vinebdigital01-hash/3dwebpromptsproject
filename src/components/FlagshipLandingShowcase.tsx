@@ -417,7 +417,7 @@ export const FlagshipLandingShowcase: React.FC<FlagshipLandingShowcaseProps> = (
                 muted={isMuted}
                 playsInline
                 webkit-playsinline="true"
-                preload={item.id === activeItem.id ? 'metadata' : 'none'}
+                preload="none"
                 onTimeUpdate={() => {
                   if (item.id === activeItem.id) {
                     handleTimeUpdate(item.id);
@@ -426,7 +426,9 @@ export const FlagshipLandingShowcase: React.FC<FlagshipLandingShowcaseProps> = (
                 className={`absolute inset-0 w-full h-full object-contain sm:object-cover transition-opacity duration-300 bg-black ${
                   item.id === activeItem.id ? 'opacity-100 z-10 pointer-events-auto' : 'opacity-0 z-0 pointer-events-none'
                 }`}
-              />
+              >
+                <track kind="captions" src="data:text/vtt,WEBVTT" label="English" default={false} />
+              </video>
             ))}
 
             {/* Subtle Center Tap Indicator */}
@@ -468,9 +470,9 @@ export const FlagshipLandingShowcase: React.FC<FlagshipLandingShowcaseProps> = (
                 </span>
               </div>
 
-              <h4 className="text-lg sm:text-2xl font-bold text-white tracking-tight">
+              <h3 className="text-lg sm:text-2xl font-bold text-white tracking-tight">
                 {activeItem.name} — <span className="text-zinc-400 text-sm sm:text-base font-normal">{activeItem.category}</span>
-              </h4>
+              </h3>
 
               <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed font-sans mt-1 max-w-2xl line-clamp-2 sm:line-clamp-none">
                 {activeItem.description}
