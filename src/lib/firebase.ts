@@ -49,8 +49,20 @@ export const firebaseConfig = {
 // Initialize Firebase App (Singleton safe across hot reloads)
 export const app: FirebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
-// Initialize Firebase Auth
-export const auth: Auth = getAuth(app);
+// Initialize Firebase Auth lazily to avoid loading /__/auth/iframe.js (6+ sec blocking iframe) on public landing page
+let _auth: Auth | null = null;
+export function getFirebaseAuth(): Auth {
+  if (!_auth) {
+    _auth = getAuth(app);
+  }
+  return _auth;
+}
+
+export const auth: Auth = new Proxy({} as Auth, {
+  get(_, prop) {
+    return (getFirebaseAuth() as any)[prop];
+  },
+});
 
 // Initialize Firestore
 export const db: Firestore = getFirestore(app);

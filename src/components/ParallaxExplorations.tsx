@@ -211,7 +211,7 @@ const ShowcaseCard: React.FC<{
               loop
               muted
               playsInline
-              preload="metadata"
+              preload="none"
               className={`w-full h-full object-cover transition-opacity duration-500 ${
                 isPlaying ? 'opacity-100' : 'opacity-0'
               }`}

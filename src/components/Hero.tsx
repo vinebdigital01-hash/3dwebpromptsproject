@@ -17,9 +17,9 @@ const DESKTOP_AVATARS = [
 ];
 
 const MOBILE_AVATARS = [
-  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=36&auto=format&fit=crop&q=70',
+  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=36&auto=format&fit=crop&q=70',
+  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=36&auto=format&fit=crop&q=70',
 ];
 
 export const Hero: React.FC<HeroProps> = ({
@@ -225,7 +225,7 @@ export const Hero: React.FC<HeroProps> = ({
                       loop
                       muted
                       playsInline
-                      preload="metadata"
+                      preload="none"
                       className="w-full h-full object-cover object-top"
                     />
 
@@ -371,6 +371,10 @@ export const Hero: React.FC<HeroProps> = ({
                   key={i}
                   src={src}
                   alt="Creator avatar"
+                  width={18}
+                  height={18}
+                  loading="lazy"
+                  decoding="async"
                   className="w-[18px] h-[18px] rounded-full border border-[#0B0D12] object-cover"
                 />
               ))}
@@ -533,7 +537,9 @@ export const Hero: React.FC<HeroProps> = ({
                 mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
               }`}
             >
-              <HeroDeviceStage />
+              {mounted && typeof window !== 'undefined' && window.innerWidth >= 768 && (
+                <HeroDeviceStage />
+              )}
             </div>
           </div>
         </div>

@@ -589,7 +589,7 @@ const TransformationCard: React.FC<TransformationCardProps> = ({
             playsInline
             muted
             loop
-            preload="metadata"
+            preload="none"
             onTimeUpdate={handleTimeUpdate}
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
           />

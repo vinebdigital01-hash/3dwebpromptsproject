@@ -409,7 +409,7 @@ export const FlagshipLandingShowcase: React.FC<FlagshipLandingShowcaseProps> = (
               <video
                 key={item.id}
                 ref={(el) => { videoRefs.current[item.id] = el; }}
-                src={isSectionVisible || item.id === activeItem.id ? item.videoUrl : undefined}
+                src={isSectionVisible && item.id === activeItem.id ? item.videoUrl : undefined}
                 autoPlay={item.id === activeItem.id && isSectionVisible}
                 loop
                 muted={isMuted}

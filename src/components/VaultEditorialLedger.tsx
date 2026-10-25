@@ -81,7 +81,7 @@ const FreePromptCard: React.FC<{
             loop
             muted
             playsInline
-            preload="metadata"
+            preload="none"
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
         )}
@@ -450,6 +450,7 @@ export const VaultEditorialLedger: React.FC<VaultEditorialLedgerProps> = ({ onUn
                             loop
                             muted
                             playsInline
+                            preload="none"
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           />
                         )}

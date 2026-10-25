@@ -14,49 +14,49 @@ export const HERO_SHOWCASE_VIDEOS: ShowcaseVideo[] = [
     name: 'VALMORA',
     subtitle: 'Haute-Couture Kinetic Spatial Architecture',
     videoUrl: 'https://pub-1e5b4001b36b47e28e6a2fb775966a79.r2.dev/previews/valmora.mp4',
-    posterUrl: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=1400&auto=format&fit=crop&q=80',
+    posterUrl: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=720&auto=format&fit=crop&q=75',
   },
   {
     id: 'selene',
     name: 'SELENE',
     subtitle: 'Lunar Expedition Earthrise Parallax Engine',
     videoUrl: 'https://pub-1e5b4001b36b47e28e6a2fb775966a79.r2.dev/previews/selene.mp4',
-    posterUrl: 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=1400&auto=format&fit=crop&q=80',
+    posterUrl: 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=720&auto=format&fit=crop&q=75',
   },
   {
     id: 'ora',
     name: 'ORA HOROLOGY',
     subtitle: 'Geneva Watch Scroll-Scrubbed Canvas Storefront',
     videoUrl: 'https://pub-1e5b4001b36b47e28e6a2fb775966a79.r2.dev/previews/ora-v2.mp4',
-    posterUrl: 'https://images.unsplash.com/photo-1524805444758-089113d48a6d?w=1400&auto=format&fit=crop&q=80',
+    posterUrl: 'https://images.unsplash.com/photo-1524805444758-089113d48a6d?w=720&auto=format&fit=crop&q=75',
   },
   {
     id: 'fluxora',
     name: 'FLUXORA',
     subtitle: 'Human Craft Agency Visor Architecture',
     videoUrl: 'https://pub-1e5b4001b36b47e28e6a2fb775966a79.r2.dev/previews/fluxora.mp4',
-    posterUrl: 'https://images.unsplash.com/photo-1507499739999-097706ad8914?w=1400&auto=format&fit=crop&q=80',
+    posterUrl: 'https://images.unsplash.com/photo-1507499739999-097706ad8914?w=720&auto=format&fit=crop&q=75',
   },
   {
     id: 'alethia',
     name: 'ALETHIA',
     subtitle: 'Bespoke Architectural Spatial Showcase',
     videoUrl: 'https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/designs/alethia-video.mp4',
-    posterUrl: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1400&auto=format&fit=crop&q=80',
+    posterUrl: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=720&auto=format&fit=crop&q=75',
   },
   {
     id: 'genotrace',
     name: 'GENO TRACE',
     subtitle: 'Bio-Spatial Particle & DNA Genomic Helix',
     videoUrl: 'https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/a/Geno%20Trace.mp4',
-    posterUrl: 'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=1400&auto=format&fit=crop&q=80',
+    posterUrl: 'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=720&auto=format&fit=crop&q=75',
   },
   {
     id: 'anchor-ai',
     name: 'ANCHOR AI',
     subtitle: 'Autonomous Agentic Interface & Liquid Chrome',
     videoUrl: 'https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/designs/anchor-ai-landing.mp4',
-    posterUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1400&auto=format&fit=crop&q=80',
+    posterUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=720&auto=format&fit=crop&q=75',
   },
   {
     id: 'spatial-os',
@@ -302,18 +302,18 @@ export const HeroDeviceStage: React.FC<HeroDeviceStageProps> = ({
                 <div className="w-0.5 h-0.5 rounded-full bg-[#111116]" />
               </div>
 
-              {/* Inner Screen Video */}
+              {/* Inner Screen Video - Only loaded on desktop where iPhone is visible */}
               <div className="relative w-full h-full rounded-[16px] xs:rounded-[20px] sm:rounded-[24px] overflow-hidden bg-black flex items-center justify-center">
                 <video
                   ref={phoneVideoRef}
                   key={`phone-${activeVideoUrl}`}
-                  src={activeVideoUrl}
+                  src={typeof window !== 'undefined' && window.innerWidth >= 1024 ? activeVideoUrl : undefined}
                   poster={activePosterUrl}
                   autoPlay
                   loop
                   muted
                   playsInline
-                  preload="metadata"
+                  preload="none"
                   className="w-full h-full object-cover object-top"
                 />
                 <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-6 sm:w-8 h-[2px] bg-white/40 rounded-full pointer-events-none" />

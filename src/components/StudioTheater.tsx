@@ -490,7 +490,7 @@ export const StudioTheater: React.FC<StudioTheaterProps> = ({ onUnlockClick }) =
                 autoPlay
                 muted={isMuted}
                 playsInline
-                preload="metadata"
+                preload="none"
                 onTimeUpdate={handleTimeUpdate}
                 onEnded={handleRandomSelect}
                 className="w-full h-full object-contain sm:object-cover bg-black"

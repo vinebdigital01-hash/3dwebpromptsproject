@@ -736,9 +736,17 @@ export async function deleteApprovedOrderPermanently(orderId: string, email?: st
   await deleteLeadPermanently(orderId, email);
 }
 
-// Auto-activate in browser
+// Auto-activate in browser only for Admin Console or Client Portal to avoid 4MB Firestore Listen streaming on public landing page
 if (typeof window !== 'undefined') {
-  initFirestoreSync();
+  const isPrivilegedRoute =
+    window.location.hash.includes('#admin') ||
+    window.location.pathname.startsWith('/admin') ||
+    window.location.hash.includes('#portal') ||
+    window.location.pathname.startsWith('/portal');
+
+  if (isPrivilegedRoute) {
+    initFirestoreSync();
+  }
 }
 
 /**
