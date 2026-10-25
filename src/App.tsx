@@ -136,22 +136,6 @@ export default function App() {
     initAntiScraperShield();
     initVisitorTracking();
 
-    // Defer cloud prompts sync so initial paint is instant and doesn't block main thread
-    let unsubPrompts = () => {};
-    const triggerPromptsSync = () => {
-      import('./lib/promptCatalogStore')
-        .then((m) => {
-          unsubPrompts = m.initPromptsCloudSync();
-        })
-        .catch(() => {});
-    };
-
-    if ('requestIdleCallback' in window) {
-      (window as any).requestIdleCallback(triggerPromptsSync, { timeout: 2000 });
-    } else {
-      setTimeout(triggerPromptsSync, 1000);
-    }
-
     const handleHashChange = () => {
       const isAdm = window.location.hash === '#admin' || window.location.pathname === '/admin';
       const isPrt = window.location.hash === '#portal' || window.location.pathname === '/portal';
@@ -163,7 +147,6 @@ export default function App() {
     };
     window.addEventListener('hashchange', handleHashChange);
     return () => {
-      unsubPrompts();
       window.removeEventListener('hashchange', handleHashChange);
     };
   }, []);
@@ -267,7 +250,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050508] text-[#f4f4f7] selection:bg-blue-600/40 selection:text-white overflow-x-clip">
+    <main className="min-h-screen bg-[#050508] text-[#f4f4f7] selection:bg-blue-600/40 selection:text-white overflow-x-clip">
       {/* Non-Neon Custom Magnetic Cursor */}
       <CustomMagneticCursor />
 
@@ -371,6 +354,6 @@ export default function App() {
           />
         </Suspense>
       )}
-    </div>
+    </main>
   );
 }

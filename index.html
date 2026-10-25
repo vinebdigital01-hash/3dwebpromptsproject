@@ -17,9 +17,14 @@
     <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
     <link rel="dns-prefetch" href="https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev" />
     <link rel="dns-prefetch" href="https://api.fontshare.com" />
+    <link rel="dns-prefetch" href="https://connect.facebook.net" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="preconnect" href="https://api.fontshare.com" crossorigin />
+    <link rel="preconnect" href="https://api.fontshare.com" />
+    <link rel="preconnect" href="https://connect.facebook.net" crossorigin />
+
+    <!-- ⚡ Ultra-High Priority Hero LCP Image Preload (Sub-1s mobile render) -->
+    <link rel="preload" as="image" href="https://images.unsplash.com/photo-1509631179647-0177331693ae?w=480&auto=format&fit=crop&q=75" fetchpriority="high" />
 
     <!-- Non-render-blocking asynchronous font loading -->
     <link rel="preload" as="style" href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&f[]=clash-display@500,600,700&display=swap" />
@@ -28,10 +33,10 @@
       <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&f[]=clash-display@500,600,700&display=swap" />
     </noscript>
 
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" media="print" onload="this.media='all'" />
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" media="print" onload="this.media='all'" />
     <noscript>
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" />
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" />
     </noscript>
 
     <!-- Deferred Third-Party Analytics (Non-blocking for instant First Paint) -->
@@ -79,15 +84,19 @@
           })(window, document, "clarity", "script", "z0ji2tnxzb");
         }
 
-        if ('requestIdleCallback' in window) {
-          requestIdleCallback(initThirdPartyTracking, { timeout: 1200 });
-        } else if (document.readyState === 'complete') {
-          setTimeout(initThirdPartyTracking, 100);
-        } else {
-          window.addEventListener('load', function() {
-            setTimeout(initThirdPartyTracking, 100);
-          }, { once: true });
+        // Trigger on first user interaction OR after 3.5s delay to keep critical render window 100% idle
+        var interactionEvents = ['scroll', 'touchstart', 'pointerdown', 'mousemove', 'keydown'];
+        var timer = setTimeout(initThirdPartyTracking, 3500);
+        function onUserInteraction() {
+          clearTimeout(timer);
+          initThirdPartyTracking();
+          interactionEvents.forEach(function(ev) {
+            window.removeEventListener(ev, onUserInteraction);
+          });
         }
+        interactionEvents.forEach(function(ev) {
+          window.addEventListener(ev, onUserInteraction, { once: true, passive: true });
+        });
       })();
     </script>
   </head>

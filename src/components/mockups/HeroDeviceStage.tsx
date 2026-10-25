@@ -14,7 +14,7 @@ export const HERO_SHOWCASE_VIDEOS: ShowcaseVideo[] = [
     name: 'VALMORA',
     subtitle: 'Haute-Couture Kinetic Spatial Architecture',
     videoUrl: 'https://pub-1e5b4001b36b47e28e6a2fb775966a79.r2.dev/previews/valmora.mp4',
-    posterUrl: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=720&auto=format&fit=crop&q=75',
+    posterUrl: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=480&auto=format&fit=crop&q=75',
   },
   {
     id: 'selene',

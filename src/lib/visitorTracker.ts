@@ -457,13 +457,22 @@ function persistSession(session: VisitorSession) {
     console.debug('Telemetry session sync notice:', err);
   });
 
-  // Relay to real-time serverless visitor stream for instant cross-device monitoring
-  if (typeof fetch !== 'undefined') {
-    fetch('/api/visitor-relay', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(session),
-    }).catch(() => {});
+  // Relay to real-time serverless visitor stream without blocking page navigation or critical path
+  if (typeof navigator !== 'undefined' && 'sendBeacon' in navigator) {
+    try {
+      navigator.sendBeacon('/api/visitor-relay', JSON.stringify(session));
+    } catch {
+      // ignore
+    }
+  } else if (typeof fetch !== 'undefined') {
+    setTimeout(() => {
+      fetch('/api/visitor-relay', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(session),
+        keepalive: true,
+      }).catch(() => {});
+    }, 2500);
   }
 }
 

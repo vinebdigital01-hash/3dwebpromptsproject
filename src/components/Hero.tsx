@@ -28,11 +28,11 @@ export const Hero: React.FC<HeroProps> = ({
 }) => {
   const [mounted, setMounted] = useState(false);
 
-  // Pick a random prompt showcase video on reload or first visit for mobile MacBook
-  const [randomMobileVideo] = useState<ShowcaseVideo>(() => {
-    const randomIndex = Math.floor(Math.random() * HERO_SHOWCASE_VIDEOS.length);
-    return HERO_SHOWCASE_VIDEOS[randomIndex];
-  });
+  // Use VALMORA as the authoritative preloaded LCP hero video on initial mount
+  const [randomMobileVideo] = useState<ShowcaseVideo>(HERO_SHOWCASE_VIDEOS[0]);
+  const [canPlayMobileVideo, setCanPlayMobileVideo] = useState(false);
+  const [videoPlaying, setVideoPlaying] = useState(false);
+
   const mobileVideoRef = useRef<HTMLVideoElement>(null);
   const mobileLidRef = useRef<HTMLDivElement>(null);
   const mobileHeroTrackRef = useRef<HTMLDivElement>(null);
@@ -40,16 +40,21 @@ export const Hero: React.FC<HeroProps> = ({
 
   useEffect(() => {
     setMounted(true);
+    // Defer mobile video loading until 1.8s after initial mount to guarantee sub-1s LCP
+    const timer = setTimeout(() => {
+      setCanPlayMobileVideo(true);
+    }, 1800);
+    return () => clearTimeout(timer);
   }, []);
 
   // Ensure muted autoplay works seamlessly on iOS Safari & Android
   useEffect(() => {
-    if (mobileVideoRef.current) {
+    if (canPlayMobileVideo && mobileVideoRef.current) {
       mobileVideoRef.current.defaultMuted = true;
       mobileVideoRef.current.muted = true;
       mobileVideoRef.current.play().catch(() => {});
     }
-  }, [randomMobileVideo]);
+  }, [canPlayMobileVideo, randomMobileVideo]);
 
   // Scroll-pinned close-to-open interaction ONLY on mobile devices (< 768px)
   useEffect(() => {
@@ -214,20 +219,33 @@ export const Hero: React.FC<HeroProps> = ({
                     <div className="w-1 h-1 rounded-full bg-emerald-400/80 animate-pulse" />
                   </div>
 
-                  {/* Inner Screen: Random Prompt Video on Reload / First Load */}
+                  {/* Inner Screen: Crisp Instant LCP Poster + Deferred Video Stream */}
                   <div className="relative w-full h-full rounded-t-[9px] overflow-hidden bg-black flex items-center justify-center">
-                    <video
-                      ref={mobileVideoRef}
-                      key={randomMobileVideo.id}
-                      src={randomMobileVideo.videoUrl}
-                      poster={randomMobileVideo.posterUrl}
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      preload="none"
-                      className="w-full h-full object-cover object-top"
+                    <img
+                      src={randomMobileVideo.posterUrl}
+                      alt={randomMobileVideo.name}
+                      width={321}
+                      height={200}
+                      className={`absolute inset-0 w-full h-full object-cover object-top transition-opacity duration-700 ${
+                        videoPlaying ? 'opacity-0' : 'opacity-100'
+                      }`}
                     />
+                    {canPlayMobileVideo && (
+                      <video
+                        ref={mobileVideoRef}
+                        key={randomMobileVideo.id}
+                        src={randomMobileVideo.videoUrl}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        preload="none"
+                        onPlay={() => setVideoPlaying(true)}
+                        className={`w-full h-full object-cover object-top transition-opacity duration-700 ${
+                          videoPlaying ? 'opacity-100' : 'opacity-0'
+                        }`}
+                      />
+                    )}
 
                     {/* Top dark gradient */}
                     <div className="absolute inset-x-0 top-0 h-5 bg-gradient-to-b from-black/60 to-transparent pointer-events-none z-10" />
