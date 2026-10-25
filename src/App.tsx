@@ -3,7 +3,6 @@ import { Preloader } from './components/Preloader';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
 import { AgencyMarquee } from './components/AgencyMarquee';
-import { FlagshipLandingShowcase } from './components/FlagshipLandingShowcase';
 import { PricingSection, PricingTier, Currency, TIERS } from './components/PricingSection';
 import { StickyFunnelBar } from './components/StickyFunnelBar';
 import { LiveSalesToasts } from './components/LiveSalesToasts';
@@ -30,6 +29,9 @@ const LeadMagnetModal = React.lazy(() =>
 );
 
 // Lazy-loaded below-the-fold sections
+const FlagshipLandingShowcase = React.lazy(() =>
+  import('./components/FlagshipLandingShowcase').then((m) => ({ default: m.FlagshipLandingShowcase }))
+);
 const StudioTheater = React.lazy(() =>
   import('./components/StudioTheater').then((m) => ({ default: m.StudioTheater }))
 );
@@ -274,7 +276,9 @@ export default function App() {
       <AgencyMarquee />
 
       {/* 1.8 Flagship Landing Page Blueprints (Valmora, Selene, Ora, Fluxora) */}
-      <FlagshipLandingShowcase onUnlockClick={handleScrollToPricing} />
+      <LazyViewportSection minHeight="450px">
+        <FlagshipLandingShowcase onUnlockClick={handleScrollToPricing} />
+      </LazyViewportSection>
 
       {/* 2. Panoramic Cinema Studio Theater (Streamed on scroll) */}
       <LazyViewportSection id="theater" minHeight="450px">

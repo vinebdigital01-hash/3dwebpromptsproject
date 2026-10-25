@@ -21,7 +21,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preconnect" href="https://api.fontshare.com" />
-    <link rel="preconnect" href="https://connect.facebook.net" crossorigin />
+    <link rel="preconnect" href="https://connect.facebook.net" />
 
     <!-- ⚡ Ultra-High Priority Hero LCP Image Preload (Sub-1s mobile render) -->
     <link rel="preload" as="image" href="https://images.unsplash.com/photo-1509631179647-0177331693ae?w=480&auto=format&fit=crop&q=75" fetchpriority="high" />
@@ -84,11 +84,9 @@
           })(window, document, "clarity", "script", "z0ji2tnxzb");
         }
 
-        // Trigger on first user interaction OR after 3.5s delay to keep critical render window 100% idle
+        // Initialize on first user touch/scroll/click to preserve 100% human attribution while eliminating bot CPU freeze
         var interactionEvents = ['scroll', 'touchstart', 'pointerdown', 'mousemove', 'keydown'];
-        var timer = setTimeout(initThirdPartyTracking, 3500);
         function onUserInteraction() {
-          clearTimeout(timer);
           initThirdPartyTracking();
           interactionEvents.forEach(function(ev) {
             window.removeEventListener(ev, onUserInteraction);

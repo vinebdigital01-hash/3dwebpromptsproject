@@ -40,11 +40,30 @@ export const Hero: React.FC<HeroProps> = ({
 
   useEffect(() => {
     setMounted(true);
-    // Defer mobile video loading until 1.8s after initial mount to guarantee sub-1s LCP
-    const timer = setTimeout(() => {
+
+    // On desktop, allow video autoplay
+    if (typeof window !== 'undefined' && window.innerWidth >= 768) {
       setCanPlayMobileVideo(true);
-    }, 1800);
-    return () => clearTimeout(timer);
+      return;
+    }
+
+    // On mobile devices, delay video until first user touch/scroll to eliminate 5.8MB download on page load
+    const startMobileVideo = () => {
+      setCanPlayMobileVideo(true);
+      ['touchstart', 'scroll', 'click'].forEach((ev) => {
+        window.removeEventListener(ev, startMobileVideo);
+      });
+    };
+
+    ['touchstart', 'scroll', 'click'].forEach((ev) => {
+      window.addEventListener(ev, startMobileVideo, { once: true, passive: true });
+    });
+
+    return () => {
+      ['touchstart', 'scroll', 'click'].forEach((ev) => {
+        window.removeEventListener(ev, startMobileVideo);
+      });
+    };
   }, []);
 
   // Ensure muted autoplay works seamlessly on iOS Safari & Android
@@ -226,6 +245,8 @@ export const Hero: React.FC<HeroProps> = ({
                       alt={randomMobileVideo.name}
                       width={321}
                       height={200}
+                      fetchPriority="high"
+                      decoding="async"
                       className={`absolute inset-0 w-full h-full object-cover object-top transition-opacity duration-700 ${
                         videoPlaying ? 'opacity-0' : 'opacity-100'
                       }`}
