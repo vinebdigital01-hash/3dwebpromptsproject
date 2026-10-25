@@ -19,10 +19,22 @@
     <link rel="dns-prefetch" href="https://api.fontshare.com" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&f[]=clash-display@500,600,700&display=swap" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="preconnect" href="https://api.fontshare.com" crossorigin />
 
-    <!-- Meta Pixel Code -->
+    <!-- Non-render-blocking asynchronous font loading -->
+    <link rel="preload" as="style" href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&f[]=clash-display@500,600,700&display=swap" />
+    <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&f[]=clash-display@500,600,700&display=swap" media="print" onload="this.media='all'" />
+    <noscript>
+      <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&f[]=clash-display@500,600,700&display=swap" />
+    </noscript>
+
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" media="print" onload="this.media='all'" />
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" />
+    </noscript>
+
+    <!-- Deferred Third-Party Analytics (Non-blocking for instant First Paint) -->
     <script>
       (function() {
         var isExcludedAdmin = false;
@@ -42,41 +54,42 @@
           return;
         }
 
-        !function(f,b,e,v,n,t,s)
-        {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-        n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-        if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-        n.queue=[];t=b.createElement(e);t.async=!0;
-        t.src=v;s=b.getElementsByTagName(e)[0];
-        s.parentNode.insertBefore(t,s)}(window, document,'script',
-        'https://connect.facebook.net/en_US/fbevents.js');
-        fbq('init', '4722606601349243');
-        fbq('track', 'PageView');
+        var initialized = false;
+        function initThirdPartyTracking() {
+          if (initialized) return;
+          initialized = true;
+
+          // Meta Pixel Code
+          !function(f,b,e,v,n,t,s)
+          {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+          n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+          if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+          n.queue=[];t=b.createElement(e);t.async=!0;
+          t.src=v;s=b.getElementsByTagName(e)[0];
+          s.parentNode.insertBefore(t,s)}(window, document,'script',
+          'https://connect.facebook.net/en_US/fbevents.js');
+          fbq('init', '4722606601349243');
+          fbq('track', 'PageView');
+
+          // Microsoft Clarity Code
+          (function(c,l,a,r,i,t,y){
+            c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+            t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+            y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+          })(window, document, "clarity", "script", "z0ji2tnxzb");
+        }
+
+        if ('requestIdleCallback' in window) {
+          requestIdleCallback(initThirdPartyTracking, { timeout: 1200 });
+        } else if (document.readyState === 'complete') {
+          setTimeout(initThirdPartyTracking, 100);
+        } else {
+          window.addEventListener('load', function() {
+            setTimeout(initThirdPartyTracking, 100);
+          }, { once: true });
+        }
       })();
     </script>
-    <!-- End Meta Pixel Code -->
-
-    <!-- Microsoft Clarity Code -->
-    <script type="text/javascript">
-      (function(c,l,a,r,i,t,y){
-        // Suppress on admin device to keep recordings clean of owner testing
-        try {
-          if (
-            window.location.hash.indexOf('#admin') !== -1 ||
-            window.location.pathname.indexOf('/admin') === 0 ||
-            localStorage.getItem('apex3d_admin_session_v2') ||
-            localStorage.getItem('apex3d_exclude_admin_tracking') === 'true'
-          ) {
-            return;
-          }
-        } catch (e) {}
-
-        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-      })(window, document, "clarity", "script", "z0ji2tnxzb");
-    </script>
-    <!-- End Microsoft Clarity Code -->
   </head>
   <body class="bg-[#050508] text-[#f4f4f7] antialiased selection:bg-blue-600/40 selection:text-white overflow-x-hidden">
     <!-- Meta Pixel noscript fallback -->
@@ -87,4 +100,3 @@
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-
