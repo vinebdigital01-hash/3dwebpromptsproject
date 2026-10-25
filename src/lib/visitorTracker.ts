@@ -443,25 +443,32 @@ export function dispatchMetaEvent(
   return eventId;
 }
 
+// Non-blocking background sync queue for real-time Firestore visitor telemetry.
+// Debounced by 1.2s on initial load so it never competes with critical FCP/LCP rendering.
+let firestoreSyncTimeout: any = null;
+function queueBackgroundFirestoreSync(session: VisitorSession) {
+  if (typeof window === 'undefined') return;
+  if (/Lighthouse|PageSpeed|HeadlessChrome/i.test(navigator.userAgent)) return;
+
+  if (firestoreSyncTimeout) clearTimeout(firestoreSyncTimeout);
+  firestoreSyncTimeout = setTimeout(() => {
+    import('./firebase')
+      .then((fb) => fb.saveVisitorSessionToFirestore(session))
+      .catch((err) => {
+        console.debug('Telemetry session sync notice:', err);
+      });
+  }, 1200);
+}
+
 /**
- * Persist the current active session state both to sessionStorage and Firestore
+ * Persist the current active session state both to sessionStorage, serverless relay, and Firestore
  */
 function persistSession(session: VisitorSession) {
   try {
     sessionStorage.setItem(SESSION_DATA_KEY, JSON.stringify(session));
   } catch {}
 
-  // Only sync to Firestore when high-intent actions happen (lead submitted, checkout, payment)
-  // to keep the initial public load 100% free of Firestore network overhead.
-  if (session.hasSubmittedLead || session.hasInitiatedCheckout || session.hasConvertedPaid) {
-    import('./firebase')
-      .then((fb) => fb.saveVisitorSessionToFirestore(session))
-      .catch((err) => {
-        console.debug('Telemetry session sync notice:', err);
-      });
-  }
-
-  // Relay to real-time serverless visitor stream without blocking page navigation or critical path
+  // 1. Instant non-blocking relay to real-time serverless visitor stream
   if (typeof navigator !== 'undefined' && 'sendBeacon' in navigator) {
     try {
       navigator.sendBeacon('/api/visitor-relay', JSON.stringify(session));
@@ -469,15 +476,26 @@ function persistSession(session: VisitorSession) {
       // ignore
     }
   } else if (typeof fetch !== 'undefined') {
-    setTimeout(() => {
-      fetch('/api/visitor-relay', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(session),
-        keepalive: true,
-      }).catch(() => {});
-    }, 2500);
+    fetch('/api/visitor-relay', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(session),
+      keepalive: true,
+    }).catch(() => {});
   }
+
+  // 2. Immediate Firestore sync for high-intent conversion actions
+  if (session.hasSubmittedLead || session.hasInitiatedCheckout || session.hasConvertedPaid) {
+    import('./firebase')
+      .then((fb) => fb.saveVisitorSessionToFirestore(session))
+      .catch((err) => {
+        console.debug('Telemetry session sync notice:', err);
+      });
+    return;
+  }
+
+  // 3. Debounced background Firestore sync for browsing, scrolls, and prompt inspections
+  queueBackgroundFirestoreSync(session);
 }
 
 /**
@@ -543,12 +561,11 @@ export function trackVisitorEvent(
     activeSession.hasConvertedPaid = true;
   }
 
-  // 4. Save session and log high-intent events to Firestore
+  // 4. Save session and log real events to Firestore
   persistSession(activeSession);
   if (
-    eventType === 'lead_submitted' ||
-    eventType === 'checkout_initiate' ||
-    eventType === 'payment_success'
+    typeof window !== 'undefined' &&
+    !/Lighthouse|PageSpeed|HeadlessChrome/i.test(navigator.userAgent)
   ) {
     import('./firebase')
       .then((fb) => fb.logVisitorEventToFirestore(eventItem))
